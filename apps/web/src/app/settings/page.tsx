@@ -1,73 +1,119 @@
 import type { Metadata } from "next";
-import { ABSENT_FEATURE_NOTES } from "@/components/settings/fields";
+import { THEMES } from "@taste-inbox/ui/theme";
+import { FoundationStatus } from "@/components/foundation/FoundationStatus";
+import { ThemePreviewGrid } from "@/components/foundation/ThemePreviewGrid";
+import { AccountsSection } from "@/components/settings/AccountsSection";
+import { ProfileSection } from "@/components/settings/ProfileSection";
 import { SettingsForm } from "@/components/settings/SettingsForm";
-import { getRepository } from "@/lib/repository";
+import { LaunchdPanel, type LaunchdPanelData } from "@/components/system/LaunchdPanel";
+import { ThemePicker } from "@/components/theme/ThemePicker";
+import {
+  ApiDataError,
+  getRepository,
+  resolveDataSource,
+  type TasteInboxRepository,
+} from "@/lib/repository";
 import { isRemoteReadOnly, REMOTE_READ_ONLY_MESSAGE } from "@/lib/remote-mode";
-import { saveSettings, saveSourceSetting } from "./actions";
+import {
+  collectAccountNow,
+  connectAccount,
+  disconnectAccount,
+  saveProfileName,
+  saveSettings,
+} from "./actions";
 import "./settings.css";
+import "./system.css";
 
 export const metadata: Metadata = { title: "Settings · Taste Inbox" };
 
 /**
- * Settings — PAGE_SPECIFICATIONS.md §11.
+ * Settings — everything about how this Mac is set up, on one page (2026-09-28).
  *
- * A Server Component that fetches once and hands the document to one Client Component
- * (CLAUDE.md §6). Everything interactive lives in `SettingsForm`; the page itself is the
- * heading, the lead, and the two Server Actions.
- *
- * **Smaller than the spec, on purpose.** §11 lists six sections, and most of what it names
- * has no state behind it in this build: ceremonial entry needs a Splash that does not exist,
- * personalization-signal ranking needs a ranker that does not exist, and price-change
- * notifications need the product resolution that decision #3 deliberately removed
- * (docs/DECISIONS.md, 2026-08-09). Rendering those as switches would be five controls that
- * change nothing, which is worse than not offering them — so the sections that do not exist
- * say so in a sentence instead.
+ * It used to be two: System (the Mac, the themes, the launchd plan) and Settings (the
+ * configuration), with the only way into Settings a link on System. The order now follows
+ * what a person comes here to do: say whose signals to collect, then how often, then how it
+ * looks, then — for when something seems off — what this Mac is and what runs on it.
  */
-export default async function SettingsPage() {
-  if (isRemoteReadOnly()) {
-    return (
-      <header className="settings-header">
-        <h1 className="type-page-title">Settings</h1>
-        <p className="type-body settings-lead">{REMOTE_READ_ONLY_MESSAGE}</p>
-      </header>
-    );
+
+async function loadLaunchdPlan(repository: TasteInboxRepository): Promise<LaunchdPanelData> {
+  try {
+    return { ok: true, plan: await repository.getLaunchdPlan() };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof ApiDataError ? error.message : "알 수 없는 이유로 실패했어요.",
+    };
   }
-  const settings = await getRepository().getSettings();
+}
+
+export default async function SettingsPage() {
+  const repository = getRepository();
+  const dataSource = resolveDataSource();
+  const readOnly = isRemoteReadOnly();
+
+  const [hostProfile, resourcePolicy, boardCounts, jobs, launchd, settings, accounts, profile] =
+    await Promise.all([
+      repository.getHostProfile(),
+      repository.getResourcePolicy(),
+      repository.getBoardCounts(),
+      repository.listJobs(),
+      loadLaunchdPlan(repository),
+      readOnly ? Promise.resolve(null) : repository.getSettings(),
+      readOnly ? Promise.resolve(null) : repository.getAccounts(),
+      readOnly ? Promise.resolve(null) : repository.getProfile(),
+    ]);
 
   return (
     <>
       <header className="settings-header">
         <h1 className="type-page-title">Settings</h1>
         <p className="type-body settings-lead">
-          바꾼 값과 기본값을 구분해서 보여줍니다. 각 설정이 언제부터 적용되는지도 함께 적혀 있어요.
+          {readOnly
+            ? REMOTE_READ_ONLY_MESSAGE
+            : "누구의 신호를 모을지, 얼마나 자주 모을지, 어떻게 보일지를 여기서 정해요. 아래에는 이 Mac의 상태가 있어요."}
         </p>
       </header>
 
-      <SettingsForm settings={settings} onSave={saveSettings} onToggleSource={saveSourceSetting} />
+      {profile === null ? null : (
+        <ProfileSection name={profile.name ?? ""} onSave={saveProfileName} />
+      )}
 
-      {/*
-        Rendered here rather than inside the form because none of it is interactive, and a
-        Client Component should not ship eight paragraphs of static prose to the browser
-        (CLAUDE.md §6). `role="note"` so a screen reader announces the region as an aside
-        rather than as another group of settings the user failed to find controls in.
-      */}
-      <section className="settings-section" aria-labelledby="settings-absent">
-        <h2 id="settings-absent" className="type-section-title">
-          아직 없는 설정
+      {accounts === null ? null : (
+        <AccountsSection
+          accounts={accounts.accounts}
+          onConnect={connectAccount}
+          onDisconnect={disconnectAccount}
+          onCollect={collectAccountNow}
+        />
+      )}
+
+      {settings === null ? null : <SettingsForm settings={settings} onSave={saveSettings} />}
+
+      <section className="system-section" aria-labelledby="themes-heading">
+        <h2 id="themes-heading" className="type-section-title">
+          테마
         </h2>
-        <p className="type-body settings-lead">
-          명세에는 있지만 뒤에 아무 상태도 없는 항목들이에요. 켜고 꺼도 달라지는 게 없는 스위치를
-          두는 대신, 왜 없는지 적어 둡니다.
+        <p className="type-body system-lead">
+          테마는 {THEMES.length}종이고 기본값은 <strong>Meadow Cream</strong>입니다. 고른 테마는 이
+          브라우저에만 저장돼요.
         </p>
-        <ul className="settings-absent-list" role="note" aria-label="아직 없는 설정">
-          {ABSENT_FEATURE_NOTES.map((note) => (
-            <li key={note.heading}>
-              <p className="type-body settings-absent-heading">{note.heading}</p>
-              <p className="type-body-small settings-absent-body">{note.body}</p>
-            </li>
-          ))}
-        </ul>
+        <ThemePicker />
+        <details className="system-theme-ramps">
+          <summary className="type-body-small">각 테마의 색 값 보기</summary>
+          <ThemePreviewGrid themes={THEMES} />
+        </details>
       </section>
+
+      <FoundationStatus
+        dataSource={dataSource}
+        hostProfile={hostProfile}
+        resourcePolicy={resourcePolicy}
+        aiItemCount={boardCounts.ai}
+        styleItemCount={boardCounts.style}
+        jobs={jobs}
+      />
+
+      <LaunchdPanel data={launchd} dataSource={dataSource} />
     </>
   );
 }

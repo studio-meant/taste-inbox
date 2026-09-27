@@ -19,7 +19,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         <ContextBar
           start={
             <Link
-              href="/system"
+              href="/today"
               className="type-body-small"
               style={{
                 display: "inline-flex",
@@ -30,7 +30,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
               }}
             >
               <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
-              System으로
+              워크스페이스로
             </Link>
           }
           center={<span className="type-body-small">Settings</span>}

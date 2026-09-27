@@ -8,21 +8,14 @@ import type {
   SettingText,
   SettingsDocument,
   SettingsPatchRequest,
-  SourceCollectionState,
-  SourcePlatform,
 } from "@taste-inbox/shared";
-import type { StatusTone } from "@taste-inbox/ui/theme";
 import {
-  Ban,
-  Check,
   CircleDashed,
   CircleDot,
-  CircleHelp,
   FileText,
   Lock,
   Pencil,
   RefreshCw,
-  TriangleAlert,
   Wrench,
   Zap,
   type LucideIcon,
@@ -326,11 +319,6 @@ export type SaveSettings = (
   changes: SettingsPatchRequest["changes"],
 ) => Promise<SettingsWriteResult>;
 
-export type SaveSourceSetting = (
-  platform: SourcePlatform,
-  enabled: boolean,
-) => Promise<SettingsWriteResult>;
-
 export interface Badge {
   readonly label: string;
   readonly icon: LucideIcon;
@@ -360,81 +348,6 @@ export const EFFECT_BADGE: Readonly<Record<SettingEffect, Badge>> = {
 export const FIXED_BADGE: Badge = { label: "고정됨", icon: Lock };
 
 export const UNSAVED_BADGE: Badge = { label: "저장 안 됨", icon: CircleDot };
-
-export interface SourceStatePresentation {
-  readonly label: string;
-  readonly tone: StatusTone;
-  readonly icon: LucideIcon;
-}
-
-/**
- * The five collection states as this screen names them.
- *
- * Kept beside the screen rather than in `lib/status` because that module maps the Style
- * board's match grades and nothing else yet; a second consumer of these five is the moment
- * to move them, not before. The wording follows `PartialFailureNotice`'s reason table so
- * Today and Settings describe the same stopped LinkedIn login the same way.
- */
-export const SOURCE_STATE: Readonly<Record<SourceCollectionState, SourceStatePresentation>> = {
-  collected: { label: "정상 수집", tone: "ready", icon: Check },
-  skipped: { label: "이번 차례 건너뜀", tone: "neutral", icon: CircleHelp },
-  auth_required: { label: "다시 로그인 필요", tone: "warning", icon: TriangleAlert },
-  failed: { label: "수집 실패", tone: "danger", icon: TriangleAlert },
-  disabled: { label: "꺼짐", tone: "neutral", icon: Ban },
-};
-
-/**
- * The §11 sections with nothing to bind to.
- *
- * One sentence each, no control. Every one of them was a row of switches in
- * `PAGE_SPECIFICATIONS.md` §11; each is here instead because the state it would bind to is
- * absent, inert, or was removed by a recorded decision. The governing line is the one that
- * removed the Style board's product fields: *a filter over a field nothing produces returns
- * everything or nothing* — and a setting over one is the same failure.
- *
- * A note leaves this list the day its state arrives. §11.1's `ceremonial entry: full /
- * brief / skip` did: it is `general.ceremonialEntry` in 일반 now, so the note beside it says
- * only what is still missing rather than going on claiming the whole line is unbuilt.
- */
-export interface AbsentFeatureNote {
-  readonly heading: string;
-  readonly body: string;
-}
-
-export const ABSENT_FEATURE_NOTES: readonly AbsentFeatureNote[] = [
-  {
-    heading: "이름 · 첫 화면",
-    body: "이름은 아직 어디에도 저장되지 않아요. 인사말은 시각에 따라서만 달라지고 이름은 부르지 않습니다. 첫 화면도 고를 수 없어서, 시작 연출이 끝나면 늘 Today로 들어와요. 시작 연출 자체는 이제 일반 항목에서 고를 수 있습니다.",
-  },
-  {
-    heading: "좋아요 · 저장 · 리포스트 · 스타",
-    body: "좋아요·저장·리포스트·스타는 기록만 하고, 순서를 매기는 곳이 아직 없어요. 스위치를 두면 켜고 꺼도 화면이 똑같아서 두지 않았습니다.",
-  },
-  {
-    heading: "열기 · 고정 · 보관 · 숨기기",
-    body: "열기·고정·보관·숨기기는 제품에 아예 없는 동작이라 끌 것도 없어요.",
-  },
-  {
-    heading: "보관 기간 · 원문 보관 · 내보내기와 삭제",
-    body: "수집한 글과 원본 기록을 지우는 기능이 아직 없어서 보관 기간을 정할 수 없어요. 내보내기와 삭제도 아직 만들어지지 않았습니다.",
-  },
-  {
-    heading: "프라이버시 모드",
-    body: "가릴 대상이던 가격과 구매처는 제품에서 빠졌고 알림도 없어서, 지금 가릴 것은 사진과 계정 이름뿐이라 별도 모드를 두지 않았어요.",
-  },
-  {
-    heading: "아침 요약 · 저녁 브리프 · 로그인 필요 알림",
-    body: "알림을 보내는 기능이 아직 없어요. 시각은 설정 파일에 적혀 있지만 아무 것도 읽지 않고, 로그인 만료는 Today 화면에서만 알려드립니다.",
-  },
-  {
-    heading: "실행 환경 준비 알림 (제거됨)",
-    body: "코드를 대신 실행하는 기능을 뺐기 때문에, 준비될 환경 자체가 없어요 (2026-08-09 결정).",
-  },
-  {
-    heading: "가격 변동 알림 (제거됨)",
-    body: "Style 보드는 상품을 찾지 않기로 해서, 지켜볼 가격이 없어요 (2026-08-09 결정).",
-  },
-];
 
 /** Said inside the sections that do render, about the controls those sections do not have. */
 export const SECTION_ASIDE: Readonly<Partial<Record<SettingsSectionId, string>>> = {

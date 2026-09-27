@@ -29,12 +29,14 @@ import { cx } from "@/lib/cx";
  * pills instead of three.
  */
 export interface GreetingScreenProps {
+  /** The workspace owner's name from onboarding. */
+  readonly name?: string | null;
   readonly today: TodayPayload;
   /** Advance to Today. */
   readonly onBegin: () => void;
 }
 
-export function GreetingScreen({ today, onBegin }: GreetingScreenProps) {
+export function GreetingScreen({ today, name = null, onBegin }: GreetingScreenProps) {
   const pills = entryStatusPills(today.counts);
 
   return (
@@ -64,7 +66,7 @@ export function GreetingScreen({ today, onBegin }: GreetingScreenProps) {
           className={cx(styles.headline, styles.motionItem)}
           style={{ ["--i" as string]: "2" }}
         >
-          {greetingHeadline(today.greeting)}
+          {greetingHeadline(today.greeting, name)}
         </h1>
 
         <p className={cx(styles.subline, styles.motionItem)} style={{ ["--i" as string]: "3" }}>

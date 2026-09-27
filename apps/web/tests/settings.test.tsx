@@ -1,8 +1,8 @@
 import type { SettingsDocument, SettingsPatchRequest } from "@taste-inbox/shared";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ABSENT_FEATURE_NOTES, SETTING_FIELDS } from "@/components/settings/fields";
-import type { SaveSettings, SaveSourceSetting } from "@/components/settings/fields";
+import { SETTING_FIELDS } from "@/components/settings/fields";
+import type { SaveSettings } from "@/components/settings/fields";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { MockSettingsStore } from "@/lib/mock/settings";
 
@@ -34,13 +34,9 @@ function withChange(changes: SettingsPatchRequest["changes"]): SettingsDocument 
 // Typed as the real callbacks rather than as bare thunks, so `vi.fn` keeps their arity and
 // a test can assert what was actually sent.
 const accepted: SaveSettings = () => Promise.resolve({ ok: true, settings: document_() });
-const sourceRefused: SaveSourceSetting = () =>
-  Promise.resolve({ ok: false, message: "아직 켜고 끌 수 없어요." });
 
 function show(settings: SettingsDocument = document_(), onSave = accepted) {
-  return render(
-    <SettingsForm settings={settings} onSave={onSave} onToggleSource={sourceRefused} />,
-  );
+  return render(<SettingsForm settings={settings} onSave={onSave} />);
 }
 
 /** The `<li>` a given setting lives in, found by its visible label. */
@@ -83,11 +79,11 @@ describe("Where a value came from", () => {
 });
 
 describe("When a change takes effect", () => {
-  it("says a schedule change waits for the jobs to be reinstalled", () => {
-    // Saving the interval changes what the *next* install writes and nothing about the
-    // plists already loaded, so 즉시 적용 would be false.
+  it("says an interval change applies from the next collection", () => {
+    // The in-app scheduler reads the interval every minute (2026-09-28), so a change lands
+    // with the next collection rather than waiting for launchd jobs to be reinstalled.
     show();
-    expect(within(row("수집 간격")).getByText("다음 설치부터")).toBeInTheDocument();
+    expect(within(row("수집 간격")).getByText("다음 수집부터")).toBeInTheDocument();
   });
 
   it("says a manual-refresh change applies at once", () => {
@@ -125,18 +121,6 @@ describe("When a change takes effect", () => {
 });
 
 describe("What this screen cannot do", () => {
-  it("does not present a source switch as something that stops a collector", () => {
-    // `source_accounts.enabled` is written and read by nothing: the schedule iterates a
-    // hardcoded SOURCE_ORDER and ingestion reads every capture file present. The switch
-    // would turn off no collector, so it must not look like it would.
-    show();
-    for (const control of screen.queryAllByRole("switch")) {
-      if (/Instagram|GitHub|Threads|LinkedIn/.test(control.getAttribute("aria-label") ?? "")) {
-        expect(control).toBeDisabled();
-      }
-    }
-  });
-
   it("shows a fixed setting as text rather than as an input", () => {
     const settings = document_();
     expect(settings.general.timezone.editable).toBe(false);
@@ -232,36 +216,5 @@ describe("Saving", () => {
     show();
     fireEvent.change(interval(), { target: { value: "6" } });
     expect(within(row("수집 간격")).getByText("저장 안 됨")).toBeInTheDocument();
-  });
-});
-
-describe("The sections that do not exist", () => {
-  it("gives an absent feature a reason instead of a dead switch", () => {
-    // §11 asks for ceremonial entry, signal ranking, export/delete and price-change
-    // notifications. None has state behind it, and the last was removed with the Style
-    // board's product resolution (docs/DECISIONS.md, 2026-08-09).
-    render(
-      <ul role="note" aria-label="아직 없는 설정">
-        {ABSENT_FEATURE_NOTES.map((note) => (
-          <li key={note.heading}>
-            <p>{note.heading}</p>
-            <p>{note.body}</p>
-          </li>
-        ))}
-      </ul>,
-    );
-    const note = screen.getByRole("note", { name: "아직 없는 설정" });
-    expect(within(note).queryByRole("switch")).not.toBeInTheDocument();
-    expect(within(note).queryByRole("spinbutton")).not.toBeInTheDocument();
-    expect(within(note).queryByRole("checkbox")).not.toBeInTheDocument();
-  });
-
-  it("names the decision that removed a feature rather than only saying it is missing", () => {
-    // "없어요" invites someone to add it back. "2026-08-09 결정" says it was decided.
-    const removed = ABSENT_FEATURE_NOTES.filter((note) => note.heading.includes("제거됨"));
-    expect(removed.length).toBeGreaterThan(0);
-    for (const note of removed) {
-      expect(note.body).toMatch(/\d{4}-\d{2}-\d{2} 결정/);
-    }
   });
 });

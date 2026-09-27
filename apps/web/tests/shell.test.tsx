@@ -236,14 +236,16 @@ describe("WorkspaceStatusButton", () => {
     ["failed", "실패"],
   ] as const)("names the %s state in words, not only in colour", (status, word) => {
     render(<WorkspaceStatusButton status={status} />);
-    expect(screen.getByRole("link", { name: `시스템 상태 ${word}, 열기` })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: `설정 · 시스템 상태 ${word}, 열기` }),
+    ).toBeInTheDocument();
   });
 
   it("carries the count in the accessible name and as a digit", () => {
     render(<WorkspaceStatusButton status="attention" count={3} />);
 
-    const link = screen.getByRole("link", { name: "시스템 상태 확인 필요 3건, 열기" });
-    expect(link).toHaveAttribute("href", "/system");
+    const link = screen.getByRole("link", { name: "설정 · 시스템 상태 확인 필요 3건, 열기" });
+    expect(link).toHaveAttribute("href", "/settings");
     expect(link).toHaveTextContent("3");
   });
 

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import {
   AppShell,
   ContextBar,
@@ -32,7 +33,9 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   // Board counts left with the strip that used them: the rail computes its own from the
   // page's data, so fetching them here was a second round trip for a number already on
   // screen a few pixels away.
-  const jobs = await repository.listJobs();
+  const [jobs, profile] = await Promise.all([repository.listJobs(), repository.getProfile()]);
+  // A workspace nobody has set up has nothing to show and nobody to greet (2026-09-28).
+  if (!profile.onboarded) redirect("/onboarding");
   const blocked = jobs.filter((job) => job.state === "blocked" || job.state === "failed");
 
   return (
@@ -47,7 +50,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       ambient="quiet"
       contextBar={
         <ContextBar
-          profileName="Suzie"
+          profileName={profile.name ?? ""}
           timeLabel={formatContextBarTime(new Date())}
           dateLabel={formatContextBarDate(new Date())}
           /*

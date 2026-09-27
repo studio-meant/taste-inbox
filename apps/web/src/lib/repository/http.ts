@@ -1,5 +1,11 @@
 import {
+  OnboardingRequestSchema,
+  OnboardingResponseSchema,
+  ProfileSchema,
+  AccountConnectResponseSchema,
+  AccountsResponseSchema,
   AIItemCardModelSchema,
+  JobStartResponseSchema,
   EffectiveResourcePolicySchema,
   FocusPayloadSchema,
   HostProfileSchema,
@@ -17,6 +23,12 @@ import {
   ResearchStartResponseSchema,
   StyleItemCardModelSchema,
   TrialStartResponseSchema,
+  type OnboardingRequest,
+  type OnboardingResponse,
+  type Profile,
+  type AccountConnectResponse,
+  type AccountPlatform,
+  type AccountsResponse,
   type AIItemCardModel,
   type EffectiveResourcePolicy,
   type FocusPayload,
@@ -186,6 +198,18 @@ export class HttpRepository implements TasteInboxRepository {
       headers: { accept: "application/json", "content-type": "application/json" },
       body: JSON.stringify(body),
     });
+  }
+
+  private put<T>(path: string, body: unknown): Promise<T> {
+    return this.send<T>(path, {
+      method: "PUT",
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  private delete<T>(path: string): Promise<T> {
+    return this.send<T>(path, { method: "DELETE", headers: { accept: "application/json" } });
   }
 
   private post<T>(path: string, body: unknown): Promise<T> {
@@ -543,6 +567,58 @@ export class HttpRepository implements TasteInboxRepository {
       SettingsDocumentSchema,
       await this.patch<unknown>("/api/settings", request.data),
       "설정",
+    );
+  }
+
+  async getProfile(): Promise<Profile> {
+    return HttpRepository.parsed(ProfileSchema, await this.get<unknown>("/api/profile"), "프로필");
+  }
+
+  async updateProfileName(name: string): Promise<Profile> {
+    return HttpRepository.parsed(
+      ProfileSchema,
+      await this.put<unknown>("/api/profile", { name }),
+      "프로필",
+    );
+  }
+
+  async completeOnboarding(request: OnboardingRequest): Promise<OnboardingResponse> {
+    return HttpRepository.parsed(
+      OnboardingResponseSchema,
+      await this.post<unknown>("/api/onboarding", OnboardingRequestSchema.parse(request)),
+      "시작 설정",
+    );
+  }
+
+  async getAccounts(): Promise<AccountsResponse> {
+    return HttpRepository.parsed(
+      AccountsResponseSchema,
+      await this.get<unknown>("/api/accounts"),
+      "연결된 계정",
+    );
+  }
+
+  async connectAccount(platform: AccountPlatform, handle: string): Promise<AccountConnectResponse> {
+    return HttpRepository.parsed(
+      AccountConnectResponseSchema,
+      await this.put<unknown>(`/api/accounts/${encodeURIComponent(platform)}`, { handle }),
+      "계정 연결",
+    );
+  }
+
+  async disconnectAccount(platform: AccountPlatform): Promise<AccountsResponse> {
+    return HttpRepository.parsed(
+      AccountsResponseSchema,
+      await this.delete<unknown>(`/api/accounts/${encodeURIComponent(platform)}`),
+      "계정 연결 해제",
+    );
+  }
+
+  async collectAccount(platform: AccountPlatform): Promise<{ readonly jobId: string }> {
+    return HttpRepository.parsed(
+      JobStartResponseSchema,
+      await this.post<unknown>(`/api/accounts/${encodeURIComponent(platform)}/collect`, {}),
+      "수집 요청",
     );
   }
 

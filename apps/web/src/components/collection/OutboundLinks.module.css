@@ -71,15 +71,31 @@
 }
 
 /*
- * The platform permalink, first in the list.
+ * The card size (`compact`), matched to `Open in Lab` — 11px, a 4px/10px pill.
  *
- * Nothing about it is different from the other rows except that it is about the item
- * rather than about something the item mentions — so it takes the accent the badge had,
- * and no more. It is still a link in a list of links.
+ * The permalink row used to wear the accent the corner badge had; since 2026-09-28 it is a
+ * host like its neighbours (`huggingface.co`, `github.com`), so there is no row to single out.
  */
-.list > li:first-child a[data-source] {
-  border-color: color-mix(in srgb, var(--forest) 24%, transparent);
-  background: color-mix(in srgb, var(--light-green) 38%, var(--surface));
-  color: var(--accent-deep);
-  font-weight: 650;
+.compact .list {
+  gap: 6px;
+}
+
+.compact .link {
+  gap: 5px;
+  min-height: 0;
+  padding: 4px 10px 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rest {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px dashed color-mix(in srgb, var(--ink) 16%, transparent);
+  border-radius: var(--radius-pill);
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 600;
 }

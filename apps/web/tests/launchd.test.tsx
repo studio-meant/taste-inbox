@@ -265,7 +265,7 @@ describe("When the service is not there", () => {
   });
 
   it("catches the failure in the page rather than letting the boundary have it", () => {
-    const page = readSource("app", "system", "page.tsx");
+    const page = readSource("app", "settings", "page.tsx");
     expect(page).toContain("loadLaunchdPlan");
     expect(page).toMatch(/catch\s*\(error\)/);
   });

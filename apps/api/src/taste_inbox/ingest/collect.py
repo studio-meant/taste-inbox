@@ -52,8 +52,9 @@ from pathlib import Path
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from ..api.accounts import PLATFORMS, SEED_LIMIT, SURFACE_PLATFORM, handle_of
 from ..db.models import Checkpoint, CollectorRun
-from ..distribution import browser_automation_available
+from ..distribution import api_collection_available, browser_automation_available
 from ..paths import REPO_ROOT
 from .captures import BROWSER_SURFACES, LIKES_COLLECTOR
 from .cli import DEFAULT_DATABASE_URL
@@ -105,6 +106,36 @@ COLLECTOR_SHAPES: dict[str, CollectorShape] = {
 #: Every id this driver knows how to collect. Kept as a name because the gate, the dry run
 #: and `main` all ask the same membership question.
 BROWSER_COLLECTORS: tuple[str, ...] = tuple(COLLECTOR_SHAPES)
+
+#: The official-API collectors (and the one public-JSON exception), keyed on the surface id.
+#:
+#: Until 2026-09-28 these fell through to "ingest only": the schedule named them, launchd
+#: ran them, and nothing collected — the only collection was a person running `probe api`
+#: with an environment variable. They are reached by account name, which Settings stores
+#: (`api/accounts.py`); the environment variable is still read when Settings holds none.
+API_COLLECTORS: tuple[str, ...] = tuple(SURFACE_PLATFORM)
+
+#: The environment variable an account name falls back to, per platform.
+ACCOUNT_ENV = {"github": "GITHUB_LOGIN", "huggingface": "HF_USERNAME"}
+
+
+def _api_child_argv(collector_id: str, handle: str, last_seen: str | None) -> list[str]:
+    """`probe api` for one surface: incremental from the checkpoint, or a bounded seed."""
+
+    argv = [
+        str(_collector_python()),
+        "-m",
+        "taste_inbox_collectors.cli",
+        "api",
+        "--source",
+        collector_id,
+        "--account",
+        handle,
+    ]
+    if last_seen:
+        return [*argv, "--last-seen", last_seen]
+    return [*argv, "--limit", str(SEED_LIMIT[collector_id])]
+
 
 #: Consecutive login walls before this collector stops asking.
 #:
@@ -340,6 +371,49 @@ def main(argv: list[str] | None = None) -> int:
             completed = subprocess.run(child, check=False, timeout=1800)  # noqa: S603
             collect_rc = completed.returncode
             _emit(event="collect", collector=collector_id, exit=collect_rc)
+    elif collector_id in API_COLLECTORS and not args.skip_collect:
+        if not api_collection_available(REPO_ROOT):
+            _emit(event="distribution_refused", collector=collector_id, why="api collection off")
+            collect_rc = EXIT_DISTRIBUTION_REFUSED
+        else:
+            platform = SURFACE_PLATFORM[collector_id]
+            engine = create_engine(args.database_url or DEFAULT_DATABASE_URL)
+            with sessionmaker(engine)() as session:
+                checkpoint = session.get(Checkpoint, collector_id)
+                last_seen = checkpoint.last_seen_code if checkpoint else None
+                handle = (
+                    handle_of(session, platform)
+                    or os.environ.get(ACCOUNT_ENV[platform], "").strip()
+                    or None
+                )
+            engine.dispose()
+
+            if handle is None:
+                if args.dry_run:
+                    _emit(event="dry_run", collector=collector_id, mode="not_connected")
+                    return 0
+                _emit(
+                    event="not_connected",
+                    collector=collector_id,
+                    why=f"no {PLATFORMS[platform].label} account; add one in Settings",
+                )
+                collect_rc = EXIT_GATED
+            else:
+                child = _api_child_argv(collector_id, handle, last_seen)
+                if args.dry_run:
+                    _emit(
+                        event="dry_run",
+                        collector=collector_id,
+                        last_seen=last_seen,
+                        mode="incremental" if last_seen else "seed",
+                        would_run=child,
+                    )
+                    return 0
+                # The same no-retry rule as the browser branch: every outcome is in the
+                # capture file this child writes, and the next cycle is the retry.
+                completed = subprocess.run(child, check=False, timeout=1800)  # noqa: S603
+                collect_rc = completed.returncode
+                _emit(event="collect", collector=collector_id, exit=collect_rc)
     elif args.dry_run:
         _emit(event="dry_run", collector=collector_id, mode="ingest_only")
         return 0

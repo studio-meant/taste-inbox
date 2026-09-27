@@ -1,3 +1,4 @@
+import { kindLabel } from "@/components/collection/source-vocabulary";
 import type { AIItemCardModel, StyleItemCardModel } from "@taste-inbox/shared";
 import type { FilterGroup } from "@/components/collection/FilterChipRow";
 
@@ -89,7 +90,7 @@ export function aiFilterGroups(items: readonly AIItemCardModel[]): readonly Filt
             legend: "종류",
             options: [...kind].map(([value, count]) => ({
               value,
-              label: KIND_LABEL[value] ?? value,
+              label: kindLabel(value),
               count,
             })),
           },
@@ -103,17 +104,6 @@ export function styleFilterGroups(items: readonly StyleItemCardModel[]): readonl
   // on every collected item, so the group would have one option and narrow nothing.
   return sourceFilterGroups(items);
 }
-
-const KIND_LABEL: Readonly<Record<string, string>> = {
-  repo: "저장소",
-  model: "모델",
-  dataset: "데이터셋",
-  space: "Space",
-  paper: "논문",
-  demo: "데모",
-  tool: "도구",
-  post: "게시물",
-};
 
 const PLATFORM_LABEL: Readonly<Record<string, string>> = {
   github: "GitHub",

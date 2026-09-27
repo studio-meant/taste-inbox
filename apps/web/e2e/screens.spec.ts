@@ -41,9 +41,17 @@ const SCREENS = [
   // and a full-width music row — which is exactly the mix the box-measurement check below
   // exists for. (Places contributes none yet; it reuses the AI grammar when it does.)
   { path: "/library", name: "Inbox", heading: "Inbox", minCards: 3 },
-  { path: "/system", name: "System", heading: "System", minCards: 1 },
-  { path: "/settings", name: "Settings", heading: "Settings", minCards: 0 },
+  // System lives inside Settings since 2026-09-28 — its health cards are the minimum.
+  { path: "/settings", name: "Settings", heading: "Settings", minCards: 1 },
+  // Mock data is already set up, so this is the returning form: the same four answers.
+  { path: "/onboarding", name: "Onboarding", heading: "시작 설정", minCards: 0 },
 ] as const;
+
+test("/system is Settings now, and says so by moving there", async ({ page }) => {
+  await page.goto("/system");
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+});
 
 /*
  * There is no allowlist here, and that is the point.

@@ -138,7 +138,7 @@ export class MockSettingsStore {
           min: 1,
           max: 24,
           origin: this.origin("collection.intervalHours"),
-          effect: "nextInstall",
+          effect: "nextRun",
           editable: true,
         },
         staggerMinutes: {

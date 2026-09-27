@@ -4,7 +4,7 @@ import RootError from "@/app/error";
 import RootLoading from "@/app/loading";
 import NotFound from "@/app/not-found";
 import SettingsLayout from "@/app/settings/layout";
-import SystemLayout from "@/app/system/layout";
+import OnboardingLayout from "@/app/onboarding/layout";
 import WorkspaceLayout from "@/app/(workspace)/layout";
 import type { RawSearchParams } from "@/lib/filters/board-filters";
 import { DesktopNotFoundError, DesktopRedirectError, useDesktopLocation } from "./shims/navigation";
@@ -67,13 +67,14 @@ async function pageFor(pathname: string): Promise<ReactNode> {
       children: await Page({ params: Promise.resolve({ id }), searchParams: params }),
     });
   }
-  if (pathname === "/system") {
-    const Page = (await import("@/app/system/page")).default;
-    return <SystemLayout>{await Page()}</SystemLayout>;
-  }
-  if (pathname === "/settings") {
+  // `/system` is part of Settings since 2026-09-28; the web route redirects, this one renders.
+  if (pathname === "/settings" || pathname === "/system") {
     const Page = (await import("@/app/settings/page")).default;
     return <SettingsLayout>{await Page()}</SettingsLayout>;
+  }
+  if (pathname === "/onboarding") {
+    const Page = (await import("@/app/onboarding/page")).default;
+    return <OnboardingLayout>{await Page()}</OnboardingLayout>;
   }
   return <NotFound />;
 }
@@ -87,8 +88,9 @@ const TITLES: Readonly<Record<string, string>> = {
   "/music": "Music · Taste Inbox",
   "/places": "Places · Taste Inbox",
   "/none": "None · Taste Inbox",
-  "/system": "System · Taste Inbox",
+  "/system": "Settings · Taste Inbox",
   "/settings": "Settings · Taste Inbox",
+  "/onboarding": "시작하기 · Taste Inbox",
 };
 
 export function DesktopRouter() {

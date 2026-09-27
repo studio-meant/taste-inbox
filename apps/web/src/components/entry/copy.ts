@@ -59,9 +59,12 @@ export const FALLBACK_GREETING = "안녕하세요";
  * Korean takes the vocative as a prefix, so any greeting the service sends stays
  * grammatical: `Suzie님, 좋은 아침이에요`, `Suzie님, 오늘 하루 어땠나요`.
  */
-export function greetingHeadline(greeting: string, name: string = PROFILE_NAME): string {
+export function greetingHeadline(greeting: string, name: string | null = PROFILE_NAME): string {
   const line = greeting.trim();
-  return `${name}님, ${line.length > 0 ? line : FALLBACK_GREETING}`;
+  const body = line.length > 0 ? line : FALLBACK_GREETING;
+  // The stored name since 2026-09-28 (onboarding); without one, the greeting alone.
+  const who = name?.trim() ?? "";
+  return who === "" ? body : `${who}님, ${body}`;
 }
 
 /**

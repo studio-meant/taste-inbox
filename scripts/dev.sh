@@ -38,9 +38,15 @@ for port in "$API_PORT" "$WEB_PORT"; do
   fi
 done
 
+# A first run has no database, and creating an empty one loses nothing — so it is created
+# here rather than refused. The app then opens on onboarding (2026-09-28). An *existing*
+# database behind the migrations is still only warned about below: migrating that is a
+# decision about someone's data, not a side effect of starting a dev server.
 if [[ ! -f "$DB_PATH" ]]; then
-  die "no database at ${DB_PATH}. Run the migrations first:
-    cd apps/api && DATABASE_URL=\"sqlite:///${DB_PATH}\" uv run alembic upgrade head"
+  say "no database yet — creating ${DB_PATH##*/} (first run)"
+  mkdir -p "$(dirname "$DB_PATH")"
+  (cd "$ROOT/apps/api" && DATABASE_URL="sqlite:///${DB_PATH}" uv run alembic upgrade head >/dev/null) \
+    || die "could not create the database at ${DB_PATH}"
 fi
 
 # Warn rather than migrate. A migration is not trivially reversible, and running one as a
@@ -81,6 +87,10 @@ trap cleanup INT TERM EXIT
 env_value() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true; }
 AIQ_SERVER_URL="${AIQ_SERVER_URL:-$(env_value AIQ_SERVER_URL)}"
 NEMOCLAW_SANDBOX_NAME="${NEMOCLAW_SANDBOX_NAME:-$(env_value NEMOCLAW_SANDBOX_NAME)}"
+# Optional collector tokens: passed through to the collectors only, never shown anywhere
+# (Settings reports whether each is set). Public stars, likes and upvotes need neither.
+GITHUB_TOKEN="${GITHUB_TOKEN:-$(env_value GITHUB_TOKEN)}"
+HF_TOKEN="${HF_TOKEN:-$(env_value HF_TOKEN)}"
 [[ -n "$AIQ_SERVER_URL" ]] || say "AIQ_SERVER_URL is not set — research will refuse until it is."
 
 say "api  → ${API_URL}   (${DB_PATH##*/})"
@@ -94,6 +104,9 @@ say "api  → ${API_URL}   (${DB_PATH##*/})"
   DATABASE_URL="sqlite:///${DB_PATH}" \
   AIQ_SERVER_URL="$AIQ_SERVER_URL" \
   NEMOCLAW_SANDBOX_NAME="$NEMOCLAW_SANDBOX_NAME" \
+  GITHUB_TOKEN="$GITHUB_TOKEN" \
+  HF_TOKEN="$HF_TOKEN" \
+  TASTE_INBOX_SCHEDULER=1 \
     exec uv run uvicorn taste_inbox.api.app:app --host 127.0.0.1 --port "$API_PORT" \
     --reload --reload-dir src
 ) &
@@ -116,7 +129,7 @@ printf '\n'
   cd "$ROOT/apps/web"
   NEXT_PUBLIC_DATA_SOURCE=live \
   TASTE_INBOX_API_URL="$API_URL" \
-    exec pnpm exec next dev --port "$WEB_PORT"
+    exec pnpm exec next dev --hostname 127.0.0.1 --port "$WEB_PORT"
 ) &
 WEB_PID=$!
 

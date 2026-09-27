@@ -317,13 +317,11 @@ describe("SavedItemsSummaryCard", () => {
     // The split used to be one prose line. It is now a three-segment meter plus the two
     // tags that name it — the same two numbers, still as text, because a bar alone would
     // make the split colour-only (CLAUDE.md §6).
-    expect(screen.getByText("AI 11")).toBeInTheDocument();
-    expect(screen.getByText("Style 6")).toBeInTheDocument();
-    // Zero boards are not drawn: on a quiet day the row would otherwise be a line of
-    // noughts restating a headline that already said nothing arrived. Places is always one
-    // of them today, which is exactly the case this covers.
-    expect(screen.queryByText(/^Music /)).toBeNull();
-    expect(screen.queryByText(/^Places /)).toBeNull();
+    // By kind since 2026-09-28 — the axis the Inbox rail counts, largest first.
+    const chips = ["Post 7", "Outfit 6", "Repo 4"].map((label) => screen.getByText(label));
+    expect(chips).toHaveLength(3);
+    // No board names any more: every item in this edition is on one board.
+    expect(screen.queryByText(/^AI /)).toBeNull();
 
     const sources = screen.getByRole("list", { name: "수집한 출처" });
     expect(within(sources).getAllByRole("listitem")).toHaveLength(4);
@@ -385,7 +383,7 @@ describe("WorkingQueuePanel", () => {
     const today = await payload();
     render(<WorkingQueuePanel items={today.workingQueue} />);
     const row = screen.getByText("LinkedIn Reactions").closest("a");
-    expect(row).toHaveAttribute("href", "/system");
+    expect(row).toHaveAttribute("href", "/settings");
   });
 
   it("shows a meter only for rows that report progress", async () => {
@@ -431,10 +429,7 @@ describe("WorkingQueuePanel", () => {
       screen.getByRole("heading", { name: "지금 기다리는 작업은 없어요" }),
     ).toBeInTheDocument();
     // The card still offers its way out, so an empty queue is not a dead end.
-    expect(screen.getByRole("link", { name: /시스템 상태 열기/ })).toHaveAttribute(
-      "href",
-      "/system",
-    );
+    expect(screen.getByRole("link", { name: /설정 열기/ })).toHaveAttribute("href", "/settings");
   });
 });
 
@@ -565,38 +560,22 @@ describe("PreviousDaySection", () => {
 });
 
 describe("SavedItemsSummaryCard split", () => {
-  it("names every board that received something, and they add up", async () => {
-    /*
-     * The card computes `기타 = newItemCount - ai - style` and draws a meter from the parts,
-     * so the chips are a division of the headline — not board totals. The service was
-     * feeding it whole-board counts: `10 새 항목` over `AI 41` and `Style 76`, with
-     * `Math.max(0, 10 - 41 - 76)` clamping -107 to zero so it looked deliberate.
-     *
-     * Every board on purpose. The reference draws two, and porting that shape left every
-     * saved Reel inside the anonymous remainder — a segment in the bar with no name. A
-     * board added without a chip lands in that same remainder, so Places carries one too.
-     */
+  it("names every kind that arrived, and they add up to the headline", async () => {
     const today = await payload();
     render(
       <SavedItemsSummaryCard
         summary={{
           ...today.savedSummary,
-          newItemCount: 14,
-          aiCount: 5,
-          styleCount: 4,
-          musicCount: 3,
-          placesCount: 2,
+          newItemCount: 135,
+          kindCounts: { repo: 120, paper: 9, dataset: 3, space: 3 },
         }}
       />,
     );
 
-    expect(screen.getByText("14")).toBeInTheDocument();
-    const parts = ["AI 5", "Style 4", "Music 3", "Places 2"].map((label) => {
-      const node = screen.getByText(label);
-      return Number(node.textContent.replace(/[^0-9]/g, ""));
-    });
-    expect(parts.reduce((sum, count) => sum + count, 0)).toBe(14);
-    // Nothing is left over, so no anonymous remainder chip.
+    const parts = ["Repo 120", "Paper 9", "Dataset 3", "Space 3"].map((label) =>
+      Number(screen.getByText(label).textContent.replace(/[^0-9]/g, "")),
+    );
+    expect(parts.reduce((sum, count) => sum + count, 0)).toBe(135);
     expect(screen.queryByText(/^기타 /)).toBeNull();
   });
 
@@ -604,17 +583,10 @@ describe("SavedItemsSummaryCard split", () => {
     const today = await payload();
     render(
       <SavedItemsSummaryCard
-        summary={{
-          ...today.savedSummary,
-          newItemCount: 10,
-          aiCount: 4,
-          styleCount: 0,
-          musicCount: 0,
-          placesCount: 0,
-        }}
+        summary={{ ...today.savedSummary, newItemCount: 10, kindCounts: { paper: 4 } }}
       />,
     );
-    expect(screen.getByText("AI 4")).toBeInTheDocument();
+    expect(screen.getByText("Paper 4")).toBeInTheDocument();
     expect(screen.getByText("기타 6")).toBeInTheDocument();
   });
 });

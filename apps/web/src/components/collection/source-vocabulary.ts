@@ -1,4 +1,4 @@
-import type { SourcePlatform, SourceRef } from "@taste-inbox/shared";
+import type { ItemKind, SourcePlatform, SourceRef } from "@taste-inbox/shared";
 
 /**
  * How a collected signal is named on screen.
@@ -46,4 +46,30 @@ export function sourceBadgeText(source: SourceRef): string {
   const platform = PLATFORM_LABEL[source.platform];
   const action = source.actionType == null ? null : ACTION_LABEL[source.actionType];
   return action === null ? platform : `${platform} ${action}`;
+}
+
+/**
+ * What an item is, in English everywhere it is named (2026-09-28).
+ *
+ * `Repo`, `Paper`, `Dataset`, `Space` are the product's own nouns — the Inbox rail, the
+ * card eyebrow, the Today split and the Lab hero all say the same word, and the rail's
+ * one-letter glyph is that word's first letter. Four copies of this table, three of them in
+ * Korean, is how the rail came to draw `논` beside `Space`.
+ */
+const KIND_LABEL: Readonly<Record<ItemKind, string>> = {
+  repo: "Repo",
+  model: "Model",
+  dataset: "Dataset",
+  space: "Space",
+  paper: "Paper",
+  demo: "Demo",
+  tool: "Tool",
+  post: "Post",
+  product: "Product",
+  outfit: "Outfit",
+};
+
+/** The label for a kind, or the raw value for one this table does not know. */
+export function kindLabel(kind: string): string {
+  return Object.hasOwn(KIND_LABEL, kind) ? KIND_LABEL[kind as ItemKind] : kind;
 }

@@ -12,11 +12,9 @@ import {
   SETTING_FIELDS,
   savedValue,
   type SaveSettings,
-  type SaveSourceSetting,
   type SettingValue,
 } from "./fields";
 import { SettingRow } from "./SettingRow";
-import { SourceSettingsList } from "./SourceSettingsList";
 import styles from "./Settings.module.css";
 
 /**
@@ -37,10 +35,9 @@ import styles from "./Settings.module.css";
 export interface SettingsFormProps {
   readonly settings: SettingsDocument;
   readonly onSave: SaveSettings;
-  readonly onToggleSource: SaveSourceSetting;
 }
 
-export function SettingsForm({ settings: initial, onSave, onToggleSource }: SettingsFormProps) {
+export function SettingsForm({ settings: initial, onSave }: SettingsFormProps) {
   const [settings, setSettings] = useState<SettingsDocument>(initial);
   const [draft, setDraft] = useState<SettingsPatchRequest["changes"]>({});
   const [busy, setBusy] = useState(false);
@@ -81,21 +78,6 @@ export function SettingsForm({ settings: initial, onSave, onToggleSource }: Sett
     setFailure(result.message);
   }
 
-  const toggleSource: SaveSourceSetting = async (platform, enabled) => {
-    setBusy(true);
-    setFailure(null);
-    setAnnouncement("");
-    const result = await onToggleSource(platform, enabled);
-    setBusy(false);
-    if (result.ok) {
-      setSettings(result.settings);
-      setAnnouncement("계정 설정을 저장했어요.");
-    } else {
-      setFailure(result.message);
-    }
-    return result;
-  };
-
   function revert(): void {
     setDraft({});
     setFailure(null);
@@ -132,17 +114,6 @@ export function SettingsForm({ settings: initial, onSave, onToggleSource }: Sett
           </section>
         );
       })}
-
-      <section className="settings-section" aria-labelledby="settings-sources">
-        <h2 id="settings-sources" className="type-section-title">
-          연결된 계정
-        </h2>
-        <p className="type-body settings-lead">
-          수집기가 실제로 다녀온 계정입니다. 계정을 켜고 끄는 값과 별칭은 설정 파일에만 있고 아직
-          아무 코드도 읽지 않아서, 지금은 상태만 보여드려요.
-        </p>
-        <SourceSettingsList sources={settings.sources} onToggle={toggleSource} busy={busy} />
-      </section>
 
       <p className={cx(styles.reason, "type-body-small")}>
         이 값들은 {formatDateTime(settings.generatedAt)} 기준입니다. 바꿀 수 있는 값은 전체{" "}

@@ -1,4 +1,4 @@
-import type { FocusJob, FocusPayload, ItemKind, JobState } from "@taste-inbox/shared";
+import type { FocusJob, FocusPayload, JobState } from "@taste-inbox/shared";
 import type { StatusTone } from "@taste-inbox/ui/theme";
 
 /**
@@ -77,23 +77,9 @@ export const JOB_STATE_TONE: Readonly<Record<JobState, StatusTone>> = {
   blocked: "danger",
 };
 
-export const KIND_LABEL: Readonly<Record<ItemKind, string>> = {
-  repo: "저장소",
-  model: "모델",
-  dataset: "데이터셋",
-  space: "Space",
-  paper: "논문",
-  demo: "데모",
-  tool: "도구",
-  post: "게시물",
-  product: "상품",
-  outfit: "스타일",
-};
-
-/** A kind named in a payload map key, which the schema types only as a string. */
-export function kindLabel(kind: string): string {
-  return Object.hasOwn(KIND_LABEL, kind) ? KIND_LABEL[kind as ItemKind] : kind;
-}
+// Kind names live in one place (`collection/source-vocabulary.ts`), in English, so the Lab
+// hero says the same word as the Inbox card that opened it.
+export { kindLabel } from "@/components/collection/source-vocabulary";
 
 /**
  * Wall time a job took, as `3분 12초`. Null until it has both ends.

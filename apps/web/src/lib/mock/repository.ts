@@ -1,4 +1,5 @@
 import {
+  AccountsResponseSchema,
   AIItemCardModelSchema,
   EffectiveResourcePolicySchema,
   FocusPayloadSchema,
@@ -9,6 +10,12 @@ import {
   MusicItemCardModelSchema,
   StyleItemCardModelSchema,
   TodayPayloadSchema,
+  type OnboardingRequest,
+  type OnboardingResponse,
+  type Profile,
+  type AccountConnectResponse,
+  type AccountPlatform,
+  type AccountsResponse,
   type AIItemCardModel,
   type EffectiveResourcePolicy,
   type FocusPayload,
@@ -554,6 +561,128 @@ export class MockRepository implements TasteInboxRepository {
 
   updateSettings(changes: SettingsPatchRequest["changes"]): Promise<SettingsDocument> {
     return Promise.resolve(this.rejectable(() => this.settings.apply(changes)));
+  }
+
+  /**
+   * The fixture workspace is already set up, as `Suzie` — the reference's own name — so every
+   * screen renders without a first-run detour. Onboarding in mock mode stores its answers in
+   * this process and collects nothing.
+   */
+  private profileName: string | null = "Suzie";
+
+  getProfile(): Promise<Profile> {
+    return Promise.resolve({ name: this.profileName, onboarded: this.profileName !== null });
+  }
+
+  updateProfileName(name: string): Promise<Profile> {
+    const clean = name.trim();
+    if (clean === "") {
+      return Promise.reject(new ApiDataError("profile_rejected", "이름을 입력해 주세요.", true));
+    }
+    this.profileName = clean;
+    return this.getProfile();
+  }
+
+  async completeOnboarding(request: OnboardingRequest): Promise<OnboardingResponse> {
+    const name = request.name.trim();
+    if (name === "") {
+      throw new ApiDataError("onboarding_name", "이름을 입력해 주세요.", true);
+    }
+    if (request.github.trim() === "" && request.huggingface.trim() === "") {
+      throw new ApiDataError(
+        "onboarding_accounts",
+        "GitHub와 Hugging Face 중 하나 이상의 계정명을 입력해 주세요.",
+        true,
+      );
+    }
+    for (const platform of ["github", "huggingface"] as const) {
+      if (request[platform].trim() !== "") await this.connectAccount(platform, request[platform]);
+    }
+    this.profileName = name;
+    return { profile: await this.getProfile(), accounts: this.accountsNow().accounts, jobIds: [] };
+  }
+
+  /** Names stored for this process only. Mock mode never reaches GitHub or the Hub. */
+  private readonly accountHandles = new Map<AccountPlatform, string>();
+
+  private accountsNow(): AccountsResponse {
+    const rows: readonly {
+      platform: AccountPlatform;
+      label: string;
+      profile: string;
+      tokenEnv: string;
+      tokenEffect: string;
+      surfaces: readonly { id: string; label: string }[];
+    }[] = [
+      {
+        platform: "github",
+        label: "GitHub",
+        profile: "https://github.com/",
+        tokenEnv: "GITHUB_TOKEN",
+        tokenEffect: "없으면 시간당 60회 제한으로 공개 스타 목록을 읽어요",
+        surfaces: [{ id: "github_stars_api", label: "스타" }],
+      },
+      {
+        platform: "huggingface",
+        label: "Hugging Face",
+        profile: "https://huggingface.co/",
+        tokenEnv: "HF_TOKEN",
+        tokenEffect: "없어도 공개 좋아요·업보트를 읽어요. 비공개 저장소 좋아요에만 필요해요",
+        surfaces: [
+          { id: "huggingface_activity", label: "좋아요 · 모델 · 데이터셋 · Space" },
+          { id: "huggingface_upvotes", label: "업보트한 논문" },
+        ],
+      },
+    ];
+    return AccountsResponseSchema.parse({
+      accounts: rows.map((row) => {
+        const handle = this.accountHandles.get(row.platform) ?? null;
+        return {
+          platform: row.platform,
+          label: row.label,
+          handle,
+          profileUrl: handle === null ? null : `${row.profile}${handle}`,
+          tokenEnv: row.tokenEnv,
+          tokenConfigured: false,
+          tokenEffect: row.tokenEffect,
+          itemCount: 0,
+          surfaces: row.surfaces.map((surface) => ({
+            ...surface,
+            lastRunAt: null,
+            outcome: null,
+            stoppedBecause: null,
+            itemsSeen: null,
+          })),
+          job: null,
+        };
+      }),
+    });
+  }
+
+  getAccounts(): Promise<AccountsResponse> {
+    return Promise.resolve(this.accountsNow());
+  }
+
+  connectAccount(platform: AccountPlatform, handle: string): Promise<AccountConnectResponse> {
+    const name = handle.trim().replace(/^@/, "");
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/.test(name)) {
+      return Promise.reject(
+        new ApiDataError("account_rejected", `'${name}'는 계정명 형식이 아니에요.`, true),
+      );
+    }
+    const changed = this.accountHandles.get(platform) !== name;
+    this.accountHandles.set(platform, name);
+    // No job: mock mode stores the name and collects nothing, and says so on the card.
+    return Promise.resolve({ ...this.accountsNow(), handle: name, changed, jobId: null });
+  }
+
+  disconnectAccount(platform: AccountPlatform): Promise<AccountsResponse> {
+    this.accountHandles.delete(platform);
+    return Promise.resolve(this.accountsNow());
+  }
+
+  collectAccount(): Promise<{ readonly jobId: string }> {
+    return Promise.reject(new ApiDataError("mock_mode", MOCK_RUNTIME_MESSAGE, false));
   }
 
   updateSourceSetting(platform: SourcePlatform, enabled: boolean): Promise<SettingsDocument> {

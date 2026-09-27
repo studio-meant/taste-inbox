@@ -1,4 +1,10 @@
 import type {
+  OnboardingRequest,
+  OnboardingResponse,
+  Profile,
+  AccountConnectResponse,
+  AccountPlatform,
+  AccountsResponse,
   AIItemCardModel,
   EffectiveResourcePolicy,
   FocusPayload,
@@ -328,6 +334,35 @@ export interface TasteInboxRepository {
    * named validation error at this boundary rather than as a half-updated screen.
    */
   updateSourceSetting(platform: SourcePlatform, enabled: boolean): Promise<SettingsDocument>;
+
+  /** `GET /api/profile` — whose workspace this is, and whether first-run setup is done. */
+  getProfile(): Promise<Profile>;
+
+  /** `PUT /api/profile` — change the display name. */
+  updateProfileName(name: string): Promise<Profile>;
+
+  /**
+   * `POST /api/onboarding` — name, accounts and interval in one request, then the first
+   * collection. A refusal is an `ApiDataError` whose code names the field
+   * (`onboarding_github`, `onboarding_accounts`, …).
+   */
+  completeOnboarding(request: OnboardingRequest): Promise<OnboardingResponse>;
+
+  /** `GET /api/accounts` — which GitHub and Hugging Face account this Mac collects. */
+  getAccounts(): Promise<AccountsResponse>;
+
+  /**
+   * `PUT /api/accounts/{platform}` — name the account and collect it at once.
+   *
+   * A malformed name arrives as an `ApiDataError` carrying the service's Korean sentence.
+   */
+  connectAccount(platform: AccountPlatform, handle: string): Promise<AccountConnectResponse>;
+
+  /** `DELETE /api/accounts/{platform}` — stop collecting it. Collected items stay. */
+  disconnectAccount(platform: AccountPlatform): Promise<AccountsResponse>;
+
+  /** `POST /api/accounts/{platform}/collect` — collect now, without waiting for the interval. */
+  collectAccount(platform: AccountPlatform): Promise<{ readonly jobId: string }>;
 }
 
 export const DEFAULT_PAGE_SIZE = 20;

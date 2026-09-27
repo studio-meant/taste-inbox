@@ -15,7 +15,6 @@ import {
   JOB_STATE_LABEL,
   JOB_STATE_TONE,
   jobDuration,
-  KIND_LABEL,
   kindLabel,
 } from "./focus-state";
 import { ReportText } from "./ReportText";
@@ -95,7 +94,7 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
       <header className={styles.hero}>
         <div className={styles.heroCopy}>
           <p className={styles.kicker}>
-            <span className={styles.kindChip}>{KIND_LABEL[item.kind]}</span>
+            <span className={styles.kindChip}>{kindLabel(item.kind)}</span>
             <span className={styles.source}>
               <SourceMark platform={item.platform} size={14} />
               {signalLabel(payload)}

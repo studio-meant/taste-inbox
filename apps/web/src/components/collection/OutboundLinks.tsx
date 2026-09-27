@@ -1,6 +1,5 @@
 import type { OutboundLink, OutboundLinkKind, SourceRef } from "@taste-inbox/shared";
 import {
-  Bookmark,
   CornerDownRight,
   ExternalLink,
   Link2,
@@ -8,6 +7,7 @@ import {
   ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
+import { cx } from "@/lib/cx";
 import { sourceBadgeText } from "./source-vocabulary";
 import styles from "./OutboundLinks.module.css";
 
@@ -36,7 +36,7 @@ interface KindPresentation {
 
 const KIND: Readonly<Record<OutboundLinkKind | "source", KindPresentation>> = {
   artifact: { icon: Package, description: "저장소 또는 모델" },
-  source: { icon: Bookmark, description: "이 항목을 남긴 곳" },
+  source: { icon: ExternalLink, description: "원본" },
   shop: { icon: ShoppingBag, description: "작성자가 프로필에 적은 판매처" },
   resolved: { icon: CornerDownRight, description: "단축 링크를 따라간 목적지" },
   outbound: { icon: Link2, description: "게시물에 포함된 링크" },
@@ -57,11 +57,29 @@ const KIND: Readonly<Record<OutboundLinkKind | "source", KindPresentation>> = {
  */
 type Row = OutboundLink | (Omit<OutboundLink, "kind"> & { readonly kind: "source" });
 
+/** `huggingface.co`, `github.com` — what every other row in the list already shows. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/*
+ * The platform permalink, drawn as one more link (2026-09-28).
+ *
+ * It used to read `Hugging Face 업보트` with a bookmark glyph and an accent fill — a badge
+ * inside a list of hosts, the only row that said *what the user did* rather than *where the
+ * link goes*. It now says where it goes, like its neighbours, and the signal it records
+ * (`GitHub 스타`, `Hugging Face 업보트`) moves to the accessible name and the hover title,
+ * where a person who wants it still finds it.
+ */
 function sourceRow(source: SourceRef): Row {
   return {
     id: `source-${source.platform}`,
     url: source.originalUrl,
-    label: sourceBadgeText(source),
+    label: hostOf(source.originalUrl),
     kind: "source",
     origin: "post",
     via: null,
@@ -73,6 +91,7 @@ export function OutboundLinks({
   source,
   label = "바로가기",
   showHeading = true,
+  compact,
 }: {
   readonly links: readonly OutboundLink[];
   /** When given, the platform permalink leads the list. */
@@ -85,12 +104,26 @@ export function OutboundLinks({
    * so and the caption was one more line between the title and the next action.
    */
   readonly showHeading?: boolean;
+  /**
+   * The card's size: chips matched to `Open in Lab`, and at most this many before a `+N`.
+   *
+   * The card used to cap the list's *height* and hide the overflow, which cut the second
+   * row of chips in half mid-card. A count is honest about what is not drawn; a clipped
+   * chip is not. Everything is on the item's own page.
+   */
+  readonly compact?: number;
 }) {
-  const rows: readonly Row[] = source === undefined ? links : [sourceRow(source), ...links];
-  if (rows.length === 0) return null;
+  const all: readonly Row[] = source === undefined ? links : [sourceRow(source), ...links];
+  // The same address twice is one link — a repository's permalink and its own homepage row.
+  const unique = all.filter(
+    (row, index) => all.findIndex((other) => other.url === row.url) === index,
+  );
+  if (unique.length === 0) return null;
+  const rows = compact === undefined ? unique : unique.slice(0, compact);
+  const rest = compact === undefined ? [] : unique.slice(compact);
 
   return (
-    <div className={styles.wrap}>
+    <div className={cx(styles.wrap, compact === undefined ? null : styles.compact)}>
       {showHeading ? <span className={styles.heading}>{label}</span> : null}
       <ul className={styles.list} aria-label={label}>
         {rows.map((link) => {
@@ -108,10 +141,24 @@ export function OutboundLinks({
                  * The full URL on hover. The visible label is only the host, so this is
                  * where a user checks where a click actually goes before making it.
                  */
-                title={link.via === null ? link.url : `${link.url}\n(${link.via} 에서 따라감)`}
+                title={
+                  link.kind === "source" && source !== undefined
+                    ? `${sourceBadgeText(source)}\n${link.url}`
+                    : link.via === null
+                      ? link.url
+                      : `${link.url}\n(${link.via} 에서 따라감)`
+                }
               >
-                <Icon size={13} strokeWidth={1.75} aria-hidden="true" />
-                <span className="visually-hidden">{kind.description}: </span>
+                <Icon
+                  size={compact === undefined ? 13 : 12}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span className="visually-hidden">
+                  {link.kind === "source" && source !== undefined
+                    ? `${sourceBadgeText(source)} ${kind.description}: `
+                    : `${kind.description}: `}
+                </span>
                 <span className={styles.host}>{link.label}</span>
                 {link.origin === "post" ? null : (
                   <span className={styles.origin}>
@@ -123,6 +170,14 @@ export function OutboundLinks({
             </li>
           );
         })}
+        {rest.length === 0 ? null : (
+          <li className={styles.rest} title={rest.map((row) => row.label).join(", ")}>
+            +{rest.length}
+            <span className="visually-hidden">
+              {`그 밖의 링크 ${String(rest.length)}개는 항목 페이지에 있어요`}
+            </span>
+          </li>
+        )}
       </ul>
     </div>
   );

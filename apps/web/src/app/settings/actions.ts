@@ -1,33 +1,35 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import type { SettingsPatchRequest, SourcePlatform } from "@taste-inbox/shared";
+import { refresh, revalidatePath } from "next/cache";
+import type { AccountPlatform, SettingsPatchRequest } from "@taste-inbox/shared";
 import { ApiDataError, getRepository } from "@/lib/repository";
 import type { SettingsWriteResult } from "@/components/settings/fields";
 import { isRemoteReadOnly, REMOTE_READ_ONLY_MESSAGE } from "@/lib/remote-mode";
 
 /**
- * The two writes this screen can make, as Server Actions.
+ * Settings' writes: the configuration, and which accounts to collect.
  *
- * Server Actions rather than a `fetch` from the client, for the reason the repository layer
- * exists at all: the browser never learns where the API is. `getRepository()` resolves to
- * the HTTP client or the in-memory mock depending on `NEXT_PUBLIC_DATA_SOURCE`, so the same
- * form works against fixtures with nothing running.
- *
- * A rejected write is a **return value, not a throw**. The service answers a bad change with
- * a 422 whose Korean message names the offending setting — "수집 주기를 6시간으로 줄이면
- * 소스 간격 15분이 한 주기를 넘어서요" — and that sentence is the entire content of the
- * failure. Throwing would replace it with the route's error boundary, which knows only that
- * something went wrong.
+ * Server Actions, so the browser never learns where the API is, and a refusal is a return
+ * value rather than a throw — the service's Korean sentence is the whole content of the
+ * failure, and an error boundary would replace it with "something went wrong".
  */
 
-function failure(error: unknown): SettingsWriteResult {
+function failure(
+  error: unknown,
+  fallback: string,
+): { readonly ok: false; readonly message: string } {
   if (error instanceof ApiDataError) {
     return { ok: false, message: error.message };
   }
   // Not an API refusal — the service is down, or the machine is asleep. Say which, because
   // "check the value you typed" would be wrong advice for it.
-  return { ok: false, message: "설정을 저장하지 못했어요. 서비스가 실행 중인지 확인해 주세요." };
+  return { ok: false, message: fallback };
+}
+
+function revalidateEverywhere(): void {
+  revalidatePath("/settings");
+  revalidatePath("/today");
+  revalidatePath("/library");
 }
 
 export async function saveSettings(
@@ -36,28 +38,72 @@ export async function saveSettings(
   if (isRemoteReadOnly()) return { ok: false, message: REMOTE_READ_ONLY_MESSAGE };
   try {
     const settings = await getRepository().updateSettings(changes);
-    // The schedule strip on Today reads the interval, and System reads the retention. Both
-    // are rendered from a different fetch than this one.
-    revalidatePath("/settings");
-    revalidatePath("/system");
-    revalidatePath("/today");
+    revalidateEverywhere();
     return { ok: true, settings };
   } catch (error) {
-    return failure(error);
+    return failure(error, "설정을 저장하지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
   }
 }
 
-export async function saveSourceSetting(
-  platform: SourcePlatform,
-  enabled: boolean,
-): Promise<SettingsWriteResult> {
+export interface AccountActionResult {
+  readonly ok: boolean;
+  readonly message: string;
+}
+
+/** Name the account; the service collects it at once. */
+export async function connectAccount(
+  platform: AccountPlatform,
+  handle: string,
+): Promise<AccountActionResult> {
   if (isRemoteReadOnly()) return { ok: false, message: REMOTE_READ_ONLY_MESSAGE };
   try {
-    const settings = await getRepository().updateSourceSetting(platform, enabled);
-    revalidatePath("/settings");
-    revalidatePath("/system");
-    return { ok: true, settings };
+    const result = await getRepository().connectAccount(platform, handle);
+    revalidateEverywhere();
+    refresh();
+    return {
+      ok: true,
+      message:
+        result.jobId === null
+          ? `'${result.handle}'로 저장했어요. 다음 수집 때 가져와요.`
+          : `'${result.handle}'로 저장하고 수집을 시작했어요.`,
+    };
   } catch (error) {
-    return failure(error);
+    return failure(error, "계정을 저장하지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
+  }
+}
+
+export async function disconnectAccount(platform: AccountPlatform): Promise<AccountActionResult> {
+  if (isRemoteReadOnly()) return { ok: false, message: REMOTE_READ_ONLY_MESSAGE };
+  try {
+    await getRepository().disconnectAccount(platform);
+    revalidateEverywhere();
+    refresh();
+    return { ok: true, message: "연결을 해제했어요. 이미 모은 항목은 그대로 있어요." };
+  } catch (error) {
+    return failure(error, "연결을 해제하지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
+  }
+}
+
+export async function collectAccountNow(platform: AccountPlatform): Promise<AccountActionResult> {
+  if (isRemoteReadOnly()) return { ok: false, message: REMOTE_READ_ONLY_MESSAGE };
+  try {
+    await getRepository().collectAccount(platform);
+    revalidateEverywhere();
+    refresh();
+    return { ok: true, message: "수집을 시작했어요." };
+  } catch (error) {
+    return failure(error, "수집을 시작하지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
+  }
+}
+
+export async function saveProfileName(name: string): Promise<AccountActionResult> {
+  if (isRemoteReadOnly()) return { ok: false, message: REMOTE_READ_ONLY_MESSAGE };
+  try {
+    const profile = await getRepository().updateProfileName(name);
+    revalidatePath("/", "layout");
+    refresh();
+    return { ok: true, message: `'${profile.name ?? ""}'로 저장했어요.` };
+  } catch (error) {
+    return failure(error, "이름을 저장하지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
   }
 }

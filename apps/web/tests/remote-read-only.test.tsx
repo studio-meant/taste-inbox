@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import type * as MockRepositoryModule from "@/lib/mock/repository";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const writes = vi.hoisted(() => ({
@@ -6,8 +7,11 @@ const writes = vi.hoisted(() => ({
   move: vi.fn(),
   settings: vi.fn(),
   source: vi.fn(),
+  connect: vi.fn(),
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), refresh: vi.fn() }));
+const { MockRepository } =
+  await vi.importActual<typeof MockRepositoryModule>("@/lib/mock/repository");
 vi.mock("@/lib/repository", () => ({
   ApiDataError: class extends Error {},
   getRepository: () => ({
@@ -15,12 +19,19 @@ vi.mock("@/lib/repository", () => ({
     setItemBoard: writes.move,
     updateSettings: writes.settings,
     updateSourceSetting: writes.source,
+    connectAccount: writes.connect,
+    getHostProfile: () => new MockRepository().getHostProfile(),
+    getResourcePolicy: () => new MockRepository().getResourcePolicy(),
+    getBoardCounts: () => new MockRepository().getBoardCounts(),
+    listJobs: () => Promise.resolve([]),
+    getLaunchdPlan: () => new MockRepository().getLaunchdPlan(),
   }),
+  resolveDataSource: () => "mock",
 }));
 
 import { BoardPicker } from "@/components/collection/BoardPicker";
 import { addManualItem, moveItemToBoard } from "@/app/(workspace)/actions";
-import { saveSettings, saveSourceSetting } from "@/app/settings/actions";
+import { connectAccount, saveSettings } from "@/app/settings/actions";
 import SettingsPage from "@/app/settings/page";
 
 afterEach(() => {
@@ -50,11 +61,11 @@ describe("remote viewing does not pretend edits are available", () => {
     expect((await moveItemToBoard("fixture", "music")).ok).toBe(false);
     expect((await addManualItem({ url: "https://example.com", board: "trends" })).ok).toBe(false);
     expect((await saveSettings({ "collection.intervalHours": 8 })).ok).toBe(false);
-    expect((await saveSourceSetting("instagram", false)).ok).toBe(false);
+    expect((await connectAccount("github", "ohsuz")).ok).toBe(false);
     expect(writes.move).not.toHaveBeenCalled();
     expect(writes.add).not.toHaveBeenCalled();
     expect(writes.settings).not.toHaveBeenCalled();
-    expect(writes.source).not.toHaveBeenCalled();
+    expect(writes.connect).not.toHaveBeenCalled();
   });
 
   it("settings explains where to edit instead of rendering unusable forms", async () => {

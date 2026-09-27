@@ -147,7 +147,7 @@ describe("The greeting line", () => {
 
     const rendered = Object.values(SERVICE_GREETINGS).map((greeting) => {
       const view = render(
-        <GreetingScreen today={{ ...base, greeting }} onBegin={() => undefined} />,
+        <GreetingScreen today={{ ...base, greeting }} name="Suzie" onBegin={() => undefined} />,
       );
       const text = screen.getByRole("heading", { level: 1 }).textContent;
       view.unmount();
@@ -172,12 +172,12 @@ describe("The greeting line", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-09T03:00:00+09:00"));
-    const first = render(<GreetingScreen today={today} onBegin={() => undefined} />);
+    const first = render(<GreetingScreen today={today} name="Suzie" onBegin={() => undefined} />);
     const atThree = screen.getByRole("heading", { level: 1 }).textContent;
     first.unmount();
 
     vi.setSystemTime(new Date("2026-08-09T21:00:00+09:00"));
-    render(<GreetingScreen today={today} onBegin={() => undefined} />);
+    render(<GreetingScreen today={today} name="Suzie" onBegin={() => undefined} />);
     const atNine = screen.getByRole("heading", { level: 1 }).textContent;
 
     expect(atThree).toBe(atNine);
@@ -217,6 +217,7 @@ describe("The status pills", () => {
     const base = await basePayload();
     render(
       <GreetingScreen
+        name="Suzie"
         today={withCounts(base, { newItems: 17, attention: 1 })}
         onBegin={() => undefined}
       />,
@@ -238,6 +239,7 @@ describe("The status pills", () => {
 
     render(
       <GreetingScreen
+        name="Suzie"
         today={withCounts(base, { newItems: 3, readyActions: 99, attention: 0 })}
         onBegin={() => undefined}
       />,
@@ -251,6 +253,7 @@ describe("The status pills", () => {
     const base = await basePayload();
     render(
       <GreetingScreen
+        name="Suzie"
         today={withCounts(base, { newItems: 4, attention: 0 })}
         onBegin={() => undefined}
       />,
@@ -266,6 +269,7 @@ describe("The status pills", () => {
     const base = await basePayload();
     render(
       <GreetingScreen
+        name="Suzie"
         today={withCounts(base, { newItems: 17, attention: 1 })}
         onBegin={() => undefined}
       />,
@@ -413,7 +417,7 @@ describe("Reduced motion", () => {
     document.documentElement.dataset.motion = "reduced";
     const base = await basePayload();
 
-    render(<EntrySequence mode="full" today={base} />);
+    render(<EntrySequence mode="full" today={base} name="Suzie" />);
 
     expect(screen.queryByText("아무 곳이나 눌러 시작하세요")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: /님,/ })).toBeInTheDocument();
@@ -423,7 +427,7 @@ describe("Reduced motion", () => {
     const base = await basePayload();
     document.documentElement.dataset.motion = "reduced";
 
-    render(<EntrySequence mode="full" today={base} />);
+    render(<EntrySequence mode="full" today={base} name="Suzie" />);
 
     // One scene layer, not two: there is nothing to fade from.
     expect(screen.getByRole("main").firstElementChild?.children).toHaveLength(1);
@@ -431,7 +435,7 @@ describe("Reduced motion", () => {
 
   it("crossfades two layers when motion is not reduced", async () => {
     const base = await basePayload();
-    render(<EntrySequence mode="full" today={base} />);
+    render(<EntrySequence mode="full" today={base} name="Suzie" />);
 
     fireEvent.click(screen.getByRole("button", { name: "아무 곳이나 눌러 시작하세요" }));
 

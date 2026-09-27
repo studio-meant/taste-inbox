@@ -13,7 +13,9 @@ Every response is `{"data": ...}` and every failure is
 from __future__ import annotations
 
 import json
+import logging
 import os
+import threading
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -67,7 +69,87 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # own. Closing it here is what keeps "running" on screen meaning running.
     with _Session() as session:
         close_orphans(session)
+    stop = threading.Event()
+    if os.environ.get("TASTE_INBOX_SCHEDULER") == "1":
+        threading.Thread(
+            target=_scheduler_loop, args=(stop,), name="taste-inbox-scheduler", daemon=True
+        ).start()
     yield
+    stop.set()
+
+
+#: How often the in-app scheduler asks whether a connected account is due.
+SCHEDULER_TICK_SECONDS = 60
+
+
+def _database_url() -> str:
+    return _engine.url.render_as_string(hide_password=False)
+
+
+def _collect_surface(surface: str, database_url: str) -> int:
+    """Collect one surface and ingest it — the scheduled driver, called in-process."""
+    from ..ingest.collect import main as collect_main
+
+    return collect_main(["--collector", surface, "--database-url", database_url, "--no-classify"])
+
+
+def _start_collections(session: Session, platforms: list[str]) -> list[str]:
+    """Queue a collection of each platform, run one after another. Empty when one is running.
+
+    One background run for all of them, because the slot admits one collection at a time: a
+    first run that connects both accounts would otherwise collect GitHub and leave Hugging
+    Face waiting for the scheduler.
+    """
+    from . import accounts, background
+
+    if not platforms or background.busy("collection"):
+        return []
+    job_ids = [accounts.open_job(session, platform).id for platform in platforms]
+    database_url = _database_url()
+
+    def work(worker: Session) -> None:
+        for platform, job_id in zip(platforms, job_ids, strict=True):
+            accounts.run_job(
+                worker, platform, job_id, database_url=database_url, collector=_collect_surface
+            )
+
+    if not background.start("collection", job_ids[0], work, session_factory=_Session):
+        for job_id in job_ids:
+            _abandon(session, job_id)
+        return []
+    return job_ids
+
+
+def _start_collection(session: Session, platform: str) -> str | None:
+    """One platform. None when a collection is already running."""
+    started = _start_collections(session, [platform])
+    return started[0] if started else None
+
+
+def _scheduler_loop(stop: threading.Event) -> None:
+    """Collect each connected account once its interval has passed. Opt-in.
+
+    Settings' `collection.intervalHours` is read on every tick, so a changed interval applies
+    from the next minute rather than from the next launchd install — the reason this exists
+    beside the launchd jobs rather than instead of them. Off unless `TASTE_INBOX_SCHEDULER=1`
+    (`scripts/dev.sh` sets it): a test process or a one-off API must never reach GitHub.
+    """
+    from . import accounts
+    from .schedule import effective_document
+
+    while not stop.wait(SCHEDULER_TICK_SECONDS):
+        try:
+            with _Session() as session:
+                interval = effective_document(session).collection.interval_hours
+                for platform in accounts.PLATFORMS:
+                    # One collection at a time; a platform skipped here is due next tick.
+                    if (
+                        accounts.due(session, platform, interval)
+                        and _start_collection(session, platform) is None
+                    ):
+                        break
+        except Exception:
+            logging.getLogger(__name__).exception("scheduler tick failed")
 
 
 app = FastAPI(
@@ -979,6 +1061,136 @@ def settings_patch(
     from .settings import apply_changes
 
     return {"data": apply_changes(session, payload)}
+
+
+@app.get("/api/accounts")
+def accounts_list(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """The GitHub and Hugging Face accounts this Mac collects, and how each last went."""
+    from . import accounts
+
+    return {"data": {"accounts": accounts.payload(session)}}
+
+
+@app.put("/api/accounts/{platform}")
+def account_connect(
+    platform: str, body: dict[str, Any] | None = None, session: Session = Depends(get_session)
+) -> dict[str, Any]:
+    """Name the account, and collect it at once.
+
+    A name, not a login: all three surfaces are public. Collecting straight away is what makes
+    connecting mean something — an account that waited four hours for its first run would
+    look like a form that did nothing.
+    """
+    from . import accounts
+
+    raw = str((body or {}).get("handle") or "")
+    try:
+        handle, changed = accounts.connect(session, platform, raw)
+    except accounts.AccountRejected as error:
+        raise ApiError(422, "account_rejected", str(error), recoverable=True) from error
+    job_id = _start_collection(session, platform)
+    return {
+        "data": {
+            "handle": handle,
+            "changed": changed,
+            "jobId": job_id,
+            "accounts": accounts.payload(session),
+        }
+    }
+
+
+@app.delete("/api/accounts/{platform}")
+def account_disconnect(platform: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Stop collecting this platform. What was collected stays."""
+    from . import accounts
+
+    if platform not in accounts.PLATFORMS:
+        raise ApiError(
+            404, "account_not_found", "연결할 수 있는 출처가 아니에요.", recoverable=False
+        )
+    accounts.disconnect(session, platform)
+    return {"data": {"accounts": accounts.payload(session)}}
+
+
+@app.post("/api/accounts/{platform}/collect", status_code=202)
+def account_collect(platform: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Collect now, without waiting for the interval."""
+    from . import accounts
+
+    if platform not in accounts.PLATFORMS:
+        raise ApiError(
+            404, "account_not_found", "연결할 수 있는 출처가 아니에요.", recoverable=False
+        )
+    if accounts.handle_of(session, platform) is None:
+        raise ApiError(
+            409, "account_not_connected", "먼저 계정명을 입력해 주세요.", recoverable=True
+        )
+    job_id = _start_collection(session, platform)
+    if job_id is None:
+        raise ApiError(
+            409,
+            "collection_busy",
+            "다른 수집이 진행 중이에요. 끝난 뒤 다시 시도해 주세요.",
+            recoverable=True,
+        )
+    return {"data": {"jobId": job_id, "state": "queued"}}
+
+
+@app.get("/api/profile")
+def profile_get(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """The workspace owner's display name, and whether first-run setup is done."""
+    from . import profile
+
+    return {"data": profile.payload(session)}
+
+
+@app.put("/api/profile")
+def profile_put(
+    body: dict[str, Any] | None = None, session: Session = Depends(get_session)
+) -> dict[str, Any]:
+    from . import profile
+
+    try:
+        profile.set_name(session, str((body or {}).get("name") or ""))
+    except profile.OnboardingRejected as error:
+        raise ApiError(422, "profile_rejected", error.message, recoverable=True) from error
+    return {"data": profile.payload(session)}
+
+
+@app.post("/api/onboarding")
+def onboarding(
+    body: dict[str, Any] | None = None, session: Session = Depends(get_session)
+) -> dict[str, Any]:
+    """First-run setup, all at once: name, accounts, interval — then the first collection.
+
+    Validated whole before anything is stored (`api/profile.py`). A refusal names the field
+    in `error.code` (`onboarding_<field>`) so the form can put the sentence under the right
+    input.
+    """
+    from . import accounts, profile
+    from .settings import apply_changes
+
+    try:
+        name, handles, interval = profile.validate(body or {})
+    except profile.OnboardingRejected as error:
+        raise ApiError(422, f"onboarding_{error.field}", error.message, recoverable=True) from error
+    try:
+        apply_changes(session, {"changes": {"collection.intervalHours": interval}})
+    except ApiError as error:
+        raise ApiError(
+            422, "onboarding_intervalHours", str(error.detail), recoverable=True
+        ) from error
+    for platform, handle in handles.items():
+        accounts.connect(session, platform, handle)
+    profile.set_name(session, name)
+    job_ids = _start_collections(session, list(handles))
+    return {
+        "data": {
+            "profile": profile.payload(session),
+            "accounts": accounts.payload(session),
+            "jobIds": job_ids,
+        }
+    }
 
 
 @app.patch("/api/settings/sources/{platform}")

@@ -335,10 +335,10 @@ describe("AIItemCard, unresolved", () => {
     // `.browse-type-row` — the reference prints a literal `AI Tool` / `Research`; ours is
     // `AIItemKindSchema`, which is the distinction the product can actually make.
     const { rerender } = render(<AIItemCard item={aiItem()} />);
-    expect(screen.getByText("게시물")).toBeInTheDocument();
+    expect(screen.getByText("Post")).toBeInTheDocument();
 
     rerender(<AIItemCard item={aiItem({ kind: "repo" })} />);
-    expect(screen.getByText("저장소")).toBeInTheDocument();
+    expect(screen.getByText("Repo")).toBeInTheDocument();
   });
 
   it("keeps the outbound links the post carried", () => {
@@ -514,7 +514,7 @@ describe("CollectionRail", () => {
       key: "kind",
       legend: "종류",
       options: [
-        { value: "repo", label: "저장소", count: 3 },
+        { value: "repo", label: "Repo", count: 3 },
         { value: "post", label: "게시물", count: 5 },
       ],
     },
@@ -636,11 +636,11 @@ describe("CollectionRail", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "저장소 3개, 선택됨" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Repo 3개, 선택됨" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "게시물 5개" })).toBeInTheDocument();
     // The selected row is the way back: clicking it again drops the group entirely. That
     // is what replaced the "필터 지우기" row this panel used to end with.
-    expect(screen.getByRole("link", { name: "저장소 3개, 선택됨" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Repo 3개, 선택됨" })).toHaveAttribute(
       "href",
       "/trends",
     );

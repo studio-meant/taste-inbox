@@ -71,7 +71,9 @@ EVIDENCE_PROVENANCE = (
 SOURCE_STATES = ("collected", "skipped", "auth_required", "failed", "disabled")
 
 # services/collectors/.../browser/guards.py — RunOutcome
-RUN_OUTCOMES = ("ok", "auth_required", "blocked", "empty")
+# `failed` and `rate_limited` joined on 2026-09-28: the API collectors report them, and
+# without them a failed run's capture was rolled back whole (migration a7c3e9f15d20).
+RUN_OUTCOMES = ("ok", "auth_required", "blocked", "empty", "failed", "rate_limited")
 
 # packages/shared/src/domain/job.ts
 JOB_STATES = (

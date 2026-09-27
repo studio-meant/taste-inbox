@@ -79,11 +79,13 @@ export const DESTINATIONS: readonly Destination[] = [
   },
   {
     id: "system",
-    label: "System",
+    // One destination since 2026-09-28: Settings holds what System used to, and `/system`
+    // redirects here. The id stays so nothing keyed on it moves.
+    label: "Settings",
     labelLang: "en",
-    href: "/system",
+    href: "/settings",
     icon: SlidersHorizontal,
-    matches: ["/system", "/settings"],
+    matches: ["/settings", "/system"],
     shortcut: "Y",
   },
 ];

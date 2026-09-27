@@ -362,8 +362,22 @@ def _saved_summary(
         )
         if len(previews) == 3:
             break
+    # Today's arrivals by what they are — Repo, Paper, Dataset, Space, Model. The same axis
+    # the Inbox rail counts, so a number on this card is one click from the list it counts.
+    # Boards were the split while boards were how items differed; in this edition every item
+    # is on one board, and "AI 135" said nothing the headline had not.
+    kinds = {
+        str(kind): int(count)
+        for kind, count in session.execute(
+            select(Item.kind, func.count())
+            .where(Item.first_seen_at >= today_start, Item.first_seen_at < today_end)
+            .group_by(Item.kind)
+        ).all()
+        if kind
+    }
     return {
         "newItemCount": new_today,
+        "kindCounts": dict(sorted(kinds.items(), key=lambda pair: (-pair[1], pair[0]))),
         "aiCount": board_counts.get("trends", 0),
         "styleCount": board_counts.get("style", 0),
         "musicCount": board_counts.get("music", 0),

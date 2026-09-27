@@ -28,6 +28,8 @@ export interface EntrySequenceProps {
   /** `full` opens on Splash; `brief` opens on Greeting. `skip` never reaches this file. */
   readonly mode: CeremonyMode;
   readonly today: TodayPayload;
+  /** The workspace owner's name from onboarding; null greets without one. */
+  readonly name?: string | null;
 }
 
 type Phase = "splash" | "greeting";
@@ -80,7 +82,7 @@ function prefersReducedMotion(): boolean {
  */
 const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-export function EntrySequence({ mode, today }: EntrySequenceProps) {
+export function EntrySequence({ mode, today, name = null }: EntrySequenceProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>(mode === "full" ? "splash" : "greeting");
   const [previous, setPrevious] = useState<Phase | null>(null);
@@ -210,7 +212,7 @@ export function EntrySequence({ mode, today }: EntrySequenceProps) {
     which === "splash" ? (
       <SplashScreen onBegin={advance} />
     ) : (
-      <GreetingScreen today={today} onBegin={advance} />
+      <GreetingScreen today={today} name={name} onBegin={advance} />
     );
 
   return (

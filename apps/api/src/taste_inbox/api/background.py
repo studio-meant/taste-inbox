@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 #: different questions about two different things, and a person who asks one while the
 #: other is running should wait for the backend, not be told their question was rejected.
 #: The slot is what serialises them — one AI-Q call at a time per kind.
-KINDS = ("research", "plan", "trial")
+KINDS = ("research", "plan", "trial", "collection")
 
 _slots: dict[str, threading.Thread] = {}
 _slots_lock = threading.Lock()

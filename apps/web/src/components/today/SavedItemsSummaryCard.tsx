@@ -2,6 +2,7 @@ import type { SavedSummary } from "@taste-inbox/shared";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { CardSurface } from "@/components/primitives";
+import { kindLabel } from "@/components/collection/source-vocabulary";
 import { SourceDots } from "./SourceDots";
 import styles from "./Today.module.css";
 import { cx } from "@/lib/cx";
@@ -14,7 +15,7 @@ import { toUrlObject } from "@/lib/filters/board-filters";
  *   New signals                                                              ›
  *   17  new items
  *   ▬▬▬▬▬▬▬▬▬▬▬  ▬▬▬▬▬▬
- *   [ AI 11 ] [ Style 6 ]
+ *   [ Repo 120 ] [ Paper 9 ] [ Dataset 3 ]
  *   [ latest ] [ latest ] [ latest ]
  *   ( ● ● ● ● )                                              Inbox에서 보기
  *
@@ -68,12 +69,21 @@ export function SavedItemsSummaryCard({ summary }: { readonly summary: SavedSumm
    * contradiction. It used to clamp `10 - 41 - 76` to zero, which is how a card headed
    * with today's ten came to show two all-time board totals underneath and look fine.
    */
-  const boards = [
-    { key: "AI", count: summary.aiCount, lead: true },
-    { key: "Style", count: summary.styleCount, lead: false },
-    { key: "Music", count: summary.musicCount, lead: false },
-    { key: "Places", count: summary.placesCount, lead: false },
-  ] as const;
+  /*
+   * By kind since 2026-09-28 — `Repo 120 · Paper 9 · Dataset 3 · Space 3` — the axis the
+   * Inbox rail counts, so the card and the list it links to use one vocabulary. The board
+   * split stays only as the fallback for a payload from before `kindCounts` existed.
+   */
+  const byKind = Object.entries(summary.kindCounts);
+  const boards =
+    byKind.length > 0
+      ? byKind.map(([kind, count], index) => ({ key: kindLabel(kind), count, lead: index === 0 }))
+      : ([
+          { key: "AI", count: summary.aiCount, lead: true },
+          { key: "Style", count: summary.styleCount, lead: false },
+          { key: "Music", count: summary.musicCount, lead: false },
+          { key: "Places", count: summary.placesCount, lead: false },
+        ] as const);
   const otherCount = Math.max(
     0,
     summary.newItemCount - boards.reduce((sum, board) => sum + board.count, 0),

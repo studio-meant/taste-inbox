@@ -60,7 +60,7 @@ export default defineConfig({
      * Port 4199, not the 4173 `pnpm dev` uses: a smoke run must not attach to whatever the
      * user happens to have open, and must not take that port away from them.
      */
-    command: "pnpm exec next build && pnpm exec next start --port 4199",
+    command: "pnpm exec next build && pnpm exec next start --hostname 127.0.0.1 --port 4199",
     /*
      * Stated, never inherited.
      *

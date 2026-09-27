@@ -129,7 +129,10 @@ LEAVES: tuple[_Leaf, ...] = (
     # schedule *display* recomputes per request because nothing caches the document, while
     # a loaded launchd job keeps the `StartInterval` baked into its plist until somebody
     # runs the printed `bootout`/`bootstrap` pair by hand (`api/launchd.py:11-30`).
-    _Leaf("collection", "intervalHours", "collection", "interval_hours", "number", "nextInstall"),
+    # `nextRun` since 2026-09-28: the in-app scheduler (`app._scheduler_loop`) reads this
+    # every minute, so a changed interval applies from the next collection. A launchd job
+    # installed earlier still holds its own copy until reinstalled; the System panel says so.
+    _Leaf("collection", "intervalHours", "collection", "interval_hours", "number", "nextRun"),
     _Leaf("collection", "staggerMinutes", "collection", "stagger_minutes", "number", "nextInstall"),
     _Leaf(
         "collection",

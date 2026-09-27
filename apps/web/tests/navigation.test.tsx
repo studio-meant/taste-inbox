@@ -115,13 +115,13 @@ describe("MobileBottomNav", () => {
     const nav = screen.getByRole("navigation", { name: "주요 화면" });
     const links = within(nav).getAllByRole("link");
 
-    expect(links.map((link) => link.textContent)).toEqual(["Today", "Inbox", "System"]);
+    expect(links.map((link) => link.textContent)).toEqual(["Today", "Inbox", "Settings"]);
   });
 
   it("marks the active destination", () => {
     pathname.current = "/system";
     render(<MobileBottomNav />);
-    expect(screen.getByRole("link", { name: "System" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
   });
 });
 

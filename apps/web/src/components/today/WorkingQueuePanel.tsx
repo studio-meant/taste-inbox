@@ -211,8 +211,8 @@ export function WorkingQueuePanel({
 
       <div className={styles.queueFooter}>
         {/* `.text-action` — ref.css:269, in Korean. */}
-        <Link href="/system" className={styles.textAction}>
-          시스템 상태 열기
+        <Link href="/settings" className={styles.textAction}>
+          설정 열기
           <ArrowRight strokeWidth={1.75} aria-hidden="true" focusable="false" />
         </Link>
 

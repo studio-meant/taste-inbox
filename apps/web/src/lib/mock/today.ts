@@ -89,6 +89,8 @@ export const MOCK_TODAY: TodayPayload = {
     styleCount: 6,
     musicCount: 0,
     placesCount: 0,
+    // The same seventeen by what they are — the split the card draws (2026-09-28).
+    kindCounts: { post: 7, outfit: 6, repo: 4 },
     sources: ["github", "instagram", "threads", "linkedin"],
     preview: {
       id: "grey-pleated-skirt-1",
@@ -152,7 +154,7 @@ export const MOCK_TODAY: TodayPayload = {
       kind: "collector_auth",
       target: "LinkedIn Reactions",
       nextStep: "다시 로그인이 필요해요",
-      href: "/system",
+      href: "/settings",
       progress: null,
     },
   ],

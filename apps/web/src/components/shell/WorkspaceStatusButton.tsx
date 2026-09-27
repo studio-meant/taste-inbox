@@ -56,11 +56,13 @@ export function WorkspaceStatusButton({ status, count }: WorkspaceStatusButtonPr
 
   return (
     <Link
-      href="/system"
+      href="/settings"
       data-status={status}
       className={cx(styles.button, styles[status], "hit-44")}
       aria-label={
-        showCount ? `시스템 상태 ${label} ${String(count)}건, 열기` : `시스템 상태 ${label}, 열기`
+        showCount
+          ? `설정 · 시스템 상태 ${label} ${String(count)}건, 열기`
+          : `설정 · 시스템 상태 ${label}, 열기`
       }
     >
       <Glyph className={styles.glyph} strokeWidth={1.8} aria-hidden="true" focusable="false" />

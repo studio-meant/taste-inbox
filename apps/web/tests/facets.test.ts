@@ -137,10 +137,10 @@ describe("when the board has more than one kind of thing on it", () => {
     const groups = aiFilterGroups(items);
     expect(groups.map((group) => group.key)).toEqual(["kind", "source"]);
     expect(groups[0]?.options).toEqual([
-      { value: "repo", label: "저장소", count: 4 },
-      { value: "dataset", label: "데이터셋", count: 2 },
+      { value: "repo", label: "Repo", count: 4 },
+      { value: "dataset", label: "Dataset", count: 2 },
       { value: "space", label: "Space", count: 1 },
-      { value: "paper", label: "논문", count: 1 },
+      { value: "paper", label: "Paper", count: 1 },
     ]);
   });
 });

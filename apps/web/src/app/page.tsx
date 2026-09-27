@@ -27,7 +27,12 @@ export const dynamic = "force-dynamic";
 
 export default async function StartupOrchestrator() {
   const repository = getRepository();
-  const settings = await repository.getSettings();
+  const [settings, profile] = await Promise.all([
+    repository.getSettings(),
+    repository.getProfile(),
+  ]);
+  // First run: nothing to greet yet — set up the workspace first.
+  if (!profile.onboarded) redirect("/onboarding");
   const mode = CeremonialEntrySchema.catch("full").parse(settings.general.ceremonialEntry.value);
 
   if (mode === "skip") {
@@ -37,5 +42,5 @@ export default async function StartupOrchestrator() {
   // Only fetched for a sequence that will actually show it — `skip` pays for nothing.
   const today = await repository.getToday();
 
-  return <EntrySequence mode={mode} today={today} />;
+  return <EntrySequence mode={mode} today={today} name={profile.name} />;
 }

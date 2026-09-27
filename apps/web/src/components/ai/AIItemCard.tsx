@@ -1,4 +1,4 @@
-import type { AIItemCardModel, AIItemKind, ItemBoard, SourcePlatform } from "@taste-inbox/shared";
+import type { AIItemCardModel, ItemBoard, SourcePlatform } from "@taste-inbox/shared";
 import {
   BrowseCard,
   BrowseCardExtras,
@@ -6,6 +6,7 @@ import {
   type BrowseCardSize,
 } from "@/components/collection/BrowseCard";
 import { OutboundLinks } from "@/components/collection/OutboundLinks";
+import { kindLabel } from "@/components/collection/source-vocabulary";
 import { CollectedImage } from "@/components/media/CollectedImage";
 import styles from "./AIItemCard.module.css";
 
@@ -34,17 +35,6 @@ const OPEN_SOURCE_LABEL: Readonly<Record<SourcePlatform, string>> = {
  * from `AIItemKindSchema`, which is the same distinction the product can actually make.
  * `lib/filters/facets.ts` keeps its own copy for the filter chips, keyed by URL value.
  */
-const KIND_LABEL: Readonly<Record<AIItemKind, string>> = {
-  repo: "저장소",
-  model: "모델",
-  dataset: "데이터셋",
-  space: "Space",
-  paper: "논문",
-  demo: "데모",
-  tool: "도구",
-  post: "게시물",
-};
-
 /**
  * AIItemCard — DESIGN.md §11.16, in the Saved Items card shape (`ref.css` `.browse-card`).
  *
@@ -94,7 +84,7 @@ export function AIItemCard({
       board={board}
       labHref={labHref}
       returnHref={returnHref}
-      eyebrow={KIND_LABEL[item.kind]}
+      eyebrow={kindLabel(item.kind)}
       title={item.title}
       source={item.source}
       openLabel={OPEN_SOURCE_LABEL[item.source.platform]}
@@ -121,6 +111,7 @@ export function AIItemCard({
               links={item.links}
               source={labHref === undefined ? undefined : item.source}
               showHeading={false}
+              compact={3}
             />
           </div>
         </BrowseCardExtras>

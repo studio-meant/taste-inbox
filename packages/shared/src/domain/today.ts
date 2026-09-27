@@ -95,6 +95,12 @@ export const DailyConnectionSchema = z.object({
 /** §5.2 "New Saved Items": count, board split, source icons, and recent previews. */
 export const SavedSummarySchema = z.object({
   newItemCount: z.number().int().nonnegative(),
+  /**
+   * Today's arrivals by item kind (`repo`, `paper`, `dataset`, `space`, …), largest first.
+   * The split the card draws since 2026-09-28 — the same axis the Inbox rail counts. Defaults
+   * to empty so a payload from before it still parses; the card then falls back to boards.
+   */
+  kindCounts: z.record(z.string(), z.number().int().nonnegative()).default({}),
   aiCount: z.number().int().nonnegative(),
   styleCount: z.number().int().nonnegative(),
   /**
