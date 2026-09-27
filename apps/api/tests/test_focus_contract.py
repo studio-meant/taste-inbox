@@ -91,6 +91,12 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
         ),
     )
     monkeypatch.setattr(nemoclaw, "list_workdir", lambda trial_id, **_: ["plan.md"])
+    # The recorded stretch of the second Golden Path run's sandbox log.
+    monkeypatch.setattr(
+        nemoclaw,
+        "denials",
+        lambda **_: nemoclaw.parse_denials(recorded_status("logs-trial-uv-denied.txt")),
+    )
 
     def session_override() -> Iterator[Session]:
         with factory() as session:

@@ -55,12 +55,14 @@ _OPTION = re.compile(r"^\W{0,4}option\s+[a-z0-9]\b", re.IGNORECASE | re.MULTILIN
 #: there), `Sandbox GPU: disabled` in `nemoclaw status`, and the policy binary lists name
 #: git, python3, pip/uv, node and npm. Saying so costs one paragraph; discovering it costs
 #: tool calls and model time — the first Golden Path run spent fifty calls and then timed
-#: out on the model.
+#: out on the model. The interpreter line is from the second run's policy ledger: `uv` tried
+#: releases.astral.sh and github.com for a Python build, four times each, and was refused.
 SANDBOX_FACTS = (
     "About this environment: a Linux shell inside an OpenShell sandbox. Available: git, "
     "python3 with pip and uv, node and npm. Not available: Docker, a display or GUI, a GPU, "
-    "sudo. If the first option below needs one of those, take the next option that does "
-    "not — usually running from source — and say which one you took and why."
+    "sudo. Use the system python3: interpreter downloads (`uv python install`, pyenv) are "
+    "not reachable from here. If the first option below needs one of those, take the next "
+    "option that does not — usually running from source — and say which one you took and why."
 )
 
 _FENCE = re.compile(r"```[a-zA-Z0-9_+-]*\n(.*?)```", re.DOTALL)

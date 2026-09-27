@@ -59,7 +59,14 @@ describe("focus payload goldens", () => {
       focusGoldens.find(({ name }) => name === "repo-trial-timed-out.json")?.value,
     );
     expect(payload.jobs.trial?.state).toBe("partially_succeeded");
-    expect(payload.trial?.blocked).toEqual(["voicestudio.sh"]);
+    // Two refusals read from OpenShell's log, one from the agent's own stream.
+    expect(payload.trial?.blocked).toEqual(["releases.astral.sh", "github.com", "voicestudio.sh"]);
+    expect(payload.trial?.denials.find((row) => row.host === "github.com")).toEqual({
+      host: "github.com",
+      binary: "/sandbox/.local/bin/uv",
+      count: 4,
+      reason: "binary '/sandbox/.local/bin/uv' not allowed in policy 'brew'",
+    });
   });
 });
 

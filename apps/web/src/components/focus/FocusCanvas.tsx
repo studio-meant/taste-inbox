@@ -1,4 +1,4 @@
-import type { FocusJob, FocusPayload, SourcePlatform } from "@taste-inbox/shared";
+import type { FocusJob, FocusPayload, SourcePlatform, TrialDenial } from "@taste-inbox/shared";
 import { ArrowLeft, ExternalLink, FileText, ShieldAlert, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/components/primitives";
@@ -509,6 +509,7 @@ function EvidenceTrail({ payload }: { readonly payload: FocusPayload }) {
 
 function PolicyLedger({ payload }: { readonly payload: FocusPayload }) {
   const blocked = payload.trial?.blocked ?? [];
+  const denials = payload.trial?.denials ?? [];
   const refused = payload.suggestion?.plan.refusedHosts ?? [];
   const endpoints = payload.boundary.endpoints;
   const hostCount = new Set(endpoints.flatMap((row) => row.hosts)).size;
@@ -523,13 +524,17 @@ function PolicyLedger({ payload }: { readonly payload: FocusPayload }) {
           <p className={styles.empty}>막힌 연결 시도가 없었어요.</p>
         ) : (
           <ul className={styles.blocked}>
-            {blocked.map((host) => (
-              <li key={host}>
+            {denials.map((row) => (
+              <li key={`${row.host} ${row.binary ?? ""}`}>
                 <ShieldAlert size={14} strokeWidth={1.8} aria-hidden="true" />
-                {host}
-                <span className={styles.why}>
-                  이 저장소가 실행 중에 연결하려다 정책에 막혔어요.
+                <span>
+                  {row.host}
+                  {row.count === null ? null : (
+                    <span className={styles.count}> · {row.count}회</span>
+                  )}
                 </span>
+                <span className={styles.why}>{denialSentence(row)}</span>
+                {row.binary === null ? null : <code className={styles.binary}>{row.binary}</code>}
               </li>
             ))}
           </ul>
@@ -574,6 +579,23 @@ function PolicyLedger({ payload }: { readonly payload: FocusPayload }) {
       </details>
     </Panel>
   );
+}
+
+/**
+ * Why the boundary said no, in a sentence. The two reasons OpenShell gives are different
+ * findings — a host no policy opens, and a host that is open to other programs — and the
+ * second is the one people do not expect.
+ */
+function denialSentence(row: TrialDenial): string {
+  const reason = row.reason ?? "";
+  const policy = /not allowed in policy '([^']+)'/.exec(reason);
+  if (policy !== null) {
+    return `이 호스트는 '${policy[1] ?? ""}' 정책에 열려 있지만, 이 프로그램에는 열려 있지 않아요.`;
+  }
+  if (reason.includes("not allowed by any policy")) {
+    return "어느 정책도 이 호스트를 열지 않아요.";
+  }
+  return "실행 중에 연결하려다 정책에 막혔어요.";
 }
 
 function Artifacts({ payload }: { readonly payload: FocusPayload }) {

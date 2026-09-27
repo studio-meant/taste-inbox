@@ -16,6 +16,7 @@ next to the research that recommended it. Nothing but the sandbox could have obs
 from __future__ import annotations
 
 import re
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -253,10 +254,15 @@ def run(
         # Committed before the agent runs: the run takes minutes, and an open write
         # transaction for that long locks the whole SQLite file against every other writer.
         session.commit()
+        window_start = time.time()
         run_result = nemoclaw.run_agent(
             trial_id=trial_id, plan_text=plan.plan_text, sandbox=name, timeout=timeout
         )
         parsed = transcript.read(run_result.stdout, run_result.stderr)
+        # The boundary's own record of what it refused during this run. The agent's streams
+        # hold at most a proxy 403 or a one-line hint; which program tried which host, and
+        # why the policy said no, is only in OpenShell's log.
+        refused = nemoclaw.denials(sandbox=name, since=window_start - 1, until=time.time() + 2)
         state, why = outcome_state(run_result.exit_code, parsed)
         _step(session, job, 1, "done" if state == "succeeded" else "failed", message=why)
         session.commit()
@@ -318,12 +324,28 @@ def run(
                         observed_at=observed,
                     )
                 )
-        for decision in parsed.blocked:
+        for row in refused:
             session.add(
                 Evidence(
                     item_id=plan.subject_id,
                     type=BLOCKED_EVIDENCE,
                     # Korean, because this is the line the user reads on the card.
+                    label="정책이 막은 연결 시도",
+                    value=denial_value(row),
+                    provenance="policy",
+                    source_url=None,
+                    observed_at=observed,
+                )
+            )
+        logged_hosts = {_bare_host(str(row["host"])) for row in refused}
+        for decision in parsed.blocked:
+            # Only what the log did not already say, with its program and reason.
+            if decision.host is not None and _bare_host(decision.host) in logged_hosts:
+                continue
+            session.add(
+                Evidence(
+                    item_id=plan.subject_id,
+                    type=BLOCKED_EVIDENCE,
                     label="정책이 막은 연결 시도",
                     value=decision.host or decision.evidence_line,
                     provenance="policy",
@@ -381,6 +403,42 @@ def run(
         )
 
 
+#: Separator inside a stored denial: `host · program · N회 · reason`.
+_DENIAL_SEP = " · "
+
+
+def _bare_host(host: str) -> str:
+    return host.removesuffix(":443").lower()
+
+
+def denial_value(row: dict[str, Any]) -> str:
+    """One refused connection as the line stored in `evidence.value`.
+
+    Readable as it stands in the inherited evidence list, and split back apart by
+    `denial_parts` for the ledger.
+    """
+
+    parts = [_bare_host(str(row["host"])), str(row["binary"]), f"{int(row['count'])}회"]
+    if row.get("reason"):
+        parts.append(str(row["reason"]))
+    return _DENIAL_SEP.join(parts)
+
+
+def denial_parts(value: str) -> dict[str, Any]:
+    """`denial_value` read back. A bare host (from the agent's own streams) keeps only that."""
+
+    parts = value.split(_DENIAL_SEP, 3)
+    if len(parts) < 3 or not parts[2].endswith("회"):
+        return {"host": value, "binary": None, "count": None, "reason": None}
+    count = parts[2].removesuffix("회")
+    return {
+        "host": parts[0],
+        "binary": parts[1],
+        "count": int(count) if count.isdigit() else None,
+        "reason": parts[3] if len(parts) > 3 else None,
+    }
+
+
 def result_facts(value: str) -> dict[str, str]:
     """The `key=value` pairs of a stored result line, for a screen that draws them apart.
 
@@ -424,7 +482,11 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
         "observedAt": result.observed_at if result else None,
         "transcript": next((row.value for row in rows if row.type == TRANSCRIPT_EVIDENCE), None),
         "errorOutput": next((row.value for row in rows if row.type == ERROR_EVIDENCE), None),
-        "blocked": [row.value for row in rows if row.type == BLOCKED_EVIDENCE],
+        # Hosts alone, for counts and the queue line; `denials` keeps who tried and why.
+        "blocked": [
+            denial_parts(row.value)["host"] for row in rows if row.type == BLOCKED_EVIDENCE
+        ],
+        "denials": [denial_parts(row.value) for row in rows if row.type == BLOCKED_EVIDENCE],
         "artifacts": [row.value for row in rows if row.type == ARTIFACT_EVIDENCE],
     }
 
@@ -437,6 +499,8 @@ __all__ = [
     "STEPS",
     "TRANSCRIPT_EVIDENCE",
     "TrialOutcome",
+    "denial_parts",
+    "denial_value",
     "error_tail",
     "latest",
     "new_job_id",

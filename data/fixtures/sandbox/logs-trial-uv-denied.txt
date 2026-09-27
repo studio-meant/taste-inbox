@@ -1,0 +1,89 @@
+2026-09-27T18:32:18.604+00:00 [gateway] [provider-transport-fetch] [model-fetch] start provider=inference api=openai-completions model=nvidia/nemotron-3-super-120b-a12b method=POST url=https://inference.local/v1/chat/completions timeoutMs=600000 proxy=env policy=custom
+[1790534010.469] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 23813ms [POST\u{20}/v1/chat/completions]
+[1790534010.622] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534010.622] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534014.437] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 3814ms [POST\u{20}/v1/chat/completions]
+[1790534014.547] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534014.547] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534077.503] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 62954ms [POST\u{20}/v1/chat/completions]
+[1790534077.578] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534077.578] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534078.556] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 978ms [POST\u{20}/v1/chat/completions]
+[1790534078.604] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534078.604] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534082.082] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 3476ms [POST\u{20}/v1/chat/completions]
+[1790534082.117] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534082.117] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534109.361] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 27242ms [POST\u{20}/v1/chat/completions]
+[1790534109.530] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> releases.astral.sh:443 [policy:- engine:opa] [reason:endpoint releases.astral.sh:443 is not allowed by any policy]
+[1790534109.539] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> github.com:443 [policy:- engine:opa] [reason:binary '/sandbox/.local/bin/uv' not allowed in policy 'brew' (ancestors: [/usr/bin/bash -> /usr/local/bin/node -> /usr/bin/bash], cmdline: [/bin/bash, /usr/local/bin/nemoclaw-start]). SYMLINK HINT: the binary path is the kernel-resolved target from /proc/<...]
+[1790534110.708] [sandbox] [INFO ] [openshell_sandbox] Flushed denial analysis to gateway proposals=2 sandbox_name=taste-inbox summaries=2
+[1790534110.708] [sandbox] [INFO ] [openshell_sandbox] Flushed activity summary to gateway denied_action_count=2 network_activity_count=2 sandbox_name=taste-inbox
+[1790534111.227] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> releases.astral.sh:443 [policy:- engine:opa] [reason:endpoint releases.astral.sh:443 is not allowed by any policy]
+[1790534111.239] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> github.com:443 [policy:- engine:opa] [reason:binary '/sandbox/.local/bin/uv' not allowed in policy 'brew' (ancestors: [/usr/bin/bash -> /usr/local/bin/node -> /usr/bin/bash], cmdline: [/bin/bash, /usr/local/bin/nemoclaw-start]). SYMLINK HINT: the binary path is the kernel-resolved target from /proc/<...]
+[1790534115.172] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> releases.astral.sh:443 [policy:- engine:opa] [reason:endpoint releases.astral.sh:443 is not allowed by any policy]
+[1790534115.179] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> github.com:443 [policy:- engine:opa] [reason:binary '/sandbox/.local/bin/uv' not allowed in policy 'brew' (ancestors: [/usr/bin/bash -> /usr/local/bin/node -> /usr/bin/bash], cmdline: [/bin/bash, /usr/local/bin/nemoclaw-start]). SYMLINK HINT: the binary path is the kernel-resolved target from /proc/<...]
+[1790534117.558] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> releases.astral.sh:443 [policy:- engine:opa] [reason:endpoint releases.astral.sh:443 is not allowed by any policy]
+[1790534117.573] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> github.com:443 [policy:- engine:opa] [reason:binary '/sandbox/.local/bin/uv' not allowed in policy 'brew' (ancestors: [/usr/bin/bash -> /usr/local/bin/node -> /usr/bin/bash], cmdline: [/bin/bash, /usr/local/bin/nemoclaw-start]). SYMLINK HINT: the binary path is the kernel-resolved target from /proc/<...]
+[1790534117.602] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534117.602] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534120.707] [sandbox] [INFO ] [openshell_sandbox] Flushed activity summary to gateway denied_action_count=6 network_activity_count=6 sandbox_name=taste-inbox
+[1790534120.707] [sandbox] [INFO ] [openshell_sandbox] Flushed denial analysis to gateway proposals=2 sandbox_name=taste-inbox summaries=2
+[1790534129.136] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 11533ms [POST\u{20}/v1/chat/completions]
+[1790534129.186] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534129.186] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534135.296] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 6110ms [POST\u{20}/v1/chat/completions]
+[1790534135.347] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534135.347] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534136.483] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 1136ms [POST\u{20}/v1/chat/completions]
+[1790534136.564] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534136.564] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534145.354] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 8788ms [POST\u{20}/v1/chat/completions]
+[1790534145.408] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534145.408] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534170.537] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 25127ms [POST\u{20}/v1/chat/completions]
+[1790534170.623] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534170.623] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534180.818] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 10195ms [POST\u{20}/v1/chat/completions]
+[1790534180.889] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534180.889] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534181.310] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 420ms [POST\u{20}/v1/chat/completions]
+[1790534181.501] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=d5311f96-271e-44ca-9c58-997fc3b55ca4, target=unix:/run/openshell/ssh.sock)]
+[1790534183.340] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] [msg:ssh relay open (channel_id=0eb643dd-771c-4071-9056-db2734200f2f, target=unix:/run/openshell/ssh.sock)]
+[1790534183.340] [sandbox] [OCSF ] [ocsf] SSH:OPEN [INFO] ALLOWED
+[1790534183.345] [sandbox] [OCSF ] [ocsf] CONFIG:APPLYING [INFO] Applying Landlock filesystem sandbox [abi:V2 compat:BestEffort ro:10 rw:7]
+[1790534183.346] [sandbox] [OCSF ] [ocsf] CONFIG:BUILT [INFO] Landlock ruleset built [rules_applied:15 skipped:2]
+[1790534183.365] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=0eb643dd-771c-4071-9056-db2734200f2f, target=unix:/run/openshell/ssh.sock)]
+[1790534196.367] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] [msg:ssh relay open (channel_id=9adbced8-5085-42d1-9d39-b265594017b5, target=unix:/run/openshell/ssh.sock)]
+[1790534196.369] [sandbox] [OCSF ] [ocsf] SSH:OPEN [INFO] ALLOWED
+[1790534196.394] [sandbox] [OCSF ] [ocsf] CONFIG:APPLYING [INFO] Applying Landlock filesystem sandbox [abi:V2 compat:BestEffort ro:10 rw:7]
+[1790534196.399] [sandbox] [OCSF ] [ocsf] CONFIG:BUILT [INFO] Landlock ruleset built [rules_applied:15 skipped:2]
+[1790534196.435] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=9adbced8-5085-42d1-9d39-b265594017b5, target=unix:/run/openshell/ssh.sock)]
+[1790534196.461] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] 127.0.0.1:18789/tcp
+[1790534196.462] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] 127.0.0.1:18789/tcp
+[1790534196.655] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] [msg:ssh relay open (channel_id=89b1e1ea-f0c9-469f-aa9e-d08fbe4581e3, target=unix:/run/openshell/ssh.sock)]
+[1790534196.656] [sandbox] [OCSF ] [ocsf] SSH:OPEN [INFO] ALLOWED
+[1790534196.660] [sandbox] [OCSF ] [ocsf] CONFIG:APPLYING [INFO] Applying Landlock filesystem sandbox [abi:V2 compat:BestEffort ro:10 rw:7]
+[1790534196.660] [sandbox] [OCSF ] [ocsf] CONFIG:BUILT [INFO] Landlock ruleset built [rules_applied:15 skipped:2]
+[1790534196.693] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534196.693] [sandbox] [INFO ] [openshell_router] routing proxy inference request endpoint=https://integrate.api.nvidia.com/v1 method=GET path=/v1/models protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534196.739] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 45ms [GET\u{20}/v1/models]
+[1790534196.741] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=89b1e1ea-f0c9-469f-aa9e-d08fbe4581e3, target=unix:/run/openshell/ssh.sock)]
+[1790534196.754] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] [msg:ssh relay open (channel_id=9dda4b0b-e115-426f-a34d-e3ceaa88a162, target=unix:/run/openshell/ssh.sock)]
+[1790534196.755] [sandbox] [OCSF ] [ocsf] SSH:OPEN [INFO] ALLOWED
+[1790534196.757] [sandbox] [OCSF ] [ocsf] CONFIG:APPLYING [INFO] Applying Landlock filesystem sandbox [abi:V2 compat:BestEffort ro:10 rw:7]
+[1790534196.757] [sandbox] [OCSF ] [ocsf] CONFIG:BUILT [INFO] Landlock ruleset built [rules_applied:15 skipped:2]
+[1790534196.775] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] ALLOWED inference.local:443
+[1790534196.775] [sandbox] [INFO ] [openshell_router] routing proxy inference request (streaming) endpoint=https://integrate.api.nvidia.com/v1 method=POST path=/v1/chat/completions protocols=openai_chat_completions,openai_completions,openai_responses,openai_embeddings,model_discovery
+[1790534197.062] [sandbox] [OCSF ] [ocsf] API:INFERENCE [INFO] Success nvidia/nemotron-3-super-120b-a12b via https://integrate.api.nvidia.com/v1 287ms [POST\u{20}/v1/chat/completions]
+[1790534197.070] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=9dda4b0b-e115-426f-a34d-e3ceaa88a162, target=unix:/run/openshell/ssh.sock)]
+[1790534197.748] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] [msg:ssh relay open (channel_id=9dce56e6-4cf9-4cee-be48-42b2e7c5b926, target=unix:/run/openshell/ssh.sock)]
+[1790534197.748] [sandbox] [OCSF ] [ocsf] SSH:OPEN [INFO] ALLOWED
+[1790534197.753] [sandbox] [OCSF ] [ocsf] CONFIG:APPLYING [INFO] Applying Landlock filesystem sandbox [abi:V2 compat:BestEffort ro:10 rw:7]
+[1790534197.753] [sandbox] [OCSF ] [ocsf] CONFIG:BUILT [INFO] Landlock ruleset built [rules_applied:15 skipped:2]
+[1790534197.848] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=9dce56e6-4cf9-4cee-be48-42b2e7c5b926, target=unix:/run/openshell/ssh.sock)]
+[1790534197.878] [sandbox] [OCSF ] [ocsf] NET:OPEN [INFO] [msg:ssh relay open (channel_id=34df4b84-ab33-419a-8f56-6db7f42d2f4c, target=unix:/run/openshell/ssh.sock)]
+[1790534197.879] [sandbox] [OCSF ] [ocsf] SSH:OPEN [INFO] ALLOWED
+[1790534197.881] [sandbox] [OCSF ] [ocsf] CONFIG:APPLYING [INFO] Applying Landlock filesystem sandbox [abi:V2 compat:BestEffort ro:10 rw:7]
+[1790534197.881] [sandbox] [OCSF ] [ocsf] CONFIG:BUILT [INFO] Landlock ruleset built [rules_applied:15 skipped:2]
+[1790534197.893] [sandbox] [OCSF ] [ocsf] NET:CLOSE [INFO] [msg:ssh relay closed (channel_id=34df4b84-ab33-419a-8f56-6db7f42d2f4c, target=unix:/run/openshell/ssh.sock)]

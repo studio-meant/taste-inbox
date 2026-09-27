@@ -600,8 +600,19 @@
   overflow-wrap: anywhere;
 }
 
-.blocked li .why {
+.blocked li .why,
+.blocked li .binary {
   grid-column: 2;
+  font-weight: 500;
+}
+
+.binary {
+  font-size: 12px;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
+.count {
   font-weight: 500;
 }
 

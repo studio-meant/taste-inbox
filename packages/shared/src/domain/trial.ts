@@ -9,6 +9,14 @@ import { IsoDateTimeSchema } from "../host/host-profile";
  * those is the part no other stage could have produced.
  */
 
+/** One refused connection: the host, the program that tried it, how often, and why. */
+export const TrialDenialSchema = z.object({
+  host: z.string().min(1),
+  binary: z.string().nullable(),
+  count: z.number().int().positive().nullable(),
+  reason: z.string().nullable(),
+});
+
 /**
  * `GET /api/trials/{itemId}` — the last trial on one item, or null.
  *
@@ -31,6 +39,12 @@ export const TrialResultSchema = z.object({
    */
   errorOutput: z.string().nullable(),
   blocked: z.array(z.string()),
+  /**
+   * The same refusals with who tried and why, read from OpenShell's own log for the run's
+   * window. `binary`/`count`/`reason` are null for a refusal known only from the agent's
+   * streams, which name the host and nothing else.
+   */
+  denials: z.array(TrialDenialSchema),
   /** File names the run left in its working directory — evidence something ran. */
   artifacts: z.array(z.string()),
 });
@@ -68,6 +82,7 @@ export const TrialStartResponseSchema = JobStartResponseSchema.extend({
   }),
 });
 
+export type TrialDenial = z.infer<typeof TrialDenialSchema>;
 export type TrialResult = z.infer<typeof TrialResultSchema>;
 export type JobStartResponse = z.infer<typeof JobStartResponseSchema>;
 export type ResearchStartResponse = z.infer<typeof ResearchStartResponseSchema>;

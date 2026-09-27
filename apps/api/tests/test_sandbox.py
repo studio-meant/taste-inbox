@@ -245,6 +245,12 @@ def patched_sandbox(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(
         nemoclaw, "list_workdir", lambda trial_id, **_: ["plan.md", "VoiceStudio", "result.txt"]
     )
+    # The boundary's log. Empty unless a test hands it a recorded stretch.
+    monkeypatch.setattr(
+        nemoclaw,
+        "denials",
+        lambda **_: nemoclaw.parse_denials(seen.get("log", "")),
+    )
     return seen
 
 
@@ -375,3 +381,83 @@ def test_a_docker_already_on_path_is_left_alone(
     monkeypatch.setenv("PATH", f"{mine}:/usr/bin")
 
     assert nemoclaw._environment()["PATH"] == f"{mine}:/usr/bin"
+
+
+# --- what the boundary's own log says -----------------------------------------------------
+
+UV_LOG = recorded_status("logs-trial-uv-denied.txt")
+
+
+def test_denials_name_the_program_the_host_and_the_reason() -> None:
+    """Recorded on the second Golden Path run: `uv` fetching Python, refused twice over."""
+
+    rows = {row["host"]: row for row in nemoclaw.parse_denials(UV_LOG)}
+
+    assert set(rows) == {"releases.astral.sh:443", "github.com:443"}
+    # Refused because no policy opens the host at all.
+    assert rows["releases.astral.sh:443"]["reason"] == (
+        "endpoint releases.astral.sh:443 is not allowed by any policy"
+    )
+    # Refused although the host is open — to git, not to uv. F4's endpoint-by-binary rule, live.
+    assert rows["github.com:443"]["binary"] == "/sandbox/.local/bin/uv"
+    assert rows["github.com:443"]["reason"] == (
+        "binary '/sandbox/.local/bin/uv' not allowed in policy 'brew'"
+    )
+    assert rows["github.com:443"]["count"] == 4
+
+
+def test_denials_are_read_for_the_trial_window_only() -> None:
+    assert nemoclaw.parse_denials(UV_LOG, until=1790534100.0) == []
+    late = nemoclaw.parse_denials(UV_LOG, since=1790534110.0)
+    assert {row["count"] for row in late} == {3}
+
+
+def test_allowed_connections_are_not_findings() -> None:
+    assert "ALLOWED" in UV_LOG
+    assert all(row["binary"] for row in nemoclaw.parse_denials(UV_LOG))
+
+
+def test_a_trial_records_what_the_log_refused(
+    tmp_path: Path, patched_sandbox: dict[str, Any]
+) -> None:
+    patched_sandbox["log"] = UV_LOG
+    # The agent's own streams carry only NemoClaw's one-line hint for the same refusal.
+    patched_sandbox["stderr"] = (
+        "nemoclaw: recent network policy denial detected for github.com:443 inside sandbox\n"
+    )
+    factory = library(tmp_path)
+    with factory() as session:
+        plan = _plan(session, "https://github.com/debpalash/VoiceStudio")
+        trial.run(session, plan, approved=True)
+        latest = trial.latest(session, plan.subject_id)
+
+    assert latest is not None
+    assert sorted(latest["blocked"]) == ["github.com", "releases.astral.sh"]
+    github = next(row for row in latest["denials"] if row["host"] == "github.com")
+    assert github == {
+        "host": "github.com",
+        "binary": "/sandbox/.local/bin/uv",
+        "count": 4,
+        "reason": "binary '/sandbox/.local/bin/uv' not allowed in policy 'brew'",
+    }
+
+
+def test_the_agent_hint_is_parsed_when_the_log_is_unavailable() -> None:
+    parsed = transcript.read(
+        envelope(ok=True, stop="stop", calls=1),
+        "nemoclaw: recent network policy denial detected for github.com:443 inside sandbox\n",
+    )
+
+    assert [decision.host for decision in parsed.blocked] == ["github.com"]
+
+
+def test_a_stored_denial_reads_back() -> None:
+    row = {"host": "github.com:443", "binary": "/usr/bin/curl", "count": 2, "reason": "r · s"}
+
+    assert trial.denial_parts(trial.denial_value(row)) == {
+        "host": "github.com",
+        "binary": "/usr/bin/curl",
+        "count": 2,
+        "reason": "r · s",
+    }
+    assert trial.denial_parts("voicestudio.sh")["binary"] is None

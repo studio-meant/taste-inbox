@@ -34,6 +34,6 @@ describe("which Browse modes the rail offers", () => {
   });
 
   it("reads this repository's own marker as the rnd edition", () => {
-    expect(ids(join(process.cwd(), "..", ".."))).toEqual(["all", "trends", "none"]);
+    expect(ids(join(__dirname, "..", "..", ".."))).toEqual(["all", "trends", "none"]);
   });
 });

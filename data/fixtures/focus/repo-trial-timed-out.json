@@ -136,6 +136,22 @@
       {
         "type": "trial.blocked_endpoint",
         "label": "정책이 막은 연결 시도",
+        "value": "releases.astral.sh · /sandbox/.local/bin/uv · 4회 · endpoint releases.astral.sh:443 is not allowed by any policy",
+        "sourceUrl": null,
+        "provenance": "policy",
+        "confidence": null
+      },
+      {
+        "type": "trial.blocked_endpoint",
+        "label": "정책이 막은 연결 시도",
+        "value": "github.com · /sandbox/.local/bin/uv · 4회 · binary '/sandbox/.local/bin/uv' not allowed in policy 'brew'",
+        "sourceUrl": null,
+        "provenance": "policy",
+        "confidence": null
+      },
+      {
+        "type": "trial.blocked_endpoint",
+        "label": "정책이 막은 연결 시도",
         "value": "voicestudio.sh",
         "sourceUrl": null,
         "provenance": "policy",
@@ -180,7 +196,7 @@
     "plan": {
       "subjectId": "00000000-0000-0000-0000-000000000000",
       "subjectUrl": "https://github.com/debpalash/VoiceStudio",
-      "planText": "Work on debpalash/VoiceStudio (https://github.com/debpalash/VoiceStudio).\n\nThe research below proposes the smallest verifiable first step. Follow its intent rather than its exact wording: if a command is wrong or a file has moved, find the real entry point and say what you changed.\n\nAbout this environment: a Linux shell inside an OpenShell sandbox. Available: git, python3 with pip and uv, node and npm. Not available: Docker, a display or GUI, a GPU, sudo. If the first option below needs one of those, take the next option that does not — usually running from source — and say which one you took and why.\n\n**Option A — Docker (fastest, works on Linux/macOS/Windows with Docker Engine):**\n\n```bash\ndocker run -d --name omnivoice \\\n -p 127.0.0.1:3900:3900 \\\n -v omnivoice-data:/app/omnivoice_data \\\n -v ~/.cache/huggingface:/root/.cache/huggingface \\\n palashdeb/omnivoice-studio:0.5.0@sha256:2bf2d4d86591672caedada4384895c0e0ca4fdb3ec7f8efed257210b5abd4629\n```\n\nThen open ` in a browser. **Proof it worked**: the VoiceStudio web UI loads and the `/health` endpoint returns `{\"status\":\"ok\"}` (or the UI shows the workspace tabs: Voice Cloning, Video Dubbing, Voice Design, etc.). First run will pull model weights automatically. [2]\n\n**Option B — One-line installer (desktop app, macOS/Windows/Linux):**\n\n```bash\ncurl -fsSL | sh\n```\n\n**Proof it worked**: the VoiceStudio desktop window opens and shows the same workspace tabs; the backend health check at ` responds successfully. [1]\n\n**Option C — Run from source (for development / agent-skill testing):**\n\n```bash\ngit clone [1]\ncd VoiceStudio\nbun install\nbun run setup:api # prepares Python deps\nbun run dev # starts Electron + backend\n```\n\n**Proof it worked**: Electron window opens with the UI; the console shows the FastAPI server listening on port 3900. [1]\n\n**Prerequisites note**: Docker path requires Docker 19.03+ and (for GPU) NVIDIA driver ≥550.54.14 + CUDA ≥12.0. The local Python backend needs Python ≥3.10; on macOS 13.3+ only the Docker path is supported. [2]\n\n---\n\n**References:**\n- [1] GitHub - debpalash/VoiceStudio: VoiceStudio is the open-source, fully-local ElevenLabs alternative — voice cloning, voice design, video dubbing, dictation, transcription & audiobook creation in 646 languages. https://github.com/debpalash/VoiceStudio\n- [2] Download for Windows, macOS, and Linux · VoiceStudio. https://voicestudio.sh/download\n- [3] Debpalash VoiceStudio Hit GitHub Trending, but Local Voice AI Still Has to Prove Itself. https://www.remio.ai/post/debpalash-voicestudio-hit-github-trending-but-local-voice-ai-still-has-to-prove\n- [4] Tessl • The package manager for agent skills. https://tessl.io/registry/skills/github/debpalash/VoiceStudio/voicestudio\n- [5] VoiceStudio Explained: The 33k-Star Local AI Voice & Dubbing Engine - HoangYell. https://hoangyell.com/voicestudio-explained\n\nStop as soon as the success condition is met; do not download model weights or build more than the check needs.\n\nWork only inside the current directory. Do not attempt to reach any host that is not required by the steps above; if a request is blocked, report it rather than working around it.",
+      "planText": "Work on debpalash/VoiceStudio (https://github.com/debpalash/VoiceStudio).\n\nThe research below proposes the smallest verifiable first step. Follow its intent rather than its exact wording: if a command is wrong or a file has moved, find the real entry point and say what you changed.\n\nAbout this environment: a Linux shell inside an OpenShell sandbox. Available: git, python3 with pip and uv, node and npm. Not available: Docker, a display or GUI, a GPU, sudo. Use the system python3: interpreter downloads (`uv python install`, pyenv) are not reachable from here. If the first option below needs one of those, take the next option that does not — usually running from source — and say which one you took and why.\n\n**Option A — Docker (fastest, works on Linux/macOS/Windows with Docker Engine):**\n\n```bash\ndocker run -d --name omnivoice \\\n -p 127.0.0.1:3900:3900 \\\n -v omnivoice-data:/app/omnivoice_data \\\n -v ~/.cache/huggingface:/root/.cache/huggingface \\\n palashdeb/omnivoice-studio:0.5.0@sha256:2bf2d4d86591672caedada4384895c0e0ca4fdb3ec7f8efed257210b5abd4629\n```\n\nThen open ` in a browser. **Proof it worked**: the VoiceStudio web UI loads and the `/health` endpoint returns `{\"status\":\"ok\"}` (or the UI shows the workspace tabs: Voice Cloning, Video Dubbing, Voice Design, etc.). First run will pull model weights automatically. [2]\n\n**Option B — One-line installer (desktop app, macOS/Windows/Linux):**\n\n```bash\ncurl -fsSL | sh\n```\n\n**Proof it worked**: the VoiceStudio desktop window opens and shows the same workspace tabs; the backend health check at ` responds successfully. [1]\n\n**Option C — Run from source (for development / agent-skill testing):**\n\n```bash\ngit clone [1]\ncd VoiceStudio\nbun install\nbun run setup:api # prepares Python deps\nbun run dev # starts Electron + backend\n```\n\n**Proof it worked**: Electron window opens with the UI; the console shows the FastAPI server listening on port 3900. [1]\n\n**Prerequisites note**: Docker path requires Docker 19.03+ and (for GPU) NVIDIA driver ≥550.54.14 + CUDA ≥12.0. The local Python backend needs Python ≥3.10; on macOS 13.3+ only the Docker path is supported. [2]\n\n---\n\n**References:**\n- [1] GitHub - debpalash/VoiceStudio: VoiceStudio is the open-source, fully-local ElevenLabs alternative — voice cloning, voice design, video dubbing, dictation, transcription & audiobook creation in 646 languages. https://github.com/debpalash/VoiceStudio\n- [2] Download for Windows, macOS, and Linux · VoiceStudio. https://voicestudio.sh/download\n- [3] Debpalash VoiceStudio Hit GitHub Trending, but Local Voice AI Still Has to Prove Itself. https://www.remio.ai/post/debpalash-voicestudio-hit-github-trending-but-local-voice-ai-still-has-to-prove\n- [4] Tessl • The package manager for agent skills. https://tessl.io/registry/skills/github/debpalash/VoiceStudio/voicestudio\n- [5] VoiceStudio Explained: The 33k-Star Local AI Voice & Dubbing Engine - HoangYell. https://hoangyell.com/voicestudio-explained\n\nStop as soon as the success condition is met; do not download model weights or build more than the check needs.\n\nWork only inside the current directory. Do not attempt to reach any host that is not required by the steps above; if a request is blocked, report it rather than working around it.",
       "successCriteria": "The repository is fetched, its dependencies resolve, and the documented entry point starts or its test suite runs — or the exact failure is reported with the command that produced it.",
       "requiredHosts": [
         "github.com"
@@ -211,7 +227,29 @@
     "transcript": "LLM request timed out.",
     "errorOutput": "curl: (56) CONNECT tunnel failed https://voicestudio.sh/install.sh response 403\n(node:1) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental\n{\"ok\": false, \"result\": {\"final\": \"LLM request timed out.\", \"toolSummary\": {\"calls\": 50, \"tools\": [\"exec\", \"process\"], \"failures\": 1}, \"completion\": {\"stopReason\": \"aborted\"}, \"model\": \"nvidia/nemotron-3-super-120b-a12b\"}}",
     "blocked": [
+      "releases.astral.sh",
+      "github.com",
       "voicestudio.sh"
+    ],
+    "denials": [
+      {
+        "host": "releases.astral.sh",
+        "binary": "/sandbox/.local/bin/uv",
+        "count": 4,
+        "reason": "endpoint releases.astral.sh:443 is not allowed by any policy"
+      },
+      {
+        "host": "github.com",
+        "binary": "/sandbox/.local/bin/uv",
+        "count": 4,
+        "reason": "binary '/sandbox/.local/bin/uv' not allowed in policy 'brew'"
+      },
+      {
+        "host": "voicestudio.sh",
+        "binary": null,
+        "count": null,
+        "reason": null
+      }
     ],
     "artifacts": [
       "plan.md"

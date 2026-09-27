@@ -194,5 +194,7 @@ test("source pills open originals from the upper right, without opening item det
   await shopCard
     .getByRole("link", { name: "워시드 세이지 컬러의 라이트 셸 재킷", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/items\/cropped-shell-jacket$/);
+  // The card carries where it was opened from, so the detail page's back link returns to
+  // this board (`safeBoardReturnHref`). The pattern used to end at the id and failed on it.
+  await expect(page).toHaveURL(/\/items\/cropped-shell-jacket\?from=%2Flibrary$/);
 });

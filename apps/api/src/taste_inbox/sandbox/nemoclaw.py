@@ -40,6 +40,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -290,6 +291,89 @@ def network_policies(text: str) -> list[dict[str, Any]]:
     return ledger
 
 
+#: One refused connection in OpenShell's OCSF log, e.g.
+#:   [1790534109.539] [sandbox] [OCSF ] [ocsf] NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742)
+#:     -> github.com:443 [policy:- engine:opa] [reason:binary '/sandbox/.local/bin/uv' not
+#:     allowed in policy 'brew' (ancestors: [...]) ...]
+#: Recorded from a real trial (`data/fixtures/sandbox/logs-trial-uv-denied.txt`).
+_DENIED = re.compile(
+    r"^\[(?P<at>\d+(?:\.\d+)?)\].*?NET:OPEN\s+\[\w+\]\s+DENIED\s+"
+    r"(?P<binary>\S+?)(?:\(\d+\))?\s+->\s+(?P<host>[^\s\[]+)"
+    r"(?:.*?\[reason:(?P<reason>[^\]]*))?"
+)
+
+
+def parse_denials(
+    text: str, *, since: float | None = None, until: float | None = None
+) -> list[dict[str, Any]]:
+    """Refused connections in a stretch of sandbox log, one row per program and host.
+
+    **The agent's own output does not carry these.** In the second Golden Path run the agent
+    saw only a proxy 403; which program tried which host, and why the boundary said no, was
+    in OpenShell's log alone. That is the finding this product exists to show, so it is read
+    from where it is written.
+
+    `since`/`until` are epoch seconds, so a trial reads only its own window of a log shared
+    with every other run.
+    """
+
+    rows: dict[tuple[str, str], dict[str, Any]] = {}
+    for line in _ANSI.sub("", text).splitlines():
+        match = _DENIED.search(line)
+        if match is None:
+            continue
+        at = float(match.group("at"))
+        if (since is not None and at < since) or (until is not None and at > until):
+            continue
+        binary, host = match.group("binary"), match.group("host")
+        reason = (match.group("reason") or "").split(" (ancestors:")[0].strip() or None
+        key = (binary, host)
+        if key in rows:
+            rows[key]["count"] += 1
+        else:
+            rows[key] = {"host": host, "binary": binary, "reason": reason, "count": 1}
+    return list(rows.values())
+
+
+#: Lines asked of `nemoclaw logs`. Small on purpose — see `denials`.
+LOG_TAIL_LINES = 400
+
+
+def denials(
+    *, sandbox: str | None = None, since: float, until: float, tail: int = LOG_TAIL_LINES
+) -> list[dict[str, Any]]:
+    """What the boundary refused between two instants, read from `nemoclaw <name> logs`.
+
+    The command is the one the CLI itself prints beside a denial ("See the denied flow:
+    nemoclaw <sandbox> logs --tail 50"). Two things measured on 2026-09-28 shape the call:
+
+    - `--since` bounds it to the run. A plain `--tail` reads the whole shared log.
+    - **A large `--tail` loses the recent lines.** Past the audit buffer's size the CLI warns
+      "log buffer contains only the last …" and prints from the *start* of the buffer, cut
+      short: `--tail 2000` returned no refusal where `--tail 400` returned eight. So the tail
+      stays small, and this is read immediately after the run, before newer lines push the
+      run's own out of the buffer.
+
+    A log that cannot be read yields no rows rather than an error: the trial already
+    happened, and its other evidence still stands.
+    """
+
+    name = sandbox_name(sandbox)
+    window = max(1, int(time.time() - since) + 5)
+    try:
+        completed = subprocess.run(  # noqa: S603
+            [_cli(), name, "logs", "--since", f"{window}s", "--tail", str(tail)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+            env=_environment(),
+        )
+    except (subprocess.TimeoutExpired, SandboxUnavailable):
+        return []
+    return parse_denials(completed.stdout + completed.stderr, since=since, until=until)
+
+
 def run_agent(
     *,
     trial_id: str,
@@ -346,11 +430,14 @@ def list_workdir(trial_id: str, *, sandbox: str | None = None, timeout: float = 
 __all__ = [
     "DEFAULT_SANDBOX",
     "DEFAULT_TIMEOUT_SECONDS",
+    "LOG_TAIL_LINES",
     "WORK_ROOT",
     "SandboxRun",
     "SandboxUnavailable",
+    "denials",
     "list_workdir",
     "network_policies",
+    "parse_denials",
     "parse_status",
     "run_agent",
     "sandbox_name",

@@ -94,6 +94,7 @@ def sandbox(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         ),
     )
     monkeypatch.setattr(nemoclaw, "list_workdir", lambda trial_id, **_: ["plan.md"])
+    monkeypatch.setattr(nemoclaw, "denials", lambda **_: [])
     return state
 
 

@@ -28,6 +28,7 @@ def factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Ses
         nemoclaw, "status", lambda **_: nemoclaw.parse_status("taste-inbox", READY_STATUS)
     )
     monkeypatch.setattr(nemoclaw, "list_workdir", lambda trial_id, **_: [])
+    monkeypatch.setattr(nemoclaw, "denials", lambda **_: [])
     return library(tmp_path)
 
 

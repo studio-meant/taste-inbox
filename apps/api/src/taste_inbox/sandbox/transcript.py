@@ -24,6 +24,10 @@ _BLOCK_PATTERNS = (
     re.compile(r"CONNECT tunnel failed.*?response 403", re.IGNORECASE),
     re.compile(r"(?:blocked|denied|refused) by (?:network )?policy", re.IGNORECASE),
     re.compile(r"Request was cancelled", re.IGNORECASE),
+    # NemoClaw's own hint after a refusal: "recent network policy denial detected for
+    # github.com:443 inside sandbox …". Seen on the second Golden Path run, where it was the
+    # only trace of the refusal in the agent's streams.
+    re.compile(r"network policy denial detected for", re.IGNORECASE),
 )
 
 _HOST_IN_LINE = re.compile(

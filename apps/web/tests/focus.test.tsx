@@ -28,8 +28,9 @@ const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 function golden(name: string): FocusPayload {
-  // From the package root, which is where vitest runs; `import.meta.url` is a `/@fs/` URL here.
-  const path = join(process.cwd(), "..", "..", "data", "fixtures", "focus", `${name}.json`);
+  // Relative to this file, not the working directory: the suite runs from `apps/web` alone
+  // and from the repository root as one workspace. `import.meta.url` is a `/@fs/` URL here.
+  const path = join(__dirname, "..", "..", "..", "data", "fixtures", "focus", `${name}.json`);
   return FocusPayloadSchema.parse(JSON.parse(readFileSync(path, "utf8")));
 }
 
@@ -175,6 +176,21 @@ describe("a trial that did not finish", () => {
     expect(within(ledger).getByText(/연결하려다 정책에 막혔어요/)).toBeInTheDocument();
     // Hosts and the programs allowed to reach them, as pairs.
     expect(within(ledger).getByText("갈 수 있는 프로그램: /usr/bin/git")).toBeInTheDocument();
+  });
+
+  it("says which program was refused and why, from the sandbox's own log", () => {
+    render(<FocusCanvas payload={payload} />);
+
+    const ledger = screen.getByRole("region", { name: "Policy ledger" });
+    // Open to git, refused to uv: the finding people do not expect.
+    expect(
+      within(ledger).getByText(
+        "이 호스트는 'brew' 정책에 열려 있지만, 이 프로그램에는 열려 있지 않아요.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ledger).getByText("어느 정책도 이 호스트를 열지 않아요.")).toBeInTheDocument();
+    expect(within(ledger).getAllByText("/sandbox/.local/bin/uv")).toHaveLength(2);
+    expect(within(ledger).getAllByText(/· 4회/)).toHaveLength(2);
   });
 
   it("lists what the run left behind", () => {
