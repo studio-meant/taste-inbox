@@ -183,7 +183,12 @@ export function DailyConnectionsPanel({
             aria-hidden="true"
             focusable="false"
           />
-          {`${connections.length.toLocaleString("ko-KR")} Connections`}
+          {/*
+            `Connected bundles` (2026-09-28). The product's own word for what this card
+            shows: an item and the paper, repository, model or Space the collectors tied it
+            to. `Connections` alone said nothing about what was connected.
+          */}
+          {`${connections.length.toLocaleString("ko-KR")} Connected bundles`}
         </h2>
         <SourceDots platforms={platformsOf(connections)} label="관련 출처" />
       </div>

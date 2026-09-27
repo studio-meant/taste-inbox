@@ -22,10 +22,10 @@ import { toUrlObject } from "@/lib/filters/board-filters";
 import { RefreshWhileRunning } from "@/components/shell/RefreshWhileRunning";
 
 /**
- * Working Queue — PAGE_SPECIFICATIONS §5.2, laid out as the reference's `WorkingCard`
+ * Lab Queue — PAGE_SPECIFICATIONS §5.2, laid out as the reference's `WorkingCard`
  * (ref.js:495):
  *
- *   Working Queue                                                          ( ◐ )
+ *   Lab Queue                                                              ( ◐ )
  *   [✓]  Garden Lens
  *        준비 완료 · 환경 열기
  *   ──────────────────────────────────────────────────────────────────────────
@@ -140,8 +140,14 @@ export function WorkingQueuePanel({
       aria-labelledby="today-queue-heading"
     >
       <div className={styles.cardHeading}>
+        {/*
+          `Lab Queue` (2026-09-28). Every row here is an item whose research, question,
+          plan or trial is in progress or waiting, and every row opens in the Lab — so the
+          card is named after where it takes you rather than after the fact that work
+          exists.
+        */}
         <h2 id="today-queue-heading" className={styles.cardHeadingTitle} lang="en">
-          Working Queue
+          Lab Queue
         </h2>
         {/* `.queue-orbit` — ref.css:264. Two discs, purely ambient. */}
         <span className={styles.queueOrbit} aria-hidden="true">

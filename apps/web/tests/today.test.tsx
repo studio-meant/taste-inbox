@@ -174,7 +174,7 @@ describe("DailyConnectionsPanel", () => {
     );
     expect(
       screen.getByRole("heading", {
-        name: `${String(1 + today.relatedConnections.length)} Connections`,
+        name: `${String(1 + today.relatedConnections.length)} Connected bundles`,
       }),
     ).toBeInTheDocument();
   });
@@ -280,7 +280,7 @@ describe("DailyConnectionsPanel", () => {
     // The card keeps its heading and its footer; only the body becomes a sentence
     // (DESIGN.md §15). Replacing the whole card with the empty state would make the
     // column collapse and the grid re-flow around a missing day.
-    expect(screen.getByRole("heading", { name: "0 Connections" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "0 Connected bundles" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /오늘의 연결/ })).toBeInTheDocument();
     expect(screen.getByText("0 Updates")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
@@ -363,7 +363,7 @@ describe("SavedItemsSummaryCard", () => {
     const today = await payload();
     render(<SavedItemsSummaryCard summary={today.savedSummary} />);
 
-    const link = screen.getByRole("link", { name: "새로 저장된 17개 항목 모두 보기" });
+    const link = screen.getByRole("link", { name: "오늘 들어온 17개 항목을 Inbox에서 보기" });
     expect(link).toHaveAttribute("href", today.savedSummary.href);
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
@@ -426,7 +426,7 @@ describe("WorkingQueuePanel", () => {
   it("shows an empty state inside the card shape when nothing is queued", () => {
     render(<WorkingQueuePanel items={[]} />);
 
-    expect(screen.getByRole("heading", { name: "Working Queue" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lab Queue" })).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "지금 기다리는 작업은 없어요" }),
     ).toBeInTheDocument();

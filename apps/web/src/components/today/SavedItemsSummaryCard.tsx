@@ -11,12 +11,12 @@ import { toUrlObject } from "@/lib/filters/board-filters";
  * New Saved Items — PAGE_SPECIFICATIONS §5.2, laid out as the reference's `SavedCard`
  * (ref.js:493):
  *
- *   Saved Items                                                              ›
+ *   New signals                                                              ›
  *   17  new items
  *   ▬▬▬▬▬▬▬▬▬▬▬  ▬▬▬▬▬▬
  *   [ AI 11 ] [ Style 6 ]
  *   [ latest ] [ latest ] [ latest ]
- *   ( ● ● ● ● )                                                     모두 보기
+ *   ( ● ● ● ● )                                              Inbox에서 보기
  *
  * Count, split, source summary, up to three recent previews, and a link to the
  * collection. It answers "얼마나 들어왔나" in one glance and nothing else; adding a
@@ -101,8 +101,17 @@ export function SavedItemsSummaryCard({ summary }: { readonly summary: SavedSumm
       aria-labelledby="today-saved-heading"
     >
       <div className={styles.cardHeading}>
+        {/*
+          `New signals`, not `Saved Items` (2026-09-28).
+          
+          The figure under this heading has always been `newItemCount` — what arrived
+          today — while the heading named the whole library, so the card read as
+          "Saved Items 135" when 135 was the day's intake. Today's question is what came in
+          and what to do about it (docs/next_step UI §2.2); the cumulative total is one
+          click away in the Inbox, where the header states it.
+        */}
         <h2 id="today-saved-heading" className={styles.cardHeadingTitle} lang="en">
-          Saved Items
+          New signals
         </h2>
         <ChevronRight
           className={styles.cardHeadingIcon}
@@ -117,7 +126,7 @@ export function SavedItemsSummaryCard({ summary }: { readonly summary: SavedSumm
         <strong className={styles.savedCountValue}>
           {summary.newItemCount.toLocaleString("ko-KR")}
         </strong>
-        <span className={styles.savedCountUnit}>새 항목</span>
+        <span className={styles.savedCountUnit}>오늘 들어옴</span>
       </p>
 
       <SavedMeter segments={[...boards.map((board) => board.count), otherCount]} />
@@ -153,9 +162,9 @@ export function SavedItemsSummaryCard({ summary }: { readonly summary: SavedSumm
         <Link
           href={toUrlObject(summary.href)}
           className={styles.savedLink}
-          aria-label={`새로 저장된 ${summary.newItemCount.toLocaleString("ko-KR")}개 항목 모두 보기`}
+          aria-label={`오늘 들어온 ${summary.newItemCount.toLocaleString("ko-KR")}개 항목을 Inbox에서 보기`}
         >
-          모두 보기
+          Inbox에서 보기
         </Link>
       </div>
     </CardSurface>
