@@ -26,7 +26,9 @@ _BLOCK_PATTERNS = (
     re.compile(r"Request was cancelled", re.IGNORECASE),
 )
 
-_HOST_IN_LINE = re.compile(r"https?://([A-Za-z0-9.\-]+\.[A-Za-z]{2,})|\b([A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+){1,}):443\b")
+_HOST_IN_LINE = re.compile(
+    r"https?://([A-Za-z0-9.\-]+\.[A-Za-z]{2,})|\b([A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+){1,}):443\b"
+)
 
 
 @dataclass(frozen=True, slots=True)

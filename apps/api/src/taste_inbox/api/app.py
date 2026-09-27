@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +59,20 @@ def get_session() -> Iterator[Session]:
         yield session
 
 
-app = FastAPI(title="Taste Inbox", version="0.1.0", docs_url=None, redoc_url=None)
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    from .background import close_orphans
+
+    # A research or trial job left `running` by a previous process never finishes on its
+    # own. Closing it here is what keeps "running" on screen meaning running.
+    with _Session() as session:
+        close_orphans(session)
+    yield
+
+
+app = FastAPI(
+    title="Taste Inbox", version="0.1.0", docs_url=None, redoc_url=None, lifespan=_lifespan
+)
 
 
 class ApiError(HTTPException):
@@ -397,40 +411,83 @@ def focus(item_id: str, session: Session = Depends(get_session)) -> dict[str, An
     return {"data": found}
 
 
-@app.post("/api/research")
+@app.post("/api/research", status_code=202)
 def research_start(
     body: dict[str, Any] | None = None, session: Session = Depends(get_session)
 ) -> dict[str, Any]:
-    """Research one item with NVIDIA AI-Q.
+    """Research one item with NVIDIA AI-Q, in the background.
 
-    Synchronous on purpose at this stage: the job rows are written as it goes, so a client
-    that times out can still read the state from `GET /api/jobs`. Turning it into a
-    background worker is a change to how it is *called*, not to what it does.
+    Answers at once with a queued job; `GET /api/jobs/{id}` follows it. The target backend
+    is resolved *before* anything is queued, so a non-local or malformed `AIQ_SERVER_URL`
+    is refused here rather than discovered minutes later (`aiq-research/SKILL.md`: name
+    the target before sending).
     """
 
     from ..research import runner as research_runner
-    from ..research.aiq_client import AiqUnavailable, describe_target
+    from ..research.aiq_client import AiqUnavailable, describe_target, resolve_server
+    from . import background
 
     payload = body or {}
     item_id = str(payload.get("itemId") or "").strip()
     if not item_id:
         raise ApiError(422, "item_required", "조사할 항목을 지정해 주세요.", recoverable=True)
+    item = session.get(Item, item_id)
+    if item is None:
+        raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False)
 
     agent_type = str(payload.get("agentType") or "shallow_researcher")
     try:
-        target = describe_target()
-        outcome = research_runner.run(session, item_id, agent_type=agent_type)
-    except LookupError as error:
-        raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False) from error
+        server_url = resolve_server()
+        target = describe_target(server_url)
     except AiqUnavailable as error:
         # Reachability is the user's to fix (start the backend, set AIQ_SERVER_URL), so it
         # is recoverable and the message carries the backend's own words.
         raise ApiError(503, "aiq_unavailable", str(error), recoverable=True) from error
 
-    return {"data": {**outcome.as_dict(), "target": target}}
+    if background.busy("research"):
+        raise ApiError(
+            409,
+            "research_busy",
+            "다른 조사가 진행 중입니다. 끝난 뒤 다시 시도해 주세요.",
+            recoverable=True,
+        )
+
+    job = research_runner.open_job(
+        session, item_id=item_id, title=item.title or item.canonical_url, state="queued"
+    )
+    session.commit()
+    job_id = job.id
+
+    started = background.start(
+        "research",
+        job_id,
+        lambda worker: research_runner.run(
+            worker, item_id, agent_type=agent_type, server_url=server_url, job_id=job_id
+        ),
+        session_factory=_Session,
+    )
+    if not started:
+        _abandon(session, job_id)
+        raise ApiError(
+            409,
+            "research_busy",
+            "다른 조사가 진행 중입니다. 끝난 뒤 다시 시도해 주세요.",
+            recoverable=True,
+        )
+    return {"data": {"jobId": job_id, "state": "queued", "serverUrl": server_url, "target": target}}
 
 
-@app.post("/api/trials")
+def _abandon(session: Session, job_id: str) -> None:
+    """A queued job that lost the race for its slot: removed, never shown."""
+    from ..db.models import Job
+
+    job = session.get(Job, job_id)
+    if job is not None:
+        session.delete(job)
+        session.commit()
+
+
+@app.post("/api/trials", status_code=202)
 def trial_start(
     body: dict[str, Any] | None = None, session: Session = Depends(get_session)
 ) -> dict[str, Any]:
@@ -439,6 +496,10 @@ def trial_start(
     `approved` is required and must be true. It is not a formality: running collected code
     was re-allowed only for a plan the user explicitly approved (docs/DECISIONS.md,
     2026-09-28), and the endpoint enforces that rather than trusting the caller to.
+
+    Every precondition is checked here, synchronously, so a refusal comes back as a
+    refusal. Only the run itself goes to the background (`api/background.py`); the
+    answer is the queued job's id.
     """
 
     from ..action import proposal
@@ -446,6 +507,7 @@ def trial_start(
     from ..sandbox import nemoclaw
     from ..sandbox import policy as sandbox_policy
     from ..sandbox import trial as trial_runner
+    from . import background
 
     payload = body or {}
     item_id = str(payload.get("itemId") or "").strip()
@@ -486,25 +548,50 @@ def trial_start(
             recoverable=False,
         )
 
+    busy_error = ApiError(
+        409,
+        "sandbox_busy",
+        "다른 실행이 진행 중입니다. 잠시 후 다시 시도해 주세요.",
+        recoverable=True,
+    )
+    if background.busy("trial"):
+        raise busy_error
     try:
         check = sandbox_policy.check(suggestion.plan)
-        if check.busy:
-            raise ApiError(
-                409, "sandbox_busy", "다른 실행이 진행 중입니다. 잠시 후 다시 시도해 주세요.", recoverable=True
-            )
-        if not check.satisfied:
-            raise ApiError(
-                409,
-                "boundary_not_ready",
-                "샌드박스 경계가 준비되지 않았습니다: "
-                + (", ".join(check.missing_presets) or "샌드박스가 Ready 상태가 아닙니다"),
-                recoverable=True,
-            )
-        outcome = trial_runner.run(session, suggestion.plan, approved=True)
     except nemoclaw.SandboxUnavailable as error:
         raise ApiError(503, "sandbox_unavailable", str(error), recoverable=True) from error
+    if check.busy:
+        raise busy_error
+    if not check.satisfied:
+        raise ApiError(
+            409,
+            "boundary_not_ready",
+            "샌드박스 경계가 준비되지 않았습니다: "
+            + (
+                ", ".join(check.missing_presets)
+                or check.reason
+                or "샌드박스가 Ready 상태가 아닙니다"
+            ),
+            recoverable=True,
+        )
 
-    return {"data": {**outcome.as_dict(), "policy": check.as_dict()}}
+    job = trial_runner.open_job(
+        session, item_id=item_id, title=item.title or item.canonical_url, state="queued"
+    )
+    session.commit()
+    job_id = job.id
+    plan = suggestion.plan
+
+    started = background.start(
+        "trial",
+        job_id,
+        lambda worker: trial_runner.run(worker, plan, approved=True, job_id=job_id),
+        session_factory=_Session,
+    )
+    if not started:
+        _abandon(session, job_id)
+        raise busy_error
+    return {"data": {"jobId": job_id, "state": "queued", "policy": check.as_dict()}}
 
 
 @app.get("/api/trials/{item_id}")
@@ -612,46 +699,65 @@ def today(session: Session = Depends(get_session)) -> dict[str, Any]:
     return {"data": build_today(session)}
 
 
+def _job_payload(session: Session, job: Any) -> dict[str, Any]:
+    from ..db.models import JobStep
+
+    steps = session.scalars(
+        select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.ordinal)
+    )
+    return {
+        "id": job.id,
+        "type": job.type,
+        "state": job.state,
+        "targetId": job.target_id,
+        "title": job.title,
+        "currentStep": job.current_step,
+        "cancellable": bool(job.cancellable),
+        "startedAt": job.started_at,
+        "finishedAt": job.finished_at,
+        "steps": [
+            {
+                "id": step.id,
+                "label": step.label,
+                "state": step.state,
+                "startedAt": step.started_at,
+                "finishedAt": step.finished_at,
+                "message": step.message,
+            }
+            for step in steps
+        ],
+    }
+
+
 @app.get("/api/jobs")
 def jobs(session: Session = Depends(get_session)) -> dict[str, Any]:
     """Every job on record.
 
-    An empty list is the honest answer today — nothing schedules a job yet. Rejecting the
-    call instead took down every page in the workspace, because the shell asks for this on
-    each render: an unimplemented endpoint must not become an unrelated screen's failure.
+    Rejecting the call instead took down every page in the workspace, because the shell
+    asks for this on each render: an unimplemented endpoint must not become an unrelated
+    screen's failure.
     """
-    from ..db.models import Job, JobStep
+    from ..db.models import Job
 
-    payload = []
-    for job in session.scalars(select(Job).order_by(Job.created_at.desc())):
-        steps = session.scalars(
-            select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.ordinal)
-        )
-        payload.append(
-            {
-                "id": job.id,
-                "type": job.type,
-                "state": job.state,
-                "targetId": job.target_id,
-                "title": job.title,
-                "currentStep": job.current_step,
-                "cancellable": bool(job.cancellable),
-                "startedAt": job.started_at,
-                "finishedAt": job.finished_at,
-                "steps": [
-                    {
-                        "id": step.id,
-                        "label": step.label,
-                        "state": step.state,
-                        "startedAt": step.started_at,
-                        "finishedAt": step.finished_at,
-                        "message": step.message,
-                    }
-                    for step in steps
-                ],
-            }
-        )
-    return {"data": {"jobs": payload}}
+    return {
+        "data": {
+            "jobs": [
+                _job_payload(session, job)
+                for job in session.scalars(select(Job).order_by(Job.created_at.desc()))
+            ]
+        }
+    }
+
+
+@app.get("/api/jobs/{job_id}")
+def job_detail(job_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """One job, for the client component that polls a running research or trial."""
+    from ..db.models import Job
+
+    job = session.get(Job, job_id)
+    if job is None:
+        raise ApiError(404, "job_not_found", "그 작업을 찾을 수 없어요.", recoverable=False)
+    return {"data": _job_payload(session, job)}
 
 
 @app.get("/api/host/profile")

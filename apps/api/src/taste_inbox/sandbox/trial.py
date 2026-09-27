@@ -40,8 +40,36 @@ STEPS = (
 )
 
 
+#: Stop reasons that mean the agent did not finish its turn, whatever the exit code says.
+_UNFINISHED_STOPS = frozenset({"aborted", "error", "timeout", "cancelled"})
+
+
 def _now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def outcome_state(exit_code: int, parsed: transcript.TrialTranscript) -> tuple[str, str | None]:
+    """The job state one run earned, and why when it is not a success.
+
+    The exit code alone is not enough: `openclaw agent --json` exits 0 when the model call
+    times out and reports it only as `ok:false · stopReason:aborted` in the envelope. The
+    first Golden Path run was recorded as `succeeded` that way while the agent had written
+    nothing but the plan it was given.
+    """
+
+    if exit_code != 0:
+        return "failed", f"샌드박스 명령이 종료 코드 {exit_code}로 끝났습니다"
+    stop = (parsed.stop_reason or "").lower()
+    if parsed.ok and stop not in _UNFINISHED_STOPS:
+        return "succeeded", None
+    reason = parsed.final_text.strip().splitlines()[0][:200] if parsed.final_text.strip() else None
+    detail = f"에이전트가 끝내지 못했습니다 (stop={parsed.stop_reason or 'n/a'})"
+    if reason:
+        detail = f"{detail}: {reason}"
+    # Something ran before it stopped: that is a partial result, not nothing.
+    if parsed.tool_calls > 0:
+        return "partially_succeeded", detail
+    return "failed", detail
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,33 +94,64 @@ class TrialOutcome:
         }
 
 
-def _open_job(session: Session, *, item_id: str, title: str) -> Job:
+def new_job_id() -> str:
+    return f"trial-{uuid.uuid4()}"
+
+
+def open_job(
+    session: Session, *, item_id: str, title: str, job_id: str | None = None, state: str = "running"
+) -> Job:
+    """Write the job and its steps. `state="queued"` when the run starts later."""
+
     job = Job(
-        id=f"trial-{uuid.uuid4()}",
+        id=job_id or new_job_id(),
         type="trial",
-        state="running",
+        state=state,
         target_id=item_id,
         title=f"안전 실행 · {title}",
         current_step=STEPS[0],
-        cancellable=1,
+        cancellable=True,
         created_at=_now(),
-        started_at=_now(),
+        started_at=_now() if state == "running" else None,
     )
     session.add(job)
     session.flush()
     for ordinal, label in enumerate(STEPS):
         session.add(
-            JobStep(id=f"{job.id}-{ordinal}", job_id=job.id, ordinal=ordinal, label=label, state="waiting")
+            JobStep(
+                id=f"{job.id}-{ordinal}",
+                job_id=job.id,
+                ordinal=ordinal,
+                label=label,
+                state="waiting",
+            )
         )
     session.flush()
     return job
 
 
-def _step(session: Session, job: Job, ordinal: int, state: str) -> None:
-    row = session.scalar(select(JobStep).where(JobStep.job_id == job.id, JobStep.ordinal == ordinal))
+def _claim(session: Session, job_id: str | None) -> Job | None:
+    """A job an endpoint opened as queued, now starting."""
+
+    job = session.get(Job, job_id) if job_id else None
+    if job is not None:
+        job.state = "running"
+        job.started_at = _now()
+        session.flush()
+    return job
+
+
+def _step(
+    session: Session, job: Job, ordinal: int, state: str, *, message: str | None = None
+) -> None:
+    row = session.scalar(
+        select(JobStep).where(JobStep.job_id == job.id, JobStep.ordinal == ordinal)
+    )
     if row is None:
         return
     row.state = state
+    if message is not None:
+        row.message = message
     if state == "running":
         row.started_at = _now()
         job.current_step = row.label
@@ -104,7 +163,7 @@ def _step(session: Session, job: Job, ordinal: int, state: str) -> None:
 def _finish(session: Session, job: Job, state: str) -> None:
     job.state = state
     job.finished_at = _now()
-    job.cancellable = 0
+    job.cancellable = False
     session.flush()
 
 
@@ -123,8 +182,14 @@ def run(
     approved: bool,
     sandbox: str | None = None,
     timeout: float = nemoclaw.DEFAULT_TIMEOUT_SECONDS,
+    job_id: str | None = None,
 ) -> TrialOutcome:
-    """Run one approved plan. Refuses without approval."""
+    """Run one approved plan. Refuses without approval.
+
+    `job_id` continues a job an endpoint already opened as queued, so the endpoint can
+    answer with the id at once and let the run continue in the background
+    (`api/background.py`).
+    """
 
     if not approved:
         raise PermissionError(
@@ -137,7 +202,12 @@ def run(
 
     trial_id = uuid.uuid4().hex[:12]
     name = nemoclaw.sandbox_name(sandbox)
-    job = _open_job(session, item_id=plan.subject_id, title=subject.title or subject.canonical_url)
+    job = _claim(session, job_id) or open_job(
+        session,
+        item_id=plan.subject_id,
+        title=subject.title or subject.canonical_url,
+        job_id=job_id,
+    )
     session.commit()
 
     try:
@@ -160,11 +230,15 @@ def run(
         session.commit()
 
         _step(session, job, 1, "running")
+        # Committed before the agent runs: the run takes minutes, and an open write
+        # transaction for that long locks the whole SQLite file against every other writer.
+        session.commit()
         run_result = nemoclaw.run_agent(
             trial_id=trial_id, plan_text=plan.plan_text, sandbox=name, timeout=timeout
         )
         parsed = transcript.read(run_result.stdout, run_result.stderr)
-        _step(session, job, 1, "done" if run_result.ok else "failed")
+        state, why = outcome_state(run_result.exit_code, parsed)
+        _step(session, job, 1, "done" if state == "succeeded" else "failed", message=why)
         session.commit()
 
         _step(session, job, 2, "running")
@@ -230,16 +304,17 @@ def run(
                 )
             )
         _step(session, job, 2, "done")
-        _finish(session, job, "succeeded" if run_result.ok else "partially_succeeded")
+        _finish(session, job, state)
         session.commit()
 
         return TrialOutcome(
             job_id=job.id,
             trial_id=trial_id,
-            state="succeeded" if run_result.ok else "partially_succeeded",
+            state=state,
             sandbox=name,
             result=parsed,
             artifacts=artifacts,
+            error=why,
         )
 
     except nemoclaw.SandboxUnavailable as error:
@@ -266,6 +341,21 @@ def run(
         )
 
 
+def result_facts(value: str) -> dict[str, str]:
+    """The `key=value` pairs of a stored result line, for a screen that draws them apart.
+
+    The line stays the stored form because it is also what a person reads in the evidence
+    list; this only splits it back.
+    """
+
+    facts: dict[str, str] = {}
+    for part in value.split(" · "):
+        key, sep, rest = part.partition("=")
+        if sep and key.strip():
+            facts[key.strip()] = rest.strip()
+    return facts
+
+
 def latest(session: Session, item_id: str) -> dict[str, Any] | None:
     """What the last trial left on this item, for the Focus Canvas."""
 
@@ -284,10 +374,9 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
     result = next((row for row in rows if row.type == RESULT_EVIDENCE), None)
     return {
         "result": result.value if result else None,
+        "facts": result_facts(result.value) if result else {},
         "observedAt": result.observed_at if result else None,
-        "transcript": next(
-            (row.value for row in rows if row.type == TRANSCRIPT_EVIDENCE), None
-        ),
+        "transcript": next((row.value for row in rows if row.type == TRANSCRIPT_EVIDENCE), None),
         "blocked": [row.value for row in rows if row.type == BLOCKED_EVIDENCE],
         "artifacts": [row.value for row in rows if row.type == ARTIFACT_EVIDENCE],
     }
@@ -301,5 +390,9 @@ __all__ = [
     "TRANSCRIPT_EVIDENCE",
     "TrialOutcome",
     "latest",
+    "new_job_id",
+    "open_job",
+    "outcome_state",
+    "result_facts",
     "run",
 ]

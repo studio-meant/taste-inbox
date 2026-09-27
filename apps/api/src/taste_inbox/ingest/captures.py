@@ -686,8 +686,8 @@ def record_stated_evidence(
     existing = session.scalars(
         select(Evidence).where(Evidence.item_id == item.id, Evidence.type.in_(kinds))
     ).all()
-    for row in existing:
-        session.delete(row)
+    for stale in existing:
+        session.delete(stale)
     # The deletes have to land before the inserts, or the unique-ish pairs collide within
     # one flush and SQLAlchemy orders them by insertion instead of by intent.
     session.flush()

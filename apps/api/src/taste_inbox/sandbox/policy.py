@@ -34,6 +34,8 @@ class PolicyCheck:
     missing_presets: list[str]
     #: Hosts the plan needs that this product would never open.
     refused_hosts: list[str]
+    #: Why the sandbox is not ready, in the CLI's own words when it gave any.
+    reason: str | None = None
 
     @property
     def satisfied(self) -> bool:
@@ -48,6 +50,7 @@ class PolicyCheck:
             "missingPresets": self.missing_presets,
             "refusedHosts": self.refused_hosts,
             "satisfied": self.satisfied,
+            "reason": self.reason,
         }
 
 
@@ -70,6 +73,7 @@ def check(plan: TrialPlan, *, sandbox: str | None = None) -> PolicyCheck:
         policies=policies,
         missing_presets=missing,
         refused_hosts=refused,
+        reason=state.get("reason"),
     )
 
 

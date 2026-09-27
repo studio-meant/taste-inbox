@@ -154,9 +154,7 @@ def build(context: TasteContext, *, max_terms: int = 8, max_neighbours: int = 5)
         disclosed.append("related saves: " + "; ".join(neighbours))
 
     if context.recent_total:
-        shape = ", ".join(
-            f"{kind} {count}" for kind, count in sorted(context.recent_kinds.items())
-        )
+        shape = ", ".join(f"{kind} {count}" for kind, count in sorted(context.recent_kinds.items()))
         lines.append(f"Recent saving shape (last 30 days, {context.recent_total} items): {shape}")
         disclosed.append(f"recent shape: {shape}")
 

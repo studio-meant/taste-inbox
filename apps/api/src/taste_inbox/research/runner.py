@@ -67,17 +67,25 @@ class ResearchOutcome:
         }
 
 
-def _open_job(session: Session, *, item_id: str, title: str) -> Job:
+def new_job_id() -> str:
+    return f"research-{uuid.uuid4()}"
+
+
+def open_job(
+    session: Session, *, item_id: str, title: str, job_id: str | None = None, state: str = "running"
+) -> Job:
+    """Write the job and its steps. `state="queued"` when the run starts later."""
+
     job = Job(
-        id=f"research-{uuid.uuid4()}",
+        id=job_id or new_job_id(),
         type="research",
-        state="running",
+        state=state,
         target_id=item_id,
         title=f"조사 · {title}",
         current_step=STEPS[0][1],
-        cancellable=1,
+        cancellable=True,
         created_at=_now(),
-        started_at=_now(),
+        started_at=_now() if state == "running" else None,
     )
     session.add(job)
     session.flush()
@@ -92,6 +100,17 @@ def _open_job(session: Session, *, item_id: str, title: str) -> Job:
             )
         )
     session.flush()
+    return job
+
+
+def _claim(session: Session, job_id: str | None) -> Job | None:
+    """A job an endpoint opened as queued, now starting."""
+
+    job = session.get(Job, job_id) if job_id else None
+    if job is not None:
+        job.state = "running"
+        job.started_at = _now()
+        session.flush()
     return job
 
 
@@ -113,7 +132,7 @@ def _step(session: Session, job: Job, ordinal: int, state: str) -> None:
 def _finish(session: Session, job: Job, state: str) -> None:
     job.state = state
     job.finished_at = _now()
-    job.cancellable = 0
+    job.cancellable = False
     session.flush()
 
 
@@ -152,14 +171,20 @@ def run(
     agent_type: str = "shallow_researcher",
     server_url: str | None = None,
     timeout: float = aiq_client.DEFAULT_TIMEOUT_SECONDS,
+    job_id: str | None = None,
 ) -> ResearchOutcome:
-    """Research one item end to end, recording every step as it happens."""
+    """Research one item end to end, recording every step as it happens.
+
+    `job_id` continues a job an endpoint already opened as queued (`api/background.py`).
+    """
 
     subject = taste_context.build(session, item_id)
     if subject is None:
         raise LookupError(f"no item {item_id!r}")
 
-    job = _open_job(session, item_id=item_id, title=subject.title)
+    job = _claim(session, job_id) or open_job(
+        session, item_id=item_id, title=subject.title, job_id=job_id
+    )
     session.commit()
 
     try:
@@ -180,6 +205,9 @@ def run(
         session.commit()
 
         _step(session, job, 2, "running")
+        # Committed before the call: AI-Q takes minutes, and holding a write transaction
+        # that long locks the SQLite file against every other writer.
+        session.commit()
         resolved = aiq_client.resolve_server(server_url)
         report = aiq_client.research(
             research_brief.query,
@@ -206,7 +234,7 @@ def run(
             label="NVIDIA AI-Q 조사 결과",
             # Verbatim. Citations and source URLs are not trimmed (SKILL.md).
             value=report.report,
-            source_url=report.job_id and f"{resolved}/v1/jobs/{report.job_id}" or resolved,
+            source_url=(report.job_id and f"{resolved}/v1/jobs/{report.job_id}") or resolved,
         )
         _step(session, job, 2, "done")
         session.commit()
@@ -241,9 +269,7 @@ def run(
         if reopened is not None:
             for ordinal in range(len(STEPS)):
                 row = session.scalar(
-                    select(JobStep).where(
-                        JobStep.job_id == reopened.id, JobStep.ordinal == ordinal
-                    )
+                    select(JobStep).where(JobStep.job_id == reopened.id, JobStep.ordinal == ordinal)
                 )
                 if row is not None and row.state in ("running", "waiting"):
                     row.state = "failed" if row.state == "running" else "skipped"
@@ -289,5 +315,7 @@ __all__ = [
     "SUGGESTION_EVIDENCE",
     "ResearchOutcome",
     "latest",
+    "new_job_id",
+    "open_job",
     "run",
 ]

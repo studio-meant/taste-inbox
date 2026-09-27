@@ -43,6 +43,8 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import Any
 
+import yaml
+
 DEFAULT_SANDBOX = "taste-inbox"
 
 #: Where a trial's files live. `/sandbox` is the writable root; every trial gets its own
@@ -59,6 +61,13 @@ _AGENT_MARGIN_SECONDS = 60
 #: unrelated `status` fail. The message is matched rather than the exit code because the
 #: CLI exits 0 on it.
 _LOCK_CONTENDED = re.compile(r"Failed to acquire lock on .*\.lock", re.IGNORECASE)
+
+#: The CLI's own diagnosis when a layer under the sandbox is down. It prints this *above*
+#: the gateway's cached `Phase: Ready`, so reading the phase alone reported a sandbox as
+#: ready while Docker was not even running (observed 2026-09-28).
+_FAILURE_LAYER = re.compile(r"Failure layer:\s*(?P<layer>[\w.-]+)\s*(?:[—-]+\s*(?P<why>.+))?")
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 class SandboxUnavailable(RuntimeError):
@@ -133,7 +142,13 @@ def status(*, sandbox: str | None = None, timeout: float = 90) -> dict[str, Any]
     except subprocess.TimeoutExpired as error:
         raise SandboxUnavailable(f"`nemoclaw {name} status` timed out") from error
 
-    text = completed.stdout + completed.stderr
+    return parse_status(name, completed.stdout + completed.stderr)
+
+
+def parse_status(name: str, output: str) -> dict[str, Any]:
+    """Read `nemoclaw <name> status` output. Pure, so it is tested on recorded output."""
+
+    text = _ANSI.sub("", output)
 
     # A contended host lock is not "the sandbox is not ready" — it is "another run of ours
     # holds it". Measured the hard way: a trial in progress made a policy check report the
@@ -145,23 +160,97 @@ def status(*, sandbox: str | None = None, timeout: float = 90) -> dict[str, Any]
             "ready": False,
             "busy": True,
             "policies": [],
+            "endpoints": [],
+            "reason": "다른 실행이 샌드박스를 쓰고 있습니다",
             "raw": text.strip(),
         }
 
-    ready = "Phase: Ready" in text
     policies: list[str] = []
     for line in text.splitlines():
         stripped = line.strip()
         if stripped.startswith("Policies:"):
-            policies = [part.strip() for part in stripped.split(":", 1)[1].split(",") if part.strip()]
+            policies = [
+                part.strip() for part in stripped.split(":", 1)[1].split(",") if part.strip()
+            ]
             break
+
+    failure = _FAILURE_LAYER.search(text)
+    phase_ready = "Phase: Ready" in text
+    ready = phase_ready and failure is None
+    reason: str | None = None
+    if failure is not None:
+        layer = failure.group("layer")
+        why = (failure.group("why") or "").strip()
+        reason = f"{layer}: {why}" if why else layer
+    elif not phase_ready:
+        reason = "샌드박스가 Ready 상태가 아닙니다"
     return {
         "sandbox": name,
         "ready": ready,
         "busy": False,
+        "endpoints": network_policies(text),
+        # Still reported when not ready: they are what the boundary *will* be once the
+        # failing layer is back, and the screen names them either way.
         "policies": policies,
-        "raw": text if not ready else "",
+        "reason": reason,
+        "raw": "" if ready else text.strip(),
     }
+
+
+def network_policies(text: str) -> list[dict[str, Any]]:
+    """Each network policy as the sandbox enforces it: hosts *and* the binaries allowed
+    to reach them.
+
+    The pairing is the point. Feasibility F4 showed `curl` refused on a host the
+    `huggingface` policy opens, because that policy lists `python3` and `node`, not `curl`.
+    A ledger that listed hosts alone would claim an access the sandbox does not grant.
+
+    Read from the `Policy:` block of `status`, which is YAML indented under the heading.
+    Anything unreadable yields an empty list — the screen then says the ledger is
+    unavailable rather than drawing a guess.
+    """
+
+    lines = text.splitlines()
+    try:
+        start = next(i for i, line in enumerate(lines) if line.strip() == "Policy:")
+    except StopIteration:
+        return []
+    block: list[str] = []
+    for line in lines[start + 1 :]:
+        if not line.strip():
+            if block:
+                break
+            continue
+        block.append(line)
+    try:
+        document = yaml.safe_load("\n".join(block))
+    except yaml.YAMLError:
+        return []
+    policies = document.get("network_policies") if isinstance(document, dict) else None
+    if not isinstance(policies, dict):
+        return []
+
+    ledger: list[dict[str, Any]] = []
+    for key, policy in policies.items():
+        if not isinstance(policy, dict):
+            continue
+        hosts: list[str] = []
+        for endpoint in policy.get("endpoints") or []:
+            if isinstance(endpoint, dict) and endpoint.get("host"):
+                port = endpoint.get("port")
+                host = str(endpoint["host"])
+                label = host if port in (None, 443) else f"{host}:{port}"
+                if label not in hosts:
+                    hosts.append(label)
+        binaries = [
+            str(binary["path"])
+            for binary in policy.get("binaries") or []
+            if isinstance(binary, dict) and binary.get("path")
+        ]
+        ledger.append(
+            {"policy": str(policy.get("name") or key), "hosts": hosts, "binaries": binaries}
+        )
+    return ledger
 
 
 def run_agent(
@@ -224,6 +313,8 @@ __all__ = [
     "SandboxRun",
     "SandboxUnavailable",
     "list_workdir",
+    "network_policies",
+    "parse_status",
     "run_agent",
     "sandbox_name",
     "status",

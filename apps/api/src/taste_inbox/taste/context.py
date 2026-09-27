@@ -168,7 +168,9 @@ def build(session: Session, item_id: str, *, now: datetime | None = None) -> Tas
         subject_set = set(subject_terms)
         scored: list[tuple[int, str, Item, list[str]]] = []
         for row in library:
-            overlap = [term for term in vocabulary.terms_of(tags.get(row.id, [])) if term in subject_set]
+            overlap = [
+                term for term in vocabulary.terms_of(tags.get(row.id, [])) if term in subject_set
+            ]
             if overlap:
                 # Sorted by how much they share, then by title so equal scores are stable.
                 scored.append((len(overlap), row.title or row.canonical_url, row, overlap))

@@ -13,14 +13,19 @@ the same rule on a different screen.
 
 from __future__ import annotations
 
+import threading
+import time
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..action import proposal
-from ..db.models import Evidence, Item
+from ..db.models import Evidence, Item, Job, JobStep
 from ..research import runner as research_runner
-from ..sandbox import nemoclaw, trial as trial_runner
+from ..sandbox import nemoclaw
+from ..sandbox import policy as sandbox_policy
+from ..sandbox import trial as trial_runner
 from ..taste import context as taste_context
 
 #: Evidence the paper bundle put on an item. Grouped out of the flat evidence list because
@@ -28,9 +33,76 @@ from ..taste import context as taste_context
 _BUNDLE_PREFIX = "paper."
 
 
-def _bundle(session: Session, item_id: str) -> dict[str, Any] | None:
-    from sqlalchemy import select
+#: How long one `nemoclaw status` answer is reused. The call takes ~3 s, and the page is
+#: rendered on every navigation; a boundary does not change between two clicks.
+BOUNDARY_TTL_SECONDS = 15.0
 
+_boundary_cache: tuple[float, dict[str, Any]] | None = None
+_boundary_lock = threading.Lock()
+
+
+def _boundary() -> dict[str, Any]:
+    global _boundary_cache
+    with _boundary_lock:
+        if _boundary_cache and time.monotonic() - _boundary_cache[0] < BOUNDARY_TTL_SECONDS:
+            return _boundary_cache[1]
+    try:
+        state = nemoclaw.status()
+    except nemoclaw.SandboxUnavailable as error:
+        state = {
+            "sandbox": nemoclaw.sandbox_name(),
+            "ready": False,
+            "busy": False,
+            "policies": [],
+            "endpoints": [],
+            "reason": str(error),
+        }
+    with _boundary_lock:
+        _boundary_cache = (time.monotonic(), state)
+    return state
+
+
+def forget_boundary() -> None:
+    """Drop the cached status, so the next read is fresh. For tests and after a trial."""
+
+    global _boundary_cache
+    with _boundary_lock:
+        _boundary_cache = None
+
+
+def _latest_job(session: Session, item_id: str, kind: str) -> dict[str, Any] | None:
+    """The newest job of one kind on this item, with its steps.
+
+    The evidence says what the last *finished* run found; this says what is happening
+    now, or how the last attempt ended. A failed research run leaves the older report in
+    place, and the screen has to be able to say both.
+    """
+
+    job = session.scalars(
+        select(Job)
+        .where(Job.target_id == item_id, Job.type == kind)
+        .order_by(Job.created_at.desc(), Job.id.desc())
+        .limit(1)
+    ).first()
+    if job is None:
+        return None
+    steps = session.scalars(
+        select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.ordinal)
+    ).all()
+    return {
+        "id": job.id,
+        "state": job.state,
+        "currentStep": job.current_step,
+        "createdAt": job.created_at,
+        "startedAt": job.started_at,
+        "finishedAt": job.finished_at,
+        "steps": [
+            {"label": step.label, "state": step.state, "message": step.message} for step in steps
+        ],
+    }
+
+
+def _bundle(session: Session, item_id: str) -> dict[str, Any] | None:
     rows = [
         row
         for row in session.scalars(
@@ -58,7 +130,7 @@ def _bundle(session: Session, item_id: str) -> dict[str, Any] | None:
             if not repo
             else ("author-linked" if (repo[0]["confidence"] or 0) >= 1.0 else "auto-linked")
         ),
-        "projectPage": (gather("project_page") or [None])[0],
+        "projectPage": next(iter(gather("project_page")), None),
         "models": gather("linked_model"),
         "datasets": gather("linked_dataset"),
         "spaces": gather("linked_space"),
@@ -93,10 +165,7 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
 
     # Read rather than assumed: the card says which sandbox and which policies a trial
     # would run under, and it has to be true at the moment the person is looking.
-    try:
-        boundary = nemoclaw.status()
-    except nemoclaw.SandboxUnavailable as error:
-        boundary = {"sandbox": nemoclaw.sandbox_name(), "ready": False, "policies": [], "raw": str(error)}
+    boundary = _boundary()
 
     return {
         "item": {
@@ -118,6 +187,10 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
         "research": research,
         "suggestion": suggestion,
         "trial": trial,
+        "jobs": {
+            "research": _latest_job(session, item_id, "research"),
+            "trial": _latest_job(session, item_id, "trial"),
+        },
         "boundary": {
             "sandbox": boundary["sandbox"],
             "ready": boundary["ready"],
@@ -125,8 +198,18 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
             # should say "wait" rather than "the boundary is missing".
             "busy": bool(boundary.get("busy")),
             "policies": boundary["policies"],
+            # Unknowable while busy: the lock hides the policy list (see `policy.check`).
+            "missingPresets": []
+            if boundary.get("busy")
+            else [
+                preset
+                for preset in sandbox_policy.REQUIRED_PRESETS
+                if preset not in boundary["policies"]
+            ],
+            "endpoints": boundary.get("endpoints") or [],
+            "reason": boundary.get("reason"),
         },
     }
 
 
-__all__ = ["payload"]
+__all__ = ["BOUNDARY_TTL_SECONDS", "forget_boundary", "payload"]

@@ -25,6 +25,8 @@ Fixtures in this tree are the only sample data allowed in version control.
 |---|---|---|
 | `host-profiles/` | Runtime hardware profiles by capacity class | `packages/shared`, `apps/api` |
 | `resource-policy/expected/` | Resolved policy for each host profile | `packages/shared`, `apps/api` |
+| `research/` | NVIDIA AI-Q reports, recorded verbatim from a real run | `apps/api` |
+| `sandbox/` | `nemoclaw <sandbox> status` output and `openclaw agent --json` envelopes, recorded | `apps/api` |
 
 `resource-policy/expected/` is the cross-language contract: `apps/api` asserts its
 resolver reproduces each file exactly, and `packages/shared` asserts each file validates
@@ -34,3 +36,19 @@ resolver change — never by hand.
 
 Collector response fixtures (Phase 3+) will be added under `collectors/` and must follow
 the same rules.
+
+## Recorded NVIDIA runtime output (2026-09-28)
+
+`CLAUDE.md` §9: tests that touch the NVIDIA runtime run on **recorded** output, never live.
+These files are real output, kept byte-for-byte except for the scrubbing listed here, because
+the parsers exist to survive the runtime's actual phrasing — a hand-written sample would only
+test that the parser reads what its author imagined.
+
+| File | Recorded from | Scrubbed |
+|---|---|---|
+| `research/voicestudio-shallow-report.md` | AI-Q `shallow_researcher`, job `568c6ddf…`, about the public repo `debpalash/VoiceStudio` | nothing. The inline URLs that look cut (`curl -fsSL \| sh`) were already missing in AI-Q's own job output; see `docs/FEASIBILITY.md` |
+| `sandbox/status-docker-down.txt` | `nemoclaw taste-inbox status` with Docker Desktop stopped | sandbox id and create-attempt label replaced |
+
+**Needs a human review before any public push:** the research report's table repeats the
+brief's aggregate topic counts (e.g. `claude-code (26 saves)`). They are summaries, not
+items, and no handle appears — but rule 1 asks for a person to have looked.

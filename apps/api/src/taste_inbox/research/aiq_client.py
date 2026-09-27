@@ -171,9 +171,7 @@ def health(*, server_url: str | None = None, skill_dir: Path | None = None) -> d
     """Whether a usable backend is there. Run before any query, per the skill."""
 
     resolved = resolve_server(server_url)
-    return _last_json_object(
-        _run(["health"], server_url=resolved, skill_dir=skill_dir, timeout=30)
-    )
+    return _last_json_object(_run(["health"], server_url=resolved, skill_dir=skill_dir, timeout=30))
 
 
 def agents(*, server_url: str | None = None, skill_dir: Path | None = None) -> list[str]:
