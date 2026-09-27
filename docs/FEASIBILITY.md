@@ -286,5 +286,92 @@ scanning·network policy·inference auth가 걸리고, 그게 이 제품이 Open
 3. `git clone --depth 1 https://github.com/NVIDIA/skills.git` → 스킬 3종을 `~/.claude/skills/`로
 4. `curl -fsSL https://www.nvidia.com/nemoclaw.sh | NEMOCLAW_… bash` (위 F2 형태)
 5. `git clone https://github.com/NVIDIA-AI-Blueprints/aiq.git && cd aiq && uv sync`
-6. `deploy/.env`에 `NVIDIA_API_KEY`·검색 키 → `./scripts/start_as_skill.sh --port 8010`
+6. `deploy/.env`에 `NVIDIA_API_KEY`·검색 키 →
+   `./scripts/start_as_skill.sh --config_file configs/config_web_default_llamaindex.yml --host 127.0.0.1 --port 8010`
+   — **`--host 127.0.0.1`을 빼면 안 된다.** 스크립트 기본값이 `0.0.0.0`이다 (아래 Phase 1 §관측 2)
 7. `aiq.py health`로 확인
+
+---
+
+# Phase 1 — Golden Path를 제품 UI로 다시 돌린 기록
+
+> 2026-09-28 03:10–03:45 KST (18:10–18:45 UTC). 같은 호스트. 이전 세션이 사용량 한도로 끊긴 뒤
+> 이어받았다. **성공한 것과 성공하지 못한 것을 구분해 적는다.**
+
+## 결과
+
+| 구간 | 결과 | 근거 |
+| --- | --- | --- |
+| GitHub Star → TasteContext | ✅ | `GET /api/focus/{id}` context: 이웃 6개, 최근 30일 분포 |
+| TasteContext → AI-Q 조사 (UI) | ✅ 3분 1초 | Focus Canvas `다시 조사하기` → `POST /api/research` 202 → job 4단계 모두 `done`. AI-Q job `a9f39b7d-…`, 리포트 5,009자, 인용 유지 |
+| 조사 → SuggestedAction | ✅ | `actionable: true`, 여는 곳 `github.com`, 열지 않는 곳 5개 (threads·voicestudio.sh·remio·reddit·mcpmarket) |
+| 사용자 Try safely 승인 (UI) | ✅ | 두 단계 승인 → `POST /api/trials {approved:true}` 202 |
+| OpenShell 샌드박스 안 OpenClaw 실행 | ⚠️ **실행됐지만 과제를 끝내지 못함** | 아래 두 시도 |
+| 결과·전사·정책 결과를 Focus Canvas에 | ✅ | 상태·단계·종료 코드·소요 시간·오류 출력·**막힌 연결 2건**·산출 파일 |
+
+**Golden Path의 흐름은 끝에서 끝까지 제품 UI로 성립했다. 에이전트가 과제(저장소 받기 → 의존성 →
+실행 확인)를 끝낸 실행은 이 세션에서 얻지 못했다.** 원인은 아래처럼 NVIDIA 호스팅 추론 쪽이다.
+
+### 시도 1 — `trial-e00c7dab…` (18:27:08)
+
+즉시 `failed`, 종료 코드 1. **오류 원문을 남기지 못했다** — envelope가 없으면 stderr를 버리는 구조였다.
+같은 호출을 사소한 계획으로 재현하면 정상 종료(`ok`, `stopReason: stop`)했고 stdin 전달·`base64 -d`도
+실제 계획 크기(3,089자)로 정상이어서, 일시적 원인으로 본다. **이 결함은 고쳤다**: 실패한 실행은 출력
+끝부분 4,000자를 `trial.error_output` 증거로 남기고 화면에 펼친다.
+
+### 시도 2 — `trial-afc324c6…` (18:29:47 → 18:36:23, 6분 36초)
+
+```
+GatewayClientRequestError: FailoverError: The AI service is temporarily overloaded. Please try again in a moment.
+nemoclaw: recent network policy denial detected for github.com:443 inside sandbox 'taste-inbox'.
+```
+
+에이전트는 6분 반 동안 모델 요청을 40번 시작했고(게이트웨이 로그의 `model-fetch start` 줄 수), 추론 과부하로 중단됐다. **자동 재시도하지 않았다** — 재실행은
+사람이 정한다(CLAUDE.md §6). 산출 파일은 `plan.md`뿐.
+
+그 6분 동안 **경계가 막은 것은 에이전트의 출력이 아니라 OpenShell 로그에만 있었다:**
+
+```
+[1790534109.530] … NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> releases.astral.sh:443
+    [reason:endpoint releases.astral.sh:443 is not allowed by any policy]
+[1790534109.539] … NET:OPEN [MED] DENIED /sandbox/.local/bin/uv(68742) -> github.com:443
+    [reason:binary '/sandbox/.local/bin/uv' not allowed in policy 'brew' (ancestors: …)]
+```
+
+에이전트가 `uv`로 Python 빌드를 받으려 했고 각각 4번 막혔다. **F4의 "엔드포인트 × 바이너리"가 실제
+저장소 실행에서 그대로 나타났다** — github.com은 열려 있지만 `git`에게만이다. 이 두 줄이 이제
+Policy ledger의 첫 두 행이다(호스트 · 프로그램 · 횟수 · 이유).
+
+## 관측 — 이번 세션에서 새로 확인한 것
+
+1. **`nemoclaw status`가 Docker가 없어도 `Phase: Ready`를 찍는다.** 같은 출력 위쪽에
+   `Failure layer: docker_unreachable`이 있다. Phase만 읽으면 거짓 Ready. → `parse_status`가
+   Failure layer를 우선한다. 기록: `data/fixtures/sandbox/status-docker-down.txt`.
+2. **그 `docker_unreachable`은 Docker가 꺼져서가 아니었다.** `docker` CLI는 `~/.docker/bin`에 있고
+   `~/.zprofile`이 PATH에 넣는데, 로그인 셸이 아닌 프로세스(dev.sh가 띄운 API, launchd, IDE)는 그걸
+   모른다. PATH에 넣자 같은 샌드박스가 즉시 Ready. → `nemoclaw.py`가 Docker CLI 위치를 PATH 뒤에 보충.
+3. **AI-Q `start_as_skill.sh`의 기본 바인딩은 `0.0.0.0`이다.** 이번 세션에서 한 번 그렇게 떴고 바로
+   내려 `--host 127.0.0.1`로 다시 띄웠다. 재현 절차 6번을 고쳤다. 이전 세션도 기본값으로 띄웠을
+   가능성이 있다(기록 없음).
+4. **로컬 AI-Q는 Dask 대시보드를 `127.0.0.1:8787`에 띄운다** — Taste Inbox API의 기본 포트다. 먼저 뜬
+   쪽이 이긴다. `TASTE_INBOX_API_PORT=8790 pnpm dev`.
+5. **`localhost:8000`은 이 기계에서 다른 프로젝트의 서버였다.** 이전 코드는 `AIQ_SERVER_URL`이 없으면
+   그 주소로 조사 질문을 보냈을 것이다. → 기본 주소를 없앴고, 큐에 넣기 전에 `aiq.py health`로 그 주소가
+   AI-Q인지 확인한다.
+6. **AI-Q 리포트는 인용 목록 밖의 인라인 URL을 비운다.** `curl -fsSL | sh`, `` open ` in a browser `` —
+   AI-Q 자신의 `jobs.db` 출력에서 이미 비어 있다. 우리 코드가 자른 것이 아니다. 에이전트는 References의
+   `[n]`으로 되짚을 수 있다(계획에 References가 함께 들어간다).
+7. **`openclaw agent --json`은 모델 타임아웃에도 0으로 끝난다.** envelope에만 `ok:false ·
+   stopReason:aborted`. 첫 Golden Path 실행이 그래서 `succeeded`로 기록됐었다 → `outcome_state`가
+   envelope까지 읽는다(도구를 썼으면 `partially_succeeded`, 아니면 `failed`).
+8. **추론 경로가 불안정했다.** `status`에 `Inference request returned HTTP 503; retrying …`, 시도 2는
+   `FailoverError … temporarily overloaded`, 첫 실행은 `LLM request timed out`. 모두 NVIDIA 호스팅
+   추론(`nvidia-prod`) 쪽이다. 기록: `data/fixtures/sandbox/status-ready.txt`.
+9. **`nemoclaw <sandbox> logs`는 `--tail`이 크면 최근 줄을 잃는다.** 감사 버퍼보다 크게 부르면
+   "log buffer contains only the last …"를 찍고 버퍼 **앞쪽**부터 출력하다 잘린다: 같은 구간에서
+   `--tail 2000`은 DENIED 0건, `--tail 400`은 8건. → `--since <실행 구간>`과 작은 tail, 실행 직후에 읽는다.
+   버퍼 크기 자체가 한계라서 **아주 시끄러운 긴 실행은 앞쪽 거부를 잃을 수 있다** (남은 제한).
+10. **샌드박스에는 Docker·GUI·GPU가 없고 인터프리터 다운로드가 닿지 않는다.** 리포트의 첫 선택지는
+    `docker run`이었다. 계획 텍스트가 이제 이 사실을 먼저 말하고, 선택지가 여럿이면 헤드라인이 첫
+    선택지를 인용하지 않는다.
+
