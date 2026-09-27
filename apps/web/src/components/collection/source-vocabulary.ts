@@ -29,6 +29,10 @@ const PLATFORM_LABEL: Readonly<Record<SourcePlatform, string>> = {
 const ACTION_LABEL: Readonly<Record<NonNullable<SourceRef["actionType"]>, string>> = {
   star: "스타",
   like: "좋아요",
+  // Distinct from `like` on purpose: an upvote is the user acting on the *paper*, while a
+  // paper reached through a liked model's arXiv tag carries `like` because nobody upvoted
+  // it. Printing one word for both would erase the difference the collectors keep.
+  upvote: "업보트",
   save: "저장",
   repost: "리포스트",
 };

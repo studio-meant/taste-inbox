@@ -1,15 +1,20 @@
-"""Hugging Face likes → paper bundles, on recorded Hub responses.
+"""Hugging Face likes and paper upvotes, on recorded Hub responses.
 
 The like listing is a real public page with the account name dropped; each liked
 repository's own document and each paper it cites were recorded alongside it, so the
 walk below — likes, details, arXiv tags, papers — runs exactly as it does live.
+
+The upvote pages are the same: two real pages of a public activity feed, account name
+replaced, with the collections and articles the live feed actually mixes in left in place.
+`CLAUDE.md` §9 — collector parsers run on stored fixtures and never touch a live account
+in CI.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from taste_inbox_collectors.api_sources import huggingface
+from taste_inbox_collectors.api_sources import SURFACES, huggingface
 from taste_inbox_collectors.api_sources.huggingface import likes, papers, upvotes
 from taste_inbox_collectors.capture_file import SourceItem, SourceRun
 
@@ -165,12 +170,174 @@ def test_a_paper_the_hub_does_not_have_is_counted_not_fatal(
 
 
 # --- upvotes ---------------------------------------------------------------------------------
+#
+# Two recorded pages of a real public activity feed, account name replaced. They carry what
+# the live feed carries — three papers mixed with two collections and three articles — which
+# is the whole reason `targetType` filtering has to be tested against a recording rather than
+# a hand-written page where every row is a paper.
+
+UPVOTES_1 = load("huggingface", "upvotes-page-1.json")
+UPVOTES_2 = load("huggingface", "upvotes-page-2.json")
+
+UPVOTES_URL = upvotes.listing_url("sample-user")
+UPVOTES_URL_2 = upvotes.listing_url("sample-user", UPVOTES_1["cursor"])
+
+UPVOTE_ROUTES = {
+    UPVOTES_URL: UPVOTES_1,
+    UPVOTES_URL_2: UPVOTES_2,
+    f"{likes.API_ROOT}/papers/2510.04871": load("huggingface", "paper-2510.04871.json"),
+}
 
 
-def test_upvoted_papers_are_unavailable_with_the_reason() -> None:
-    """No public API lists them. The answer is `Unavailable(reason)`, never an empty list."""
+@pytest.fixture
+def upvote_network(monkeypatch: pytest.MonkeyPatch) -> RecordedNetwork:
+    recorded = RecordedNetwork(dict(UPVOTE_ROUTES))
+    monkeypatch.setattr(upvotes, "get_json", recorded)
+    monkeypatch.setattr(papers, "get_json", recorded)
+    return recorded
 
-    answer = upvotes.get_upvoted_papers()
 
-    assert isinstance(answer, upvotes.Unavailable)
-    assert "공개 API로 제공하지 않습니다" in answer.reason
+def test_only_papers_are_collected_and_the_rest_are_counted(
+    upvote_network: RecordedNetwork,
+) -> None:
+    """Collections and articles are upvotes too, and this product does not act on them."""
+
+    run = upvotes.collect(username="sample-user", max_pages=2)
+
+    assert [item.platform_item_id for item in run.items] == [
+        "paper:2510.04871",
+        "paper:2606.17090",
+        "paper:2607.24653",
+    ]
+    assert "skipped 3 upvoted article (papers only)" in run.notes
+    assert "skipped 2 upvoted collection (papers only)" in run.notes
+    assert run.stopped_because == "stopped at the 2-page ceiling"
+    assert run.advanced_checkpoint is False
+
+
+def test_an_upvote_carries_its_own_time_not_a_like(upvote_network: RecordedNetwork) -> None:
+    """The point of the surface: the user acted on the paper, and when."""
+
+    run = upvotes.collect(username="sample-user", max_pages=1)
+
+    upvoted = _by_id(run)["paper:2510.04871"]
+    assert upvoted.action_at == "2026-09-01T16:43:18.750Z"
+    assert upvoted.kind == "paper"
+    assert upvoted.canonical_url == "https://huggingface.co/papers/2510.04871"
+
+
+def test_an_upvoted_paper_brings_its_bundle(upvote_network: RecordedNetwork) -> None:
+    """Same document, same branches as a paper reached through a liked model's arXiv tag."""
+
+    run = upvotes.collect(username="sample-user", max_pages=1)
+
+    branches = {row["type"]: row for row in _by_id(run)["paper:2510.04871"].evidence}
+    assert branches["paper.github_repo"]["value"] == (
+        "https://github.com/SamsungSAILMontreal/TinyRecursiveModels"
+    )
+    # `githubRepoAddedBy: "user"` — a person linked it, which is not a claim about *which*.
+    assert branches["paper.github_repo"]["label"] == "Code · linked by a person"
+    assert branches["paper.total_models"]["value"] == "8"
+
+
+def test_a_paper_the_hub_cannot_describe_is_still_the_upvote(
+    upvote_network: RecordedNetwork,
+) -> None:
+    """A missing bundle must not lose a signal the user actually gave."""
+
+    run = upvotes.collect(username="sample-user", max_pages=1)
+
+    # 2606.17090 has no recorded paper document, so the Hub answers 404 for it.
+    stranded = _by_id(run)["paper:2606.17090"]
+    assert stranded.evidence == []
+    assert stranded.title == "ANEForge: Python for direct computation on the Apple Neural Engine"
+    assert stranded.action_at == "2026-08-22T09:37:47.088Z"
+    assert stranded.canonical_url == "https://huggingface.co/papers/2606.17090"
+
+
+def test_the_listing_is_read_with_no_token_even_when_one_is_configured(
+    upvote_network: RecordedNetwork,
+) -> None:
+    """A condition of the exception, not an optimisation: only what a logged-out visitor sees."""
+
+    upvotes.collect(username="sample-user", token="hf_" + "x" * 20, max_pages=1)
+
+    listing_headers = [
+        headers for url, headers in upvote_network.requested if "recent-activity" in url
+    ]
+    assert listing_headers
+    assert all(headers == {} for headers in listing_headers)
+    # The paper document is a different request, and a token there is ordinary.
+    paper_headers = [headers for url, headers in upvote_network.requested if "/papers/" in url]
+    assert any(headers.get("Authorization") for headers in paper_headers)
+
+
+def test_a_run_stops_at_the_previous_run_s_newest_upvote(
+    upvote_network: RecordedNetwork,
+) -> None:
+    run = upvotes.collect(username="sample-user", last_seen="paper:2606.17090")
+
+    assert [item.platform_item_id for item in run.items] == ["paper:2510.04871"]
+    assert "reached the previous run's newest upvote" in run.notes
+    assert run.advanced_checkpoint is True
+    assert run.checkpoint == "paper:2510.04871"
+
+
+def test_a_seeding_run_that_stopped_early_may_not_move_the_checkpoint(
+    upvote_network: RecordedNetwork,
+) -> None:
+    """Otherwise the next run starts at the top and never looks into the gap it left."""
+
+    run = upvotes.collect(username="sample-user", limit=1)
+
+    assert len(run.items) == 1
+    assert run.checkpoint == "paper:2510.04871"
+    assert run.advanced_checkpoint is False
+
+
+def test_resolve_papers_false_keeps_the_upvote_and_skips_the_bundle_request(
+    upvote_network: RecordedNetwork,
+) -> None:
+    run = upvotes.collect(username="sample-user", resolve_papers=False, max_pages=2)
+
+    assert [item.platform_item_id for item in run.items] == [
+        "paper:2510.04871",
+        "paper:2606.17090",
+        "paper:2607.24653",
+    ]
+    assert all(item.evidence == [] for item in run.items)
+    assert not [url for url, _ in upvote_network.requested if "/papers/" in url]
+
+
+def test_a_changed_shape_stops_this_collector_with_a_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unofficial path may change without notice, and it must not fail quietly."""
+
+    recorded = RecordedNetwork({UPVOTES_URL: {"activities": [], "cursor": None}})
+    monkeypatch.setattr(upvotes, "get_json", recorded)
+
+    run = upvotes.collect(username="sample-user")
+
+    assert run.outcome == "failed"
+    assert run.stopped_because == upvotes.SHAPE_CHANGED
+    assert run.items == []
+
+
+def test_an_unknown_account_is_reported_as_such(monkeypatch: pytest.MonkeyPatch) -> None:
+    recorded = RecordedNetwork({})
+    monkeypatch.setattr(upvotes, "get_json", recorded)
+
+    run = upvotes.collect(username="nobody-here")
+
+    assert run.outcome == "failed"
+    assert "no Hugging Face user 'nobody-here'" in run.stopped_because
+
+
+def test_the_two_hugging_face_surfaces_keep_separate_checkpoints() -> None:
+    """One path is official and one is not; a shared id would let one answer for the other."""
+
+    assert upvotes.SURFACE != likes.SURFACE
+    assert SURFACES[upvotes.SURFACE].official is False
+    assert SURFACES[likes.SURFACE].official is True
+    assert SURFACES[upvotes.SURFACE].platform == SURFACES[likes.SURFACE].platform

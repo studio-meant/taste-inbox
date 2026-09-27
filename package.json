@@ -13,6 +13,7 @@
     "desktop:dev": "pnpm --filter @taste-inbox/desktop tauri dev",
     "desktop:build": "pnpm --filter @taste-inbox/desktop tauri build",
     "dev:mock": "pnpm --filter @taste-inbox/web dev",
+    "aiq": "bash scripts/aiq.sh",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "lint": "eslint .",

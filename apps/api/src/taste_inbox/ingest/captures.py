@@ -146,9 +146,16 @@ BROWSER_SURFACES: dict[str, tuple[str, str]] = {
 #: `huggingface_activity` carries `like` even for the papers it resolves. Nobody upvoted
 #: those papers; they arrived because a liked model cites them, and claiming an upvote
 #: would invent a signal the user never gave (`api_sources/huggingface/papers.py`).
+#:
+#: `huggingface_upvotes` is the other half of that sentence and is why it is a second row
+#: rather than more of the first: there the user *did* act on the paper, so the action is
+#: `upvote` and `action_at` is the upvote's own time. One item collected both ways ends up
+#: with two `item_sources` rows over one `items` row, which is exactly what that table is
+#: for — the same paper, reached by two signals, keeping both.
 API_SURFACES: dict[str, tuple[str, str]] = {
     "github_stars_api": ("github", "star"),
     "huggingface_activity": ("huggingface", "like"),
+    "huggingface_upvotes": ("huggingface", "upvote"),
 }
 
 #: Every surface whose capture file `ingest_source_file` can read.

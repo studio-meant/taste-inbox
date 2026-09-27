@@ -32,7 +32,11 @@ class Base(DeclarativeBase):
 # Copied from packages/shared/src/domain/common.ts. Kept as tuples so the CHECK
 # constraints and any future validation read from one list.
 PLATFORMS = ("github", "huggingface", "arxiv", "threads", "linkedin", "instagram", "web")
-ACTION_TYPES = ("star", "like", "save", "repost")
+# `upvote` joined on 2026-09-28 with the Hugging Face paper-upvote surface. It is not a
+# synonym for `like`: a like is on a model, dataset or Space, an upvote is on a paper, and
+# the papers that arrive through the *likes* cycle still carry `like` because nobody
+# upvoted those (`api_sources/huggingface/papers.py`).
+ACTION_TYPES = ("star", "like", "upvote", "save", "repost")
 # `dataset` and `space` joined on 2026-09-28: the Hugging Face likes endpoint returns
 # `repo.type` as one of model|dataset|space, and folding a dataset into `model` would
 # lose the distinction the board filters on.

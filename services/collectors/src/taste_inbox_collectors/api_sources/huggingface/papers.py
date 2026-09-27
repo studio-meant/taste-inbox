@@ -2,17 +2,10 @@
 
     GET https://huggingface.co/api/papers/{arxivId}
 
-**There is no public API for the papers a user upvoted.** Checked against the Hub's own
-OpenAPI spec (295 paths, none of them a user-upvote listing), and directly:
-`/api/users/{u}/upvotes`, `/papers` and `/activity` all 404, the HTML page
-`huggingface.co/{u}/upvotes` answers 401, and `/api/users/{u}/overview` exposes
-`numUpvotes` as a *count* with no list behind it. Scraping a logged-in page would break
-the collector boundary this product inherited, so upvotes are not a source here
-(`upvotes.py` says so in code).
-
-**What works instead is better.** A liked model or dataset carries `arxiv:<id>` in its
-tags, so the artifacts already being collected name their papers. One request per id then
-returns the whole bundle in a single document:
+**Two signals reach this module.** A liked model or dataset carries `arxiv:<id>` in its
+tags, so the artifacts already being collected name their papers; and a paper the user
+upvoted arrives directly from `upvotes.py`. Both end here, because both need the same
+thing: one request per arXiv id, which returns the whole bundle in a single document:
 
     githubRepo · githubRepoAddedBy · githubStars · projectPage · mediaUrls
     linkedModels / numTotalModels · linkedDatasets / … · linkedSpaces / …
@@ -176,12 +169,15 @@ def branches(paper: dict[str, Any]) -> list[Branch]:
     return found
 
 
-def as_item(arxiv_id: str, paper: dict[str, Any], *, liked_at: str | None) -> SourceItem:
+def as_item(arxiv_id: str, paper: dict[str, Any], *, action_at: str | None) -> SourceItem:
     """The paper as an item, anchoring the bundle.
 
-    `action_at` carries the *like* that led here, not an upvote — the user never acted on
-    the paper directly, and claiming they did would invent a signal. The timeline still
-    files it on the day the artifact was liked, which is the day it entered their world.
+    `action_at` is whichever act brought the paper here, and the two are different claims.
+    From `likes.py` it is the *like* on an artifact that cites the paper — the user never
+    acted on the paper itself, and the surface records `like` for exactly that reason. From
+    `upvotes.py` it is the upvote on the paper, which is the user acting on the paper. The
+    surface the item came in through is what carries the difference downstream
+    (`ingest/captures.py::API_SURFACES`); this function only files the stamp it is given.
     """
 
     outbound: list[str] = []
@@ -213,7 +209,7 @@ def as_item(arxiv_id: str, paper: dict[str, Any], *, liked_at: str | None) -> So
         source_published_at=paper.get("publishedAt")
         if isinstance(paper.get("publishedAt"), str)
         else None,
-        action_at=liked_at,
+        action_at=action_at,
         tags=keywords,
         outbound_urls=outbound,
         evidence=[branch.as_dict() for branch in branches(paper)],

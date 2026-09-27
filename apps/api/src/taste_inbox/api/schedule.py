@@ -77,9 +77,15 @@ BROWSER_SOURCE_ORDER: tuple[str, ...] = (
 #: read the same account but not the same facts — the stars *page* never shows when a
 #: repository was starred, while `GET /user/starred` returns `starred_at`. Sharing an id
 #: would let one collector's checkpoint answer for the other's coverage.
+#: `huggingface_upvotes` is last and is the only unofficial path here — the public JSON the
+#: Hub's own activity page reads, under the conditions in `docs/DECISIONS.md` §2026-09-28.
+#: It has its own id, and therefore its own checkpoint and its own `last_outcome`, so the
+#: day the Hub changes that shape the likes collector keeps running and the Today screen
+#: says which one stopped.
 API_SOURCE_ORDER: tuple[str, ...] = (
     "github_stars_api",
     "huggingface_activity",
+    "huggingface_upvotes",
 )
 
 #: Backwards-compatible alias. Inherited callers that mean "the browser collectors" keep

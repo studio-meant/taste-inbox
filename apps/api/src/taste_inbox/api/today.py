@@ -45,6 +45,7 @@ COLLECTOR_PLATFORM: dict[str, str] = {
     "github_stars": "github",
     "github_stars_api": "github",
     "huggingface_activity": "huggingface",
+    "huggingface_upvotes": "huggingface",
     "threads_reposts": "threads",
     "linkedin_reactions": "linkedin",
 }

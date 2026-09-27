@@ -1,18 +1,28 @@
 """Hugging Face, as one source.
 
-The UI says "Hugging Face" and means one thing. Behind it are four adapters that differ in
+The UI says "Hugging Face" and means one thing. Behind it are five adapters that differ in
 what the Hub actually offers, and the split is an implementation detail nobody should have
 to learn:
 
-    HuggingFaceConnector
-    ├── get_liked_models()      ✅ official   GET /api/users/{u}/likes → type=model
-    ├── get_liked_datasets()    ✅ official   …                       → type=dataset
-    ├── get_liked_spaces()      ✅ official   …                       → type=space
-    ├── resolve_papers()        ✅ official   tags[arxiv:*] → GET /api/papers/{id}
-    └── get_upvoted_papers()    ❌ no public API — see `upvotes.py`
+    likes → `huggingface_activity`
+    ├── liked models      ✅ official     GET /api/users/{u}/likes → type=model
+    ├── liked datasets    ✅ official     …                        → type=dataset
+    ├── liked Spaces      ✅ official     …                        → type=space
+    └── their papers      ✅ official     tags[arxiv:*] → GET /api/papers/{id}
 
-One collection cycle walks the likes once and then resolves the papers those likes point
-at, so a liked model and the paper it implements arrive together and land on the same day.
+    upvotes → `huggingface_upvotes`
+    └── upvoted papers    ⚠️ not in the spec — the public JSON the Hub's own activity
+                             page reads, under the conditions in `upvotes.py` and
+                             `docs/DECISIONS.md` §2026-09-28
+
+**Two surfaces, not one, and that is the point.** A liked model's paper arrives because
+the model cites it; an upvoted paper arrives because the user upvoted it. Folding them
+together would make the second indistinguishable from the first, and the whole reason the
+likes cycle records `like` on its papers is that nobody upvoted those. Separate surfaces
+keep separate checkpoints, so the unofficial path breaking cannot stop the official one.
+
+One likes cycle walks the likes once and then resolves the papers those likes point at, so
+a liked model and the paper it implements arrive together and land on the same day.
 """
 
 from __future__ import annotations
@@ -20,10 +30,12 @@ from __future__ import annotations
 from ...capture_file import SourceRun
 from . import likes, papers, upvotes
 from .likes import PLATFORM, SURFACE
+from .upvotes import SURFACE as UPVOTES_SURFACE
 
 __all__ = [
     "PLATFORM",
     "SURFACE",
+    "UPVOTES_SURFACE",
     "collect_activity",
     "likes",
     "papers",
@@ -79,7 +91,7 @@ def collect_activity(
 
             # The paper inherits the like's timestamp: it entered the user's world on the
             # day they liked the artifact that cites it.
-            run.items.append(papers.as_item(identifier, document, liked_at=item.action_at))
+            run.items.append(papers.as_item(identifier, document, action_at=item.action_at))
             resolved += 1
 
     if resolved:

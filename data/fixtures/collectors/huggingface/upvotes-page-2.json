@@ -1,0 +1,271 @@
+{
+  "recentActivity": [
+    {
+      "time": "2026-08-16T02:43:26.261Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "article",
+      "target": {
+        "_id": "6a79ab06e4d7743e1c1c2a17",
+        "isUpvotedByUser": false,
+        "numCoauthors": 3,
+        "publishedAt": "2026-08-10T00:00:00.730Z",
+        "slug": "muse-glimmer",
+        "title": "Meta is back with Muse Glimmer: local, agentic, multimodal, and open source",
+        "upvotes": 115,
+        "upvotes7d": 2,
+        "thumbnail": "/blog/assets/muse-glimmer/thumbnail.png",
+        "authorsData": [
+          {
+            "_id": "603d25b75f9d390ab190b777",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1617264212503-603d25b75f9d390ab190b777.jpeg",
+            "fullname": "Pedro Cuenca",
+            "name": "pcuenq",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 1856,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6141a88b3a0ec78603c9e784",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6141a88b3a0ec78603c9e784/DJsxSmWV39M33JFheLobC.jpeg",
+            "fullname": "merve",
+            "name": "merve",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 10991,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "62d648291fa3e4e7ae3fa6e8",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/62d648291fa3e4e7ae3fa6e8/oatOwf8Xqe5eDbCSuYqCd.png",
+            "fullname": "ben burtenshaw",
+            "name": "burtenshaw",
+            "type": "user",
+            "isPro": false,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 4961,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "608aabf24955d2bfc3cd99c6",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/608aabf24955d2bfc3cd99c6/-YxmtpzEmf3NKOTktODRP.jpeg",
+            "fullname": "Aritra Roy Gosthipaty",
+            "name": "ariG23498",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 816,
+            "isUserFollowing": false
+          }
+        ],
+        "url": "/blog/muse-glimmer",
+        "apiPrefix": "/api/blog/muse-glimmer",
+        "canonical": true,
+        "tags": [
+          "llms",
+          "vlms",
+          "meta",
+          "muse",
+          "llama.cpp",
+          "vllm",
+          "hub"
+        ]
+      },
+      "targetUrl": "/blog/muse-glimmer"
+    },
+    {
+      "time": "2026-08-11T01:15:01.258Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "collection",
+      "target": {
+        "id": "6a79b5c8f66a54c334d51f31",
+        "slug": "meta-models/muse-glimmer-6a79b5c8f66a54c334d51f31",
+        "title": "Muse Glimmer",
+        "description": "Muse Glimmer 30B: multimodal agentic model for local deployment. BF16 weights, GGUF k-quants, ExecuTorch builds, DFlash drafter.",
+        "lastUpdated": "2026-08-10T11:28:08.533Z",
+        "numberItems": 4,
+        "owner": {
+          "_id": "6a4fa9d6b2a34f879a85b1ce",
+          "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/64c115d1f661ace7c4022432/EbzfQisFJBEcKWDWLyV5O.png",
+          "fullname": "Meta Inc.",
+          "name": "meta-models",
+          "type": "org",
+          "isHf": false,
+          "isHfAdmin": false,
+          "isMod": false,
+          "plan": "plus",
+          "followerCount": 2209,
+          "isUserFollowing": false
+        },
+        "theme": "blue",
+        "shareUrl": "https://hf.co/collections/meta-models/muse-glimmer",
+        "upvotes": 109,
+        "isUpvotedByUser": false
+      },
+      "targetUrl": "/collections/meta-models/muse-glimmer-6a79b5c8f66a54c334d51f31"
+    },
+    {
+      "time": "2026-08-06T16:51:13.052Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "article",
+      "target": {
+        "_id": "6a749501993e0d462d8b5571",
+        "isUpvotedByUser": false,
+        "numCoauthors": 7,
+        "publishedAt": "2026-08-06T00:00:00.729Z",
+        "slug": "baseten",
+        "title": "Baseten on Hugging Face Inference Providers \ud83d\udd25",
+        "upvotes": 35,
+        "upvotes7d": 0,
+        "thumbnail": "/blog/assets/inference-providers/welcome-baseten.png",
+        "authorsData": [
+          {
+            "_id": "68dab37c0a777319f2b31bc9",
+            "avatarUrl": "/avatars/6a3aa1dbecee544ea7ab96cf5dd9f1cb.svg",
+            "fullname": "Alex Ker",
+            "name": "alexker-baseten",
+            "type": "user",
+            "isPro": false,
+            "isHf": false,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 4,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6a29d83fb9ffc2e059304a99",
+            "avatarUrl": "/avatars/d977c96538f9a366a10383b54aeeb834.svg",
+            "fullname": "Roland Crosby",
+            "name": "rolandcrosby-baseten",
+            "type": "user",
+            "isPro": false,
+            "isHf": false,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 4,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6361b67619e7e4bf4576378a",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1667348060565-noauth.png",
+            "fullname": "Sid Shanker",
+            "name": "squidarth",
+            "type": "user",
+            "isPro": false,
+            "isHf": false,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 5,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6a6ba5e0ba795bf16c951e59",
+            "avatarUrl": "/avatars/8dc844a2508f5d0c889809fe6905b2fe.svg",
+            "fullname": "Johan",
+            "name": "johan-baseten",
+            "type": "user",
+            "isPro": false,
+            "isHf": false,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 3,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6192895f3b8aa351a46fadfd",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6192895f3b8aa351a46fadfd/gsGa2PvHTKAv7MNbyLH8y.jpeg",
+            "fullname": "C\u00e9lina Hanouti",
+            "name": "celinah",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 285,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "5fcfb7c407408029ba3577e2",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1608146735109-5fcfb7c407408029ba3577e2.png",
+            "fullname": "Simon Brandeis",
+            "name": "sbrandeis",
+            "type": "user",
+            "isPro": false,
+            "isHf": true,
+            "isHfAdmin": true,
+            "isMod": false,
+            "followerCount": 261,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6273f303f6d63a28483fde12",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1659336880158-6273f303f6d63a28483fde12.png",
+            "fullname": "Lucain Pouget",
+            "name": "Wauplin",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 436,
+            "isUserFollowing": false
+          },
+          {
+            "_id": "6141a88b3a0ec78603c9e784",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6141a88b3a0ec78603c9e784/DJsxSmWV39M33JFheLobC.jpeg",
+            "fullname": "merve",
+            "name": "merve",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 10991,
+            "isUserFollowing": false
+          }
+        ],
+        "url": "/blog/baseten",
+        "apiPrefix": "/api/blog/baseten",
+        "canonical": true,
+        "tags": [
+          "llms",
+          "inference-providers",
+          "baseten",
+          "enterprise",
+          "partnerships",
+          "hub"
+        ]
+      },
+      "targetUrl": "/blog/baseten"
+    },
+    {
+      "time": "2026-08-01T18:40:35.212Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "paper",
+      "target": {
+        "id": "2607.24653",
+        "title": "Kimi K3: Open Frontier Intelligence",
+        "thumbnailUrl": "https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/2607.24653.png",
+        "upvotes": 525,
+        "publishedAt": "2026-07-27T00:00:00.000Z",
+        "isUpvotedByUser": true
+      },
+      "targetUrl": "/papers/2607.24653"
+    }
+  ],
+  "cursor": "eyJjcmVhdGVkQXQiOiIyMDI2LTA4LTAxVDE4OjQwOjM1LjIxMloifQ=="
+}

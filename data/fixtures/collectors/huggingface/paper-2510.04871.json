@@ -1,0 +1,217 @@
+{
+  "id": "2510.04871",
+  "publishedAt": "2025-10-06T14:58:08.000Z",
+  "submittedOnDailyAt": "2025-10-08T00:00:00.000Z",
+  "title": "Less is More: Recursive Reasoning with Tiny Networks",
+  "summary": "Hierarchical Reasoning Model (HRM) is a novel approach using two small neural\nnetworks recursing at different frequencies. This biologically inspired method\nbeats Large Language models (LLMs) on hard puzzle tasks such as Sudoku, Maze,\nand ARC-AGI while trained with small models (27M parameters) on small data\n(around 1000 examples). HRM holds great promise for solving hard problems with\nsmall networks, but it is not yet well understood and may be suboptimal. We\npropose Tiny Recursive Model (TRM), a much simpler recursive reasoning approach\nthat achieves significantly higher generalization than HRM, while using a\nsingle tiny network with only 2 layers. With only 7M parameters, TRM obtains\n45% test-accuracy on ARC-AGI-1 and 8% on ARC-AGI-2, higher than most LLMs\n(e.g., Deepseek R1, o3-mini, Gemini 2.5 Pro) with less than 0.01% of the\nparameters.",
+  "upvotes": 520,
+  "projectPage": "https://alexiajm.github.io/2025/09/29/tiny_recursive_models.html#",
+  "githubRepo": "https://github.com/SamsungSAILMontreal/TinyRecursiveModels",
+  "githubRepoAddedBy": "user",
+  "ai_summary": "Tiny Recursive Model (TRM) achieves high generalization on complex puzzle tasks using a small, two-layer network with minimal parameters, outperforming larger language models.",
+  "ai_keywords": [
+    "Hierarchical Reasoning Model",
+    "HRM",
+    "Tiny Recursive Model",
+    "TRM",
+    "recursive reasoning",
+    "neural networks",
+    "ARC-AGI",
+    "Deepseek R1",
+    "o3-mini",
+    "Gemini 2.5 Pro"
+  ],
+  "ai_summary_model": "Qwen/Qwen2.5-Coder-32B-Instruct",
+  "githubStars": 6560,
+  "organization": {
+    "_id": "6406bcfea577649430c6c3ca",
+    "name": "SamsungSAILMontreal",
+    "fullname": "Samsung  AI Lab (SAIL) Montreal",
+    "avatar": "https://cdn-avatars.huggingface.co/v1/production/uploads/1678163236468-6406bcaca577649430c6bff4.png"
+  },
+  "linkedModels": [
+    {
+      "author": "wtfmahe",
+      "authorData": {
+        "_id": "6714d8f1ff4fc99ee49682b7",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/usBgRs5A4eud_8mxQ63rI.png",
+        "fullname": "O",
+        "name": "wtfmahe",
+        "type": "user",
+        "isPro": false,
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "followerCount": 3,
+        "isUserFollowing": false
+      },
+      "downloads": 0,
+      "gated": false,
+      "id": "wtfmahe/Samsung-TRM",
+      "availableInferenceProviders": [],
+      "lastModified": "2025-10-13T07:41:25.000Z",
+      "likes": 52,
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false
+    },
+    {
+      "author": "ordlibrary",
+      "authorData": {
+        "_id": "6341db4e7a0225764f427207",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6341db4e7a0225764f427207/wc7xYefgJRZSNxkhIKEDB.png",
+        "fullname": "8 bit",
+        "name": "ordlibrary",
+        "type": "user",
+        "isPro": true,
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "followerCount": 6,
+        "isUserFollowing": false
+      },
+      "downloads": 0,
+      "gated": false,
+      "id": "ordlibrary/SolanaOS",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-06-16T20:50:15.000Z",
+      "likes": 9,
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false
+    },
+    {
+      "author": "amarck",
+      "authorData": {
+        "_id": "676f4f225345a4b22a0c7929",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/XXC54IXqudVdy84gA2yK9.png",
+        "fullname": "Marck",
+        "name": "amarck",
+        "type": "user",
+        "isPro": false,
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "followerCount": 5,
+        "isUserFollowing": false
+      },
+      "downloads": 0,
+      "gated": false,
+      "id": "amarck/heap-trm",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-04-01T15:23:22.000Z",
+      "likes": 1,
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false
+    },
+    {
+      "author": "asdf98",
+      "authorData": {
+        "_id": "682bd3fa4be8e170706066a6",
+        "avatarUrl": "/avatars/77d98ae024c6bb956c88a0af1e98535d.svg",
+        "fullname": "asdfsadf",
+        "name": "asdf98",
+        "type": "user",
+        "isPro": false,
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "isUserFollowing": false
+      },
+      "downloads": 0,
+      "gated": false,
+      "id": "asdf98/LuminaRS",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-04-27T12:23:16.000Z",
+      "likes": 1,
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false
+    }
+  ],
+  "numTotalModels": 8,
+  "linkedDatasets": [
+    {
+      "author": "emiliocantuc",
+      "downloads": 27,
+      "gated": false,
+      "id": "emiliocantuc/sudoku-extreme-1k-aug-1000",
+      "lastModified": "2026-05-28T01:14:31.000Z",
+      "datasetsServerInfo": {
+        "viewer": "viewer",
+        "numRows": 1423786,
+        "libraries": [
+          "datasets",
+          "dask",
+          "polars",
+          "mlcroissant"
+        ],
+        "formats": [
+          "parquet",
+          "optimized-parquet"
+        ],
+        "modalities": []
+      },
+      "private": false,
+      "repoType": "dataset",
+      "likes": 1,
+      "isLikedByUser": false,
+      "isBenchmark": false,
+      "isTraces": false,
+      "isEnvironment": false
+    },
+    {
+      "author": "emiliocantuc",
+      "downloads": 17,
+      "gated": false,
+      "id": "emiliocantuc/maze-30x30-hard-1k",
+      "lastModified": "2026-05-28T01:29:16.000Z",
+      "datasetsServerInfo": {
+        "viewer": "viewer",
+        "numRows": 9000,
+        "libraries": [
+          "datasets",
+          "pandas",
+          "polars",
+          "mlcroissant"
+        ],
+        "formats": [
+          "parquet",
+          "optimized-parquet"
+        ],
+        "modalities": []
+      },
+      "private": false,
+      "repoType": "dataset",
+      "likes": 0,
+      "isLikedByUser": false,
+      "isBenchmark": false,
+      "isTraces": false,
+      "isEnvironment": false
+    }
+  ],
+  "numTotalDatasets": 2,
+  "linkedSpaces": [
+    {
+      "emoji": "\ud83d\udc20",
+      "id": "bcgxtberg/vit-trm-kinetics700",
+      "running": false,
+      "featured": false
+    },
+    {
+      "emoji": "\ud83c\udfc3",
+      "id": "raayraay/TRM-ARC-Demo",
+      "running": false,
+      "shortDescription": "Interactive demo showing how a 7M parameter TRM model beats ",
+      "featured": false
+    },
+    {
+      "emoji": "\ud83c\udfac",
+      "id": "bcgxtberg/vit-trm-ucf101-train",
+      "running": false,
+      "featured": false
+    }
+  ],
+  "numTotalSpaces": 3
+}

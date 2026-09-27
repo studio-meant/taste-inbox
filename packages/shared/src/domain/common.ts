@@ -35,7 +35,14 @@ export const SourcePlatformSchema = z.enum([
   "web",
 ]);
 
-export const SourceActionTypeSchema = z.enum(["star", "like", "save", "repost"]);
+/**
+ * The act that put an item here.
+ *
+ * `upvote` is not a synonym for `like` (2026-09-28): a like is on a model, dataset or
+ * Space, an upvote is on a paper, and a paper reached through a liked model's arXiv tag
+ * keeps `like` because nobody upvoted it. Mirrors `db/models.py::ACTION_TYPES`.
+ */
+export const SourceActionTypeSchema = z.enum(["star", "like", "upvote", "save", "repost"]);
 
 export const SourceRefSchema = z.object({
   platform: SourcePlatformSchema,

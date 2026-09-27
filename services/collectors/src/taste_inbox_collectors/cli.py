@@ -1,7 +1,8 @@
-"""Collect one official-API surface into `var/captures/<surface>.json`.
+"""Collect one API surface into `var/captures/<surface>.json`.
 
     uv run probe api --source github_stars_api
     uv run probe api --source huggingface_activity --last-seen model:deepseek-ai/DeepSeek-R1
+    uv run probe api --source huggingface_upvotes --last-seen paper:2510.04871
     uv run probe sources                      # what this build can collect, and from whom
 
 Without `--last-seen` a run takes the newest `--limit` items and is a seeding run. With it,
@@ -51,6 +52,7 @@ def cmd_sources(_: argparse.Namespace) -> int:
             account=account or None,
             tokenPresent=token,
             tokenRequired=entry["tokenRequired"],
+            official=entry["official"],
             ready=bool(account) and ready,
         )
     return 0
@@ -115,7 +117,7 @@ def build_parser() -> argparse.ArgumentParser:
         handler=cmd_sources
     )
 
-    api = sub.add_parser("api", help="collect one official-API surface")
+    api = sub.add_parser("api", help="collect one API surface")
     api.add_argument("--source", required=True, choices=sorted(SURFACES))
     api.add_argument(
         "--last-seen",
@@ -132,7 +134,7 @@ def build_parser() -> argparse.ArgumentParser:
     api.add_argument(
         "--no-papers",
         action="store_true",
-        help="Hugging Face only: skip resolving arXiv tags into paper bundles",
+        help="Hugging Face only: skip the per-paper bundle request",
     )
     api.add_argument("--output-dir", type=Path, default=None)
     api.set_defaults(handler=cmd_api)

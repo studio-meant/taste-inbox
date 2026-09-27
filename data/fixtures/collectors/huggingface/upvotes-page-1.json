@@ -1,0 +1,105 @@
+{
+  "recentActivity": [
+    {
+      "time": "2026-09-25T10:50:49.216Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "collection",
+      "target": {
+        "id": "6ab4f2f6e09b7cb872ebc867",
+        "slug": "FineEnvs/smoldataenvs-6ab4f2f6e09b7cb872ebc867",
+        "title": "SmolDataEnvs",
+        "description": "5.5K+ RL tasks for hill-climbing small models in code and data science. Deterministic grading, no LLM judge.",
+        "lastUpdated": "2026-09-24T15:52:05.921Z",
+        "numberItems": 6,
+        "owner": {
+          "_id": "6a9427460917153251ff9835",
+          "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6442d975ad54813badc1ddf7/yhkkYGZPTX7BMK7GuCbeA.png",
+          "fullname": "FineEnvs",
+          "name": "FineEnvs",
+          "type": "org",
+          "isHf": false,
+          "isHfAdmin": false,
+          "isMod": false,
+          "plan": "team",
+          "followerCount": 31,
+          "isUserFollowing": false
+        },
+        "theme": "blue",
+        "shareUrl": "https://hf.co/collections/FineEnvs/smoldataenvs",
+        "upvotes": 3,
+        "isUpvotedByUser": false
+      },
+      "targetUrl": "/collections/FineEnvs/smoldataenvs-6ab4f2f6e09b7cb872ebc867"
+    },
+    {
+      "time": "2026-09-01T16:43:18.750Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "paper",
+      "target": {
+        "id": "2510.04871",
+        "title": "Less is More: Recursive Reasoning with Tiny Networks",
+        "thumbnailUrl": "https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/2510.04871.png",
+        "upvotes": 520,
+        "publishedAt": "2025-10-06T14:58:08.000Z",
+        "isUpvotedByUser": true
+      },
+      "targetUrl": "/papers/2510.04871"
+    },
+    {
+      "time": "2026-08-25T13:44:29.901Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "article",
+      "target": {
+        "_id": "6a8d8d5448b3ac1008b82fde",
+        "isUpvotedByUser": false,
+        "numCoauthors": 0,
+        "publishedAt": "2026-08-25T12:40:52.449Z",
+        "editedAt": "2026-08-25T12:40:52.449Z",
+        "slug": "introducing-llama-for-windows",
+        "title": "\ud83e\udd99 Bringing Llamas to Redmond: Meet Llama for Windows",
+        "upvotes": 1,
+        "upvotes7d": 0,
+        "authorsData": [
+          {
+            "_id": "5e67c47c100906368940747e",
+            "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1583858935715-5e67c47c100906368940747e.jpeg",
+            "fullname": "Morgan Funtowicz",
+            "name": "mfuntowicz",
+            "type": "user",
+            "isPro": true,
+            "isHf": true,
+            "isHfAdmin": false,
+            "isMod": false,
+            "followerCount": 238,
+            "isUserFollowing": false
+          }
+        ],
+        "url": "/blog/mfuntowicz/introducing-llama-for-windows",
+        "apiPrefix": "/api/blog/mfuntowicz/introducing-llama-for-windows",
+        "canonical": false,
+        "status": "published",
+        "isHFChangelog": false
+      },
+      "targetUrl": "/blog/mfuntowicz/introducing-llama-for-windows"
+    },
+    {
+      "time": "2026-08-22T09:37:47.088Z",
+      "user": "sample-user",
+      "type": "upvote",
+      "targetType": "paper",
+      "target": {
+        "id": "2606.17090",
+        "title": "ANEForge: Python for direct computation on the Apple Neural Engine",
+        "thumbnailUrl": "https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/2606.17090.png",
+        "upvotes": 3,
+        "publishedAt": "2026-06-12T00:00:00.000Z",
+        "isUpvotedByUser": true
+      },
+      "targetUrl": "/papers/2606.17090"
+    }
+  ],
+  "cursor": "eyJjcmVhdGVkQXQiOiIyMDI2LTA4LTIyVDA5OjM3OjQ3LjA4OFoifQ=="
+}
