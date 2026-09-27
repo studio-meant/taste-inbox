@@ -26,6 +26,7 @@ the plists.
 from __future__ import annotations
 
 from datetime import UTC, datetime, time, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -33,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from ..config.loader import load_app_document
 from ..config.schema import AppDocument
-from ..distribution import browser_automation_available, distribution_profile
+from ..distribution import distribution_profile
 from ..paths import REPO_ROOT
 
 #: The order sources are offset in. Instagram first because it is the collection with the
@@ -56,7 +57,11 @@ from ..paths import REPO_ROOT
 #: than imported so config validation does not reach into the API layer, and pinned to it by
 #: `tests/test_api.py`. Adding a source here tightens the stagger ceiling: with seven, six
 #: gaps have to fit inside one interval.
-SOURCE_ORDER: tuple[str, ...] = (
+#: The logged-in browser collectors. Present in this tree only as names: the package that
+#: implements them stayed in the private workspace, and the distribution marker keeps them
+#: off regardless (`distribution.py`). Kept so an inherited schedule still reads the same
+#: and so re-adding one later is a marker change rather than a new list.
+BROWSER_SOURCE_ORDER: tuple[str, ...] = (
     "instagram_likes",
     "instagram_saved_ai",
     "instagram_saved_music",
@@ -65,6 +70,37 @@ SOURCE_ORDER: tuple[str, ...] = (
     "threads_reposts",
     "linkedin_reactions",
 )
+
+#: The official-API collectors this distribution actually runs (2026-09-28).
+#:
+#: `github_stars_api` is deliberately a different id from the browser `github_stars`. They
+#: read the same account but not the same facts — the stars *page* never shows when a
+#: repository was starred, while `GET /user/starred` returns `starred_at`. Sharing an id
+#: would let one collector's checkpoint answer for the other's coverage.
+API_SOURCE_ORDER: tuple[str, ...] = (
+    "github_stars_api",
+    "huggingface_activity",
+)
+
+#: Backwards-compatible alias. Inherited callers that mean "the browser collectors" keep
+#: working; anything that means "what is actually scheduled" must call `scheduled_sources`.
+SOURCE_ORDER: tuple[str, ...] = BROWSER_SOURCE_ORDER
+
+
+def scheduled_sources(root: Path = REPO_ROOT) -> tuple[str, ...]:
+    """Which collectors this distribution may put on a schedule.
+
+    Two capabilities rather than one, because this tree runs API collectors while browser
+    automation stays off — see `distribution.py` for why that split exists.
+    """
+
+    profile = distribution_profile(root)
+    sources: tuple[str, ...] = ()
+    if profile.browser_automation:
+        sources += BROWSER_SOURCE_ORDER
+    if profile.api_collection:
+        sources += API_SOURCE_ORDER
+    return sources
 
 
 def local_zone(name: str) -> ZoneInfo:
@@ -134,9 +170,8 @@ def describe(*, now: datetime | None = None, session: Session | None = None) -> 
     moment = (now or datetime.now(UTC)).astimezone(zone)
 
     profile = distribution_profile(REPO_ROOT)
-    scheduled_sources = SOURCE_ORDER if browser_automation_available(REPO_ROOT) else ()
     sources = []
-    for index, collector_id in enumerate(scheduled_sources):
+    for index, collector_id in enumerate(scheduled_sources(REPO_ROOT)):
         offset = timedelta(minutes=collection.stagger_minutes * index)
         run_at = _next_run(moment, collection.interval_hours, offset)
         sources.append(
@@ -156,6 +191,9 @@ def describe(*, now: datetime | None = None, session: Session | None = None) -> 
         "allowManualRefresh": collection.allow_manual_refresh,
         "distributionEdition": profile.edition,
         "browserAutomationAvailable": profile.browser_automation,
+        # Split from the line above on 2026-09-28: this tree collects from official
+        # APIs while browser automation stays off, and one boolean could not say both.
+        "apiCollectionAvailable": profile.api_collection,
         # The day's slots before the stagger is applied, so the screen can say "00:00 ·
         # 04:00 · …" without recomputing the interval in the frontend.
         "dailySlots": [
@@ -168,4 +206,13 @@ def describe(*, now: datetime | None = None, session: Session | None = None) -> 
     }
 
 
-__all__ = ["SOURCE_ORDER", "configured_zone", "describe", "effective_document", "local_zone"]
+__all__ = [
+    "API_SOURCE_ORDER",
+    "BROWSER_SOURCE_ORDER",
+    "SOURCE_ORDER",
+    "configured_zone",
+    "describe",
+    "effective_document",
+    "local_zone",
+    "scheduled_sources",
+]

@@ -49,9 +49,9 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from ..distribution import browser_automation_available
+from ..distribution import collection_available
 from ..paths import REPO_ROOT
-from .schedule import SOURCE_ORDER, effective_document
+from .schedule import effective_document, scheduled_sources
 
 LAUNCHD_DIR: Path = REPO_ROOT / "var" / "launchd"
 # launchd opens StandardOutPath/StandardErrorPath itself, before the job starts. On macOS
@@ -88,8 +88,8 @@ def _python() -> str:
 def build_plist(
     *, label: str, collector_id: str, interval_hours: int, timezone: str
 ) -> dict[str, object]:
-    if not browser_automation_available(REPO_ROOT):
-        raise ValueError("community releases cannot create browser-automation jobs")
+    if not collection_available(REPO_ROOT):
+        raise ValueError("this distribution has no collectors that may be scheduled")
     return {
         "Label": label,
         "ProgramArguments": [
@@ -154,7 +154,7 @@ def plan(target: Path | None = None, *, session: Session | None = None) -> list[
     could store 6 and this would still describe 4 — which is the reason that screen labels
     the interval "다음 설치부터" rather than "즉시 적용".
     """
-    if not browser_automation_available(REPO_ROOT):
+    if not collection_available(REPO_ROOT):
         return []
 
     document = effective_document(session)
@@ -162,7 +162,7 @@ def plan(target: Path | None = None, *, session: Session | None = None) -> list[
     directory = target or LAUNCHD_DIR
 
     jobs: list[GeneratedJob] = []
-    for index, collector_id in enumerate(SOURCE_ORDER):
+    for index, collector_id in enumerate(scheduled_sources(REPO_ROOT)):
         offset = collection.stagger_minutes * index
         label = f"{LABEL_PREFIX}.{collector_id.replace('_', '-')}"
         jobs.append(
@@ -185,7 +185,7 @@ def generate(target: Path | None = None, *, session: Session | None = None) -> l
     installs them, with whatever interval is saved at that moment, rather than as a side
     effect of somebody looking at a screen.
     """
-    if not browser_automation_available(REPO_ROOT):
+    if not collection_available(REPO_ROOT):
         return []
 
     document = effective_document(session)

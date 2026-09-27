@@ -46,8 +46,11 @@ SETTING_KEYS = {
     "features.linkedinCollector",
     "features.localModelEnrichment",
 }
+# Renamed in meaning on 2026-09-28: the gate is "does this tree run browser collectors",
+# not "is this the community edition". The `rnd` edition also has no browser schedule,
+# and keying on the edition name let these browser-only tests run against it.
 PERSONAL_WORKSPACE_ONLY = pytest.mark.skipif(
-    distribution_profile().edition == "community",
+    not distribution_profile().browser_automation,
     reason="the community edition intentionally has no browser collection jobs",
 )
 SETTING_BASE = {"value", "origin", "effect", "editable"}
