@@ -79,7 +79,21 @@ JOB_STATES = (
     "cancelled",
     "blocked",
 )
-JOB_TYPES = ("collection", "enrichment", "build", "run", "price", "cleanup")
+# `research` and `trial` joined on 2026-09-28. They are the two long-running things this
+# product now does, and neither fits the inherited names: `enrichment` reads a public API
+# about one item, while research asks an agent a question and comes back with citations;
+# `build`/`run` were the removed sandbox runner's, and reusing them would make a trial
+# indistinguishable from the feature that was deleted for being unsafe.
+JOB_TYPES = (
+    "collection",
+    "enrichment",
+    "research",
+    "trial",
+    "build",
+    "run",
+    "price",
+    "cleanup",
+)
 JOB_STEP_STATES = ("waiting", "running", "done", "failed", "skipped")
 
 

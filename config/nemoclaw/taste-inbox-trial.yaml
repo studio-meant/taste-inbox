@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# What a Taste Inbox trial may reach beyond the built-in presets.
+#
+# The shipped `github` preset opens github.com and api.github.com to `/usr/bin/git` only,
+# and `pypi` is already applied. This adds the two hosts a clone-and-build trial still
+# needs — release tarballs and raw files — and the tools that actually fetch them.
+#
+# Endpoints *and* binaries both have to match for a request to leave the sandbox. That is
+# measured, not assumed: `curl` could not reach huggingface.co even though the host is
+# allowed, because curl is not in that policy's binary list (docs/FEASIBILITY.md, F4).
+#
+# Deny-by-default stays. Nothing here opens a host that a "fetch the repository, resolve
+# its dependencies, run its entry point" trial does not need.
+preset:
+  name: taste-inbox-trial
+  description: "Taste Inbox trial: source tarballs and raw files for a clone-and-build run"
+
+network_policies:
+  taste_inbox_trial:
+    name: taste_inbox_trial
+    endpoints:
+      # `git clone` over HTTPS is not read-only at the protocol level — the smart
+      # transport POSTs to /git-upload-pack — so these are `full` rather than GET-only.
+      - host: codeload.github.com
+        port: 443
+        access: full
+      - host: raw.githubusercontent.com
+        port: 443
+        access: full
+      - host: objects.githubusercontent.com
+        port: 443
+        tls: skip
+        access: full
+    binaries:
+      - { path: /usr/bin/git }
+      - { path: /usr/bin/curl }
+      - { path: /usr/local/bin/curl }
+      - { path: /usr/bin/python3* }
+      - { path: /usr/local/bin/python3* }

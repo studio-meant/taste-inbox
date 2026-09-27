@@ -13,3 +13,5 @@ export * from "./collected";
 export * from "./music";
 export * from "./today";
 export * from "./settings";
+export * from "./taste";
+export * from "./trial";

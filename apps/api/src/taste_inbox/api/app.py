@@ -381,6 +381,141 @@ def media(asset_id: int, request: Request, session: Session = Depends(get_sessio
     return FileResponse(path, media_type="image/jpeg", headers=headers)
 
 
+@app.get("/api/focus/{item_id}")
+def focus(item_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Everything the Focus Canvas draws, in one request.
+
+    One payload rather than four, so the screen cannot render research from one moment
+    beside a trial from another. Absent sections are absent, never filled in.
+    """
+
+    from .focus import payload
+
+    found = payload(session, item_id)
+    if found is None:
+        raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False)
+    return {"data": found}
+
+
+@app.post("/api/research")
+def research_start(
+    body: dict[str, Any] | None = None, session: Session = Depends(get_session)
+) -> dict[str, Any]:
+    """Research one item with NVIDIA AI-Q.
+
+    Synchronous on purpose at this stage: the job rows are written as it goes, so a client
+    that times out can still read the state from `GET /api/jobs`. Turning it into a
+    background worker is a change to how it is *called*, not to what it does.
+    """
+
+    from ..research import runner as research_runner
+    from ..research.aiq_client import AiqUnavailable, describe_target
+
+    payload = body or {}
+    item_id = str(payload.get("itemId") or "").strip()
+    if not item_id:
+        raise ApiError(422, "item_required", "조사할 항목을 지정해 주세요.", recoverable=True)
+
+    agent_type = str(payload.get("agentType") or "shallow_researcher")
+    try:
+        target = describe_target()
+        outcome = research_runner.run(session, item_id, agent_type=agent_type)
+    except LookupError as error:
+        raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False) from error
+    except AiqUnavailable as error:
+        # Reachability is the user's to fix (start the backend, set AIQ_SERVER_URL), so it
+        # is recoverable and the message carries the backend's own words.
+        raise ApiError(503, "aiq_unavailable", str(error), recoverable=True) from error
+
+    return {"data": {**outcome.as_dict(), "target": target}}
+
+
+@app.post("/api/trials")
+def trial_start(
+    body: dict[str, Any] | None = None, session: Session = Depends(get_session)
+) -> dict[str, Any]:
+    """Run an approved plan inside the OpenShell sandbox.
+
+    `approved` is required and must be true. It is not a formality: running collected code
+    was re-allowed only for a plan the user explicitly approved (docs/DECISIONS.md,
+    2026-09-28), and the endpoint enforces that rather than trusting the caller to.
+    """
+
+    from ..action import proposal
+    from ..research import runner as research_runner
+    from ..sandbox import nemoclaw
+    from ..sandbox import policy as sandbox_policy
+    from ..sandbox import trial as trial_runner
+
+    payload = body or {}
+    item_id = str(payload.get("itemId") or "").strip()
+    if not item_id:
+        raise ApiError(422, "item_required", "실행할 항목을 지정해 주세요.", recoverable=True)
+    if payload.get("approved") is not True:
+        raise ApiError(
+            422,
+            "approval_required",
+            "사용자 승인 없이는 실행하지 않습니다.",
+            recoverable=True,
+        )
+
+    item = session.get(Item, item_id)
+    if item is None:
+        raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False)
+
+    research = research_runner.latest(session, item_id)
+    if not research or not research.get("report"):
+        raise ApiError(
+            409,
+            "research_required",
+            "먼저 조사를 실행해야 실행 계획이 생깁니다.",
+            recoverable=True,
+        )
+
+    suggestion = proposal.build(
+        subject_id=item_id,
+        subject_title=item.title or item.canonical_url,
+        subject_url=item.canonical_url,
+        report=research["report"],
+    )
+    if not suggestion.actionable:
+        raise ApiError(
+            409,
+            "no_plan",
+            "조사 결과에 실행 가능한 단계가 없습니다.",
+            recoverable=False,
+        )
+
+    try:
+        check = sandbox_policy.check(suggestion.plan)
+        if check.busy:
+            raise ApiError(
+                409, "sandbox_busy", "다른 실행이 진행 중입니다. 잠시 후 다시 시도해 주세요.", recoverable=True
+            )
+        if not check.satisfied:
+            raise ApiError(
+                409,
+                "boundary_not_ready",
+                "샌드박스 경계가 준비되지 않았습니다: "
+                + (", ".join(check.missing_presets) or "샌드박스가 Ready 상태가 아닙니다"),
+                recoverable=True,
+            )
+        outcome = trial_runner.run(session, suggestion.plan, approved=True)
+    except nemoclaw.SandboxUnavailable as error:
+        raise ApiError(503, "sandbox_unavailable", str(error), recoverable=True) from error
+
+    return {"data": {**outcome.as_dict(), "policy": check.as_dict()}}
+
+
+@app.get("/api/trials/{item_id}")
+def trial_latest(item_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """What the last trial left on this item. Polled by the Working Queue."""
+
+    from ..sandbox import trial as trial_runner
+
+    return {"data": trial_runner.latest(session, item_id)}
+
+
 @app.get("/api/collection/schedule")
 def collection_schedule(session: Session = Depends(get_session)) -> dict[str, Any]:
     from .schedule import describe

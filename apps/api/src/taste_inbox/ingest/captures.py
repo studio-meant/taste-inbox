@@ -444,6 +444,7 @@ def record_membership(
     position: int | None,
     report: IngestReport,
     first_seen_at: str | None = None,
+    action_at: str | None = None,
 ) -> None:
     existing = session.scalar(
         select(ItemSource).where(
@@ -454,6 +455,10 @@ def record_membership(
     )
     if existing is not None:
         existing.position = position
+        # A membership recorded before the API collectors existed has a null `action_at`.
+        # Backfilling it here is how those rows gain the timestamp without a migration.
+        if existing.action_at is None and action_at:
+            existing.action_at = action_at
         return
     session.add(
         ItemSource(
@@ -463,8 +468,10 @@ def record_membership(
             collection_name=collection_name,
             position=position,
             first_seen_at=first_seen_at or _now(),
-            # None of these five surfaces exposes when the user acted.
-            action_at=None,
+            # Null for the browser surfaces, which never render when the user acted. The
+            # official-API collectors do say: GitHub's `starred_at` under the star+json
+            # media type, and Hugging Face's `createdAt` on a like.
+            action_at=action_at,
         )
     )
     report.memberships_new += 1
@@ -1095,6 +1102,7 @@ def ingest_browser_file(session: Session, path: Path, surface: str, report: Inge
             collection_name=None,
             position=position,
             report=report,
+            action_at=raw.get("action_at"),
         )
         record_stated_evidence(session, item=item, stated=raw.get("evidence"))
         if run_row is not None:
