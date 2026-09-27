@@ -51,6 +51,9 @@ describe("documented unions", () => {
     expect(ItemKindSchema.options).toEqual([
       "repo",
       "model",
+      // Hugging Face `repo.type` values, added 2026-09-28.
+      "dataset",
+      "space",
       "paper",
       "demo",
       "tool",

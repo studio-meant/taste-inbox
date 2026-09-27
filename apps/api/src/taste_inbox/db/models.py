@@ -33,8 +33,35 @@ class Base(DeclarativeBase):
 # constraints and any future validation read from one list.
 PLATFORMS = ("github", "huggingface", "arxiv", "threads", "linkedin", "instagram", "web")
 ACTION_TYPES = ("star", "like", "save", "repost")
-ITEM_KINDS = ("repo", "model", "paper", "demo", "tool", "post", "product", "outfit")
-EVIDENCE_PROVENANCE = ("fact", "inference", "external")
+# `dataset` and `space` joined on 2026-09-28: the Hugging Face likes endpoint returns
+# `repo.type` as one of model|dataset|space, and folding a dataset into `model` would
+# lose the distinction the board filters on.
+ITEM_KINDS = (
+    "repo",
+    "model",
+    "dataset",
+    "space",
+    "paper",
+    "demo",
+    "tool",
+    "post",
+    "product",
+    "outfit",
+)
+# The first three say what *kind* of claim a row is; the four added on 2026-09-28 say
+# *who made it*, which is a different question this product now has to answer on screen.
+# A sandbox observation and an AI-Q citation are both facts, and a card that drew them
+# identically would hide the one thing a reader needs — whether the machine ran it or a
+# research agent read it somewhere.
+EVIDENCE_PROVENANCE = (
+    "fact",
+    "inference",
+    "external",
+    "huggingface",
+    "aiq",
+    "sandbox",
+    "policy",
+)
 
 # packages/shared/src/domain/today.ts
 SOURCE_STATES = ("collected", "skipped", "auth_required", "failed", "disabled")

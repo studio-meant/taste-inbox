@@ -10,6 +10,13 @@ import { IsoDateTimeSchema } from "../host/host-profile";
 export const ItemKindSchema = z.enum([
   "repo",
   "model",
+  /**
+   * Hugging Face returns `repo.type` as one of `model | dataset | space`, and the two
+   * added here are exactly those. Folding a dataset into `model` would lose the
+   * distinction the Browse filters key on.
+   */
+  "dataset",
+  "space",
   "paper",
   "demo",
   "tool",

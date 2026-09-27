@@ -1,5 +1,15 @@
 import type { EvidenceRef, ItemDetailModel } from "@taste-inbox/shared";
-import { ArrowLeft, Check, CircleCheck, ExternalLink, Lightbulb, Radio } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  CircleCheck,
+  ExternalLink,
+  Lightbulb,
+  Radio,
+  ShieldAlert,
+  Telescope,
+  TerminalSquare,
+} from "lucide-react";
 import Link from "next/link";
 import { OutboundLinks } from "@/components/collection/OutboundLinks";
 import { sourceBadgeText } from "@/components/collection/source-vocabulary";
@@ -17,6 +27,14 @@ const PROVENANCE: Readonly<
   fact: { label: "관찰됨", icon: CircleCheck },
   inference: { label: "추론", icon: Lightbulb },
   external: { label: "외부 확인", icon: Radio },
+  // Added 2026-09-28. The three above say what *kind* of claim a row is; these four say
+  // *who made it*, and the screens now carry claims from three different machines. A
+  // reader has to be able to tell a sandbox observation from a research citation.
+  huggingface: { label: "Hugging Face가 밝힘", icon: Radio },
+  aiq: { label: "AI-Q 조사", icon: Telescope },
+  sandbox: { label: "샌드박스 실행", icon: TerminalSquare },
+  // Not a log line. A blocked egress attempt is a finding, and it is drawn as one.
+  policy: { label: "정책이 차단", icon: ShieldAlert },
 };
 
 function EvidenceRow({ evidence }: { readonly evidence: EvidenceRef }) {

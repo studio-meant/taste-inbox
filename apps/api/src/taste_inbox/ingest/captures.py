@@ -136,6 +136,24 @@ BROWSER_SURFACES: dict[str, tuple[str, str]] = {
     "linkedin_reactions": ("linkedin", "like"),
 }
 
+#: The official-API surfaces (2026-09-28), in the same `surface → (platform, action)` shape.
+#:
+#: Kept as a separate table rather than appended to the one above because the distribution
+#: marker gates the two differently — this tree runs these and never those
+#: (`distribution.py`). The *documents* they produce are identical, which is why one
+#: reader serves both.
+#:
+#: `huggingface_activity` carries `like` even for the papers it resolves. Nobody upvoted
+#: those papers; they arrived because a liked model cites them, and claiming an upvote
+#: would invent a signal the user never gave (`api_sources/huggingface/papers.py`).
+API_SURFACES: dict[str, tuple[str, str]] = {
+    "github_stars_api": ("github", "star"),
+    "huggingface_activity": ("huggingface", "like"),
+}
+
+#: Every surface whose capture file `ingest_source_file` can read.
+SOURCE_SURFACES: dict[str, tuple[str, str]] = {**BROWSER_SURFACES, **API_SURFACES}
+
 
 @dataclass(slots=True)
 class IngestReport:
@@ -605,6 +623,85 @@ def record_accessibility_caption(session: Session, *, item: Item, alt_text: str 
     )
 
 
+#: Evidence the *source itself stated*, as opposed to anything this product concluded.
+#:
+#: Written by the API collectors for a paper bundle: the Hugging Face paper document names
+#: its code repository, its project page and the models and datasets that cite it, and each
+#: of those is a fact with a URL behind it. The collector carries them through
+#: (`capture_file.SourceItem.evidence`) rather than letting this side re-derive them,
+#: because the provenance only exists at the moment of reading — `githubRepoAddedBy`
+#: saying `auto` versus naming a person is the whole difference between "Official repo" and
+#: "Official repo · author-linked", and it is not recoverable from the URL afterwards.
+#:
+#: `provenance` stays whatever the collector declared, which for these is `huggingface`.
+#: It is somebody else's statement, not this product's conclusion — the same reason
+#: `record_accessibility_caption` uses `external` for Instagram's alt text.
+STATED_EVIDENCE_PREFIX = "paper."
+
+
+def record_stated_evidence(
+    session: Session, *, item: Item, stated: Any, source_default: str | None = None
+) -> None:
+    """Store what the source declared about this item, replacing a previous reading.
+
+    Replacing rather than appending: a paper gains linked models over time, and a run that
+    added rows without clearing the last set would leave a card listing the same demo four
+    times after four collections. The set is small and entirely re-readable, so the newest
+    document is simply the answer.
+    """
+
+    if not isinstance(stated, list):
+        return
+
+    rows: list[dict[str, Any]] = []
+    for entry in stated:
+        if not isinstance(entry, dict):
+            continue
+        kind = str(entry.get("type") or "").strip()
+        value = str(entry.get("value") or "").strip()
+        if not kind or not value:
+            continue
+        rows.append(
+            {
+                "type": kind,
+                "label": str(entry.get("label") or kind),
+                "value": value,
+                "provenance": str(entry.get("provenance") or "external"),
+                "source_url": entry.get("source_url") or source_default or item.canonical_url,
+                "confidence": entry.get("confidence"),
+            }
+        )
+
+    if not rows:
+        return
+
+    kinds = {row["type"] for row in rows}
+    existing = session.scalars(
+        select(Evidence).where(Evidence.item_id == item.id, Evidence.type.in_(kinds))
+    ).all()
+    for row in existing:
+        session.delete(row)
+    # The deletes have to land before the inserts, or the unique-ish pairs collide within
+    # one flush and SQLAlchemy orders them by insertion instead of by intent.
+    session.flush()
+
+    observed = _now()
+    for row in rows:
+        confidence = row["confidence"]
+        session.add(
+            Evidence(
+                item_id=item.id,
+                type=row["type"],
+                label=row["label"],
+                value=row["value"],
+                provenance=row["provenance"],
+                source_url=row["source_url"],
+                observed_at=observed,
+                confidence=float(confidence) if isinstance(confidence, (int, float)) else None,
+            )
+        )
+
+
 #: The role the cover has always had, and the value every other reader keys off
 #: (`api/cards.py`, `enrich/thumbnails.py`). It stays the cover's.
 COVER_ROLE = "thumbnail"
@@ -944,7 +1041,7 @@ def ingest_media_only_file(session: Session, path: Path, report: IngestReport) -
 
 def ingest_browser_file(session: Session, path: Path, surface: str, report: IngestReport) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
-    platform, action_type = BROWSER_SURFACES[surface]
+    platform, action_type = SOURCE_SURFACES[surface]
     run = payload.get("run") or {}
     account = ensure_account(session, platform, None, platform.title())
 
@@ -999,6 +1096,7 @@ def ingest_browser_file(session: Session, path: Path, surface: str, report: Inge
             position=position,
             report=report,
         )
+        record_stated_evidence(session, item=item, stated=raw.get("evidence"))
         if run_row is not None:
             _record_raw(session, run_row.id, platform, platform_item_id, raw, report)
     report.files_read += 1
@@ -1111,7 +1209,7 @@ def ingest_all(session: Session, capture_dir: Path | None = None) -> IngestRepor
     jobs: list[tuple[Path, str, bool]] = [
         (directory / f"{stem}.json", collection, True)
         for stem, collection in INSTAGRAM_COLLECTIONS.items()
-    ] + [(directory / f"{surface}.json", surface, False) for surface in BROWSER_SURFACES]
+    ] + [(directory / f"{surface}.json", surface, False) for surface in SOURCE_SURFACES]
 
     # Last, and in its own transaction like the rest. It only ever adds photos to items the
     # files above established, so running it before them would simply find fewer of them.
