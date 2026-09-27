@@ -1,0 +1,17 @@
+{
+  "counts": {
+    "newItems": 7,
+    "readyActions": 1,
+    "attention": 0
+  },
+  "workingQueue": [
+    {
+      "id": "queue-00000000-0000-0000-0000-000000000000",
+      "target": "debpalash/VoiceStudio",
+      "href": "/focus/00000000-0000-0000-0000-000000000000",
+      "progress": null,
+      "kind": "approval_required",
+      "nextStep": "안전하게 실행할지 결정하기"
+    }
+  ]
+}

@@ -1,0 +1,310 @@
+{
+  "item": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "kind": "repo",
+    "platform": "github",
+    "title": "debpalash/VoiceStudio",
+    "summary": "The open-source, fully-local ElevenLabs alternative.",
+    "canonicalUrl": "https://github.com/debpalash/VoiceStudio",
+    "author": "debpalash",
+    "actionAt": "2026-09-26T09:00:00Z",
+    "firstSeenAt": "2026-09-28T00:00:00Z"
+  },
+  "context": {
+    "itemId": "00000000-0000-0000-0000-000000000000",
+    "title": "debpalash/VoiceStudio",
+    "kind": "repo",
+    "platform": "github",
+    "canonicalUrl": "https://github.com/debpalash/VoiceStudio",
+    "itemTerms": [
+      "local-first",
+      "mlx",
+      "cuda",
+      "text-to-speech",
+      "mcp"
+    ],
+    "recurringTerms": [
+      {
+        "term": "ai-agents",
+        "itemCount": 2
+      },
+      {
+        "term": "mcp",
+        "itemCount": 2
+      },
+      {
+        "term": "reinforcement-learning",
+        "itemCount": 2
+      }
+    ],
+    "sharedTerms": [
+      "mcp"
+    ],
+    "neighbours": [
+      {
+        "itemId": "00000000-0000-0000-0000-000000000000",
+        "title": "jamiepine/voicebox",
+        "kind": "repo",
+        "platform": "github",
+        "canonicalUrl": "https://github.com/jamiepine/voicebox",
+        "sharedTerms": [
+          "mlx",
+          "cuda",
+          "text-to-speech"
+        ],
+        "actionAt": "2026-09-20T09:00:00Z"
+      },
+      {
+        "itemId": "00000000-0000-0000-0000-000000000000",
+        "title": "anthropics/claude-code",
+        "kind": "repo",
+        "platform": "github",
+        "canonicalUrl": "https://github.com/anthropics/claude-code",
+        "sharedTerms": [
+          "mcp"
+        ],
+        "actionAt": "2026-09-10T09:00:00Z"
+      },
+      {
+        "itemId": "00000000-0000-0000-0000-000000000000",
+        "title": "modelcontextprotocol/servers",
+        "kind": "repo",
+        "platform": "github",
+        "canonicalUrl": "https://github.com/modelcontextprotocol/servers",
+        "sharedTerms": [
+          "mcp"
+        ],
+        "actionAt": "2026-09-18T09:00:00Z"
+      }
+    ],
+    "recentKinds": {
+      "paper": 1,
+      "space": 1,
+      "dataset": 1,
+      "repo": 3
+    },
+    "recentTotal": 6,
+    "stated": [],
+    "evidenceItemIds": [
+      "00000000-0000-0000-0000-000000000000",
+      "00000000-0000-0000-0000-000000000000",
+      "00000000-0000-0000-0000-000000000000",
+      "00000000-0000-0000-0000-000000000000"
+    ],
+    "grounded": true
+  },
+  "bundle": null,
+  "research": null,
+  "suggestion": null,
+  "trial": null,
+  "jobs": {
+    "research": null,
+    "trial": null
+  },
+  "boundary": {
+    "sandbox": "taste-inbox",
+    "ready": true,
+    "busy": false,
+    "policies": [
+      "brew",
+      "github",
+      "huggingface",
+      "npm",
+      "openclaw-pricing",
+      "pypi",
+      "tavily",
+      "taste-inbox-trial"
+    ],
+    "missingPresets": [],
+    "endpoints": [
+      {
+        "policy": "brew",
+        "hosts": [
+          "formulae.brew.sh",
+          "github.com",
+          "ghcr.io",
+          "pkg-containers.githubusercontent.com",
+          "objects.githubusercontent.com",
+          "raw.githubusercontent.com"
+        ],
+        "binaries": [
+          "/usr/bin/curl",
+          "/usr/local/bin/brew",
+          "/home/linuxbrew/.linuxbrew/bin/brew",
+          "/home/linuxbrew/.linuxbrew/bin/*",
+          "/home/linuxbrew/.linuxbrew/Homebrew/bin/*"
+        ]
+      },
+      {
+        "policy": "clawhub",
+        "hosts": [
+          "clawhub.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node"
+        ]
+      },
+      {
+        "policy": "github",
+        "hosts": [
+          "github.com",
+          "api.github.com"
+        ],
+        "binaries": [
+          "/usr/bin/git"
+        ]
+      },
+      {
+        "policy": "huggingface",
+        "hosts": [
+          "huggingface.co",
+          "cdn-lfs.huggingface.co",
+          "router.huggingface.co"
+        ],
+        "binaries": [
+          "/usr/local/bin/python3",
+          "/usr/local/bin/node"
+        ]
+      },
+      {
+        "policy": "managed_inference",
+        "hosts": [
+          "inference.local"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node",
+          "/usr/bin/node",
+          "/usr/bin/curl",
+          "/usr/bin/python3"
+        ]
+      },
+      {
+        "policy": "taste_inbox_trial",
+        "hosts": [
+          "codeload.github.com",
+          "raw.githubusercontent.com",
+          "objects.githubusercontent.com"
+        ],
+        "binaries": [
+          "/usr/bin/git",
+          "/usr/bin/curl",
+          "/usr/local/bin/curl",
+          "/usr/bin/python3*",
+          "/usr/local/bin/python3*"
+        ]
+      },
+      {
+        "policy": "npm_registry",
+        "hosts": [
+          "registry.npmjs.org"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw"
+        ]
+      },
+      {
+        "policy": "npm_yarn",
+        "hosts": [
+          "registry.npmjs.org",
+          "registry.yarnpkg.com"
+        ],
+        "binaries": [
+          "/usr/local/bin/npm*",
+          "/usr/local/bin/npx*",
+          "/usr/local/bin/node*",
+          "/usr/local/bin/yarn*",
+          "/usr/bin/npm*",
+          "/usr/bin/node*"
+        ]
+      },
+      {
+        "policy": "nvidia",
+        "hosts": [
+          "integrate.api.nvidia.com"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw"
+        ]
+      },
+      {
+        "policy": "openclaw-pricing",
+        "hosts": [
+          "raw.githubusercontent.com",
+          "openrouter.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/node",
+          "/usr/bin/node"
+        ]
+      },
+      {
+        "policy": "openclaw_api",
+        "hosts": [
+          "openclaw.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node"
+        ]
+      },
+      {
+        "policy": "openclaw_docs",
+        "hosts": [
+          "docs.openclaw.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw"
+        ]
+      },
+      {
+        "policy": "openclaw_gateway_dialback",
+        "hosts": [
+          "10.200.0.2:18789",
+          "10.200.0.2:18790"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node",
+          "/usr/bin/node"
+        ]
+      },
+      {
+        "policy": "pypi",
+        "hosts": [
+          "pypi.org",
+          "files.pythonhosted.org"
+        ],
+        "binaries": [
+          "/usr/bin/curl",
+          "/usr/bin/python3*",
+          "/usr/bin/pip*",
+          "/usr/local/bin/curl",
+          "/usr/local/bin/python3*",
+          "/usr/local/bin/pip*",
+          "/usr/local/bin/uv",
+          "/sandbox/.venv/bin/python*",
+          "/sandbox/.venv/bin/pip*",
+          "/sandbox/.uv/python/**/python*",
+          "/sandbox/.local/bin/pip*"
+        ]
+      },
+      {
+        "policy": "tavily",
+        "hosts": [
+          "api.tavily.com"
+        ],
+        "binaries": [
+          "/opt/venv/bin/python3*",
+          "/opt/hermes/.venv/bin/python",
+          "/usr/local/bin/node",
+          "/usr/bin/node",
+          "/usr/local/bin/curl",
+          "/usr/bin/curl"
+        ]
+      }
+    ],
+    "reason": null
+  }
+}

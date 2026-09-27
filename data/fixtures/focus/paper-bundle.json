@@ -1,0 +1,354 @@
+{
+  "item": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "kind": "paper",
+    "platform": "huggingface",
+    "title": "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning",
+    "summary": "We introduce our first-generation reasoning models, DeepSeek-R1-Zero and DeepSeek-R1.",
+    "canonicalUrl": "https://huggingface.co/papers/2501.12948",
+    "author": null,
+    "actionAt": "2026-09-25T10:50:58.000Z",
+    "firstSeenAt": "2026-09-28T00:00:00Z"
+  },
+  "context": {
+    "itemId": "00000000-0000-0000-0000-000000000000",
+    "title": "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning",
+    "kind": "paper",
+    "platform": "huggingface",
+    "canonicalUrl": "https://huggingface.co/papers/2501.12948",
+    "itemTerms": [
+      "reinforcement-learning",
+      "reasoning"
+    ],
+    "recurringTerms": [
+      {
+        "term": "mcp",
+        "itemCount": 3
+      },
+      {
+        "term": "ai-agents",
+        "itemCount": 2
+      },
+      {
+        "term": "cuda",
+        "itemCount": 2
+      },
+      {
+        "term": "mlx",
+        "itemCount": 2
+      },
+      {
+        "term": "text-to-speech",
+        "itemCount": 2
+      }
+    ],
+    "sharedTerms": [],
+    "neighbours": [
+      {
+        "itemId": "00000000-0000-0000-0000-000000000000",
+        "title": "FineEnvs/SmolDataEnvs",
+        "kind": "dataset",
+        "platform": "huggingface",
+        "canonicalUrl": "https://huggingface.co/datasets/FineEnvs/SmolDataEnvs",
+        "sharedTerms": [
+          "reinforcement-learning"
+        ],
+        "actionAt": "2026-09-25T10:50:58.000Z"
+      }
+    ],
+    "recentKinds": {
+      "space": 1,
+      "dataset": 1,
+      "repo": 4
+    },
+    "recentTotal": 6,
+    "stated": [
+      {
+        "type": "paper.github_repo",
+        "label": "Code",
+        "value": "deepseek-ai/DeepSeek-R1",
+        "sourceUrl": "https://github.com/deepseek-ai/DeepSeek-R1",
+        "provenance": "huggingface",
+        "confidence": 1.0
+      },
+      {
+        "type": "paper.linked_model",
+        "label": "Model",
+        "value": "deepseek-ai/DeepSeek-R1",
+        "sourceUrl": "https://huggingface.co/deepseek-ai/DeepSeek-R1",
+        "provenance": "huggingface",
+        "confidence": 1.0
+      },
+      {
+        "type": "paper.linked_dataset",
+        "label": "Dataset",
+        "value": "FineEnvs/SmolDataEnvs",
+        "sourceUrl": "https://huggingface.co/datasets/FineEnvs/SmolDataEnvs",
+        "provenance": "huggingface",
+        "confidence": 1.0
+      },
+      {
+        "type": "paper.total_models",
+        "label": "Models citing this paper",
+        "value": "521",
+        "sourceUrl": "https://huggingface.co/papers/2501.12948",
+        "provenance": "huggingface",
+        "confidence": null
+      },
+      {
+        "type": "paper.total_spaces",
+        "label": "Spaces citing this paper",
+        "value": "4297",
+        "sourceUrl": "https://huggingface.co/papers/2501.12948",
+        "provenance": "huggingface",
+        "confidence": null
+      }
+    ],
+    "evidenceItemIds": [
+      "00000000-0000-0000-0000-000000000000",
+      "00000000-0000-0000-0000-000000000000"
+    ],
+    "grounded": true
+  },
+  "bundle": {
+    "repo": {
+      "value": "deepseek-ai/DeepSeek-R1",
+      "sourceUrl": "https://github.com/deepseek-ai/DeepSeek-R1",
+      "confidence": 1.0
+    },
+    "repoProvenance": "author-linked",
+    "projectPage": null,
+    "models": [
+      {
+        "value": "deepseek-ai/DeepSeek-R1",
+        "sourceUrl": "https://huggingface.co/deepseek-ai/DeepSeek-R1",
+        "confidence": 1.0
+      }
+    ],
+    "datasets": [
+      {
+        "value": "FineEnvs/SmolDataEnvs",
+        "sourceUrl": "https://huggingface.co/datasets/FineEnvs/SmolDataEnvs",
+        "confidence": 1.0
+      }
+    ],
+    "spaces": [],
+    "totals": {
+      "models": 521,
+      "spaces": 4297
+    }
+  },
+  "research": null,
+  "suggestion": null,
+  "trial": null,
+  "jobs": {
+    "research": null,
+    "trial": null
+  },
+  "boundary": {
+    "sandbox": "taste-inbox",
+    "ready": true,
+    "busy": false,
+    "policies": [
+      "brew",
+      "github",
+      "huggingface",
+      "npm",
+      "openclaw-pricing",
+      "pypi",
+      "tavily",
+      "taste-inbox-trial"
+    ],
+    "missingPresets": [],
+    "endpoints": [
+      {
+        "policy": "brew",
+        "hosts": [
+          "formulae.brew.sh",
+          "github.com",
+          "ghcr.io",
+          "pkg-containers.githubusercontent.com",
+          "objects.githubusercontent.com",
+          "raw.githubusercontent.com"
+        ],
+        "binaries": [
+          "/usr/bin/curl",
+          "/usr/local/bin/brew",
+          "/home/linuxbrew/.linuxbrew/bin/brew",
+          "/home/linuxbrew/.linuxbrew/bin/*",
+          "/home/linuxbrew/.linuxbrew/Homebrew/bin/*"
+        ]
+      },
+      {
+        "policy": "clawhub",
+        "hosts": [
+          "clawhub.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node"
+        ]
+      },
+      {
+        "policy": "github",
+        "hosts": [
+          "github.com",
+          "api.github.com"
+        ],
+        "binaries": [
+          "/usr/bin/git"
+        ]
+      },
+      {
+        "policy": "huggingface",
+        "hosts": [
+          "huggingface.co",
+          "cdn-lfs.huggingface.co",
+          "router.huggingface.co"
+        ],
+        "binaries": [
+          "/usr/local/bin/python3",
+          "/usr/local/bin/node"
+        ]
+      },
+      {
+        "policy": "managed_inference",
+        "hosts": [
+          "inference.local"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node",
+          "/usr/bin/node",
+          "/usr/bin/curl",
+          "/usr/bin/python3"
+        ]
+      },
+      {
+        "policy": "taste_inbox_trial",
+        "hosts": [
+          "codeload.github.com",
+          "raw.githubusercontent.com",
+          "objects.githubusercontent.com"
+        ],
+        "binaries": [
+          "/usr/bin/git",
+          "/usr/bin/curl",
+          "/usr/local/bin/curl",
+          "/usr/bin/python3*",
+          "/usr/local/bin/python3*"
+        ]
+      },
+      {
+        "policy": "npm_registry",
+        "hosts": [
+          "registry.npmjs.org"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw"
+        ]
+      },
+      {
+        "policy": "npm_yarn",
+        "hosts": [
+          "registry.npmjs.org",
+          "registry.yarnpkg.com"
+        ],
+        "binaries": [
+          "/usr/local/bin/npm*",
+          "/usr/local/bin/npx*",
+          "/usr/local/bin/node*",
+          "/usr/local/bin/yarn*",
+          "/usr/bin/npm*",
+          "/usr/bin/node*"
+        ]
+      },
+      {
+        "policy": "nvidia",
+        "hosts": [
+          "integrate.api.nvidia.com"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw"
+        ]
+      },
+      {
+        "policy": "openclaw-pricing",
+        "hosts": [
+          "raw.githubusercontent.com",
+          "openrouter.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/node",
+          "/usr/bin/node"
+        ]
+      },
+      {
+        "policy": "openclaw_api",
+        "hosts": [
+          "openclaw.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node"
+        ]
+      },
+      {
+        "policy": "openclaw_docs",
+        "hosts": [
+          "docs.openclaw.ai"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw"
+        ]
+      },
+      {
+        "policy": "openclaw_gateway_dialback",
+        "hosts": [
+          "10.200.0.2:18789",
+          "10.200.0.2:18790"
+        ],
+        "binaries": [
+          "/usr/local/bin/openclaw",
+          "/usr/local/bin/node",
+          "/usr/bin/node"
+        ]
+      },
+      {
+        "policy": "pypi",
+        "hosts": [
+          "pypi.org",
+          "files.pythonhosted.org"
+        ],
+        "binaries": [
+          "/usr/bin/curl",
+          "/usr/bin/python3*",
+          "/usr/bin/pip*",
+          "/usr/local/bin/curl",
+          "/usr/local/bin/python3*",
+          "/usr/local/bin/pip*",
+          "/usr/local/bin/uv",
+          "/sandbox/.venv/bin/python*",
+          "/sandbox/.venv/bin/pip*",
+          "/sandbox/.uv/python/**/python*",
+          "/sandbox/.local/bin/pip*"
+        ]
+      },
+      {
+        "policy": "tavily",
+        "hosts": [
+          "api.tavily.com"
+        ],
+        "binaries": [
+          "/opt/venv/bin/python3*",
+          "/opt/hermes/.venv/bin/python",
+          "/usr/local/bin/node",
+          "/usr/bin/node",
+          "/usr/local/bin/curl",
+          "/usr/bin/curl"
+        ]
+      }
+    ],
+    "reason": null
+  }
+}

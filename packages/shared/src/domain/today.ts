@@ -15,7 +15,14 @@ import { MediaRefSchema, SourcePlatformSchema, SourceRefSchema } from "./common"
  * This is inference, not transcription. Reviewing it is worthwhile.
  */
 
-/** PAGE_SPECIFICATIONS.md §5.2 "Working Queue" — the allowed row kinds, in order. */
+/**
+ * PAGE_SPECIFICATIONS.md §5.2 "Working Queue" — the allowed row kinds, in order.
+ *
+ * The last six were added with the research and trial runners (2026-09-28), after the
+ * specification was changed first — the list is closed, and a seventh kind without a
+ * document change is what `WorkingQueuePanel` forbids. `price_checking` has no producer in
+ * this build and is kept so the inherited desktop bundle still parses.
+ */
 export const QueueItemKindSchema = z.enum([
   "environment_preparing",
   "environment_ready",
@@ -23,6 +30,12 @@ export const QueueItemKindSchema = z.enum([
   "review_required",
   "price_checking",
   "collector_auth",
+  "research_running",
+  "research_ready",
+  "approval_required",
+  "trial_running",
+  "trial_ready",
+  "trial_blocked",
 ]);
 
 /** Which board a connection belongs to. */
@@ -115,7 +128,11 @@ export const QueueItemSchema = z.object({
   /** 다음 단계 또는 필요 행동. */
   nextStep: z.string().min(1),
   href: z.string().min(1),
-  /** Present only for `environment_preparing` and `price_checking`. */
+  /**
+   * Present only for rows with steps to count: `environment_preparing`, `price_checking`,
+   * `research_running` and `trial_running`. The last two are `JobStep` ordinals over the
+   * total, read from the job — never an estimate of time remaining.
+   */
   progress: z.number().min(0).max(1).nullable(),
 });
 

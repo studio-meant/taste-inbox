@@ -20,6 +20,8 @@ import { IsoDateTimeSchema } from "../host/host-profile";
 export const TrialResultSchema = z.object({
   /** `exit=… · tools=… · failures=… · stop=… · sandbox=…`, as the run reported it. */
   result: z.string().nullable(),
+  /** The same line split into its pairs, so the screen can draw them apart. */
+  facts: z.record(z.string(), z.string()).default({}),
   observedAt: IsoDateTimeSchema.nullable(),
   /** What the agent said it did. Truncated at the API boundary, never rewritten. */
   transcript: z.string().nullable(),
@@ -28,27 +30,40 @@ export const TrialResultSchema = z.object({
   artifacts: z.array(z.string()),
 });
 
-/** `POST /api/trials` response: the run, plus the boundary it ran under. */
-export const TrialRunResponseSchema = z.object({
+/**
+ * `POST /api/research` and `POST /api/trials` — `202`, a queued job.
+ *
+ * Both answer at once and run in the background; the job is followed through
+ * `GET /api/jobs/{id}`. Every refusal (no approval, no research yet, the boundary not
+ * ready, a non-local AI-Q backend) comes back as a typed error *instead* of a job, so a
+ * job id always means the run was actually started.
+ */
+export const JobStartResponseSchema = z.object({
   jobId: z.string().min(1),
-  trialId: z.string().min(1),
-  state: z.enum(["succeeded", "partially_succeeded", "failed", "blocked"]),
-  sandbox: z.string().min(1),
-  artifacts: z.array(z.string()),
-  error: z.string().nullable(),
-  result: z
-    .object({
-      ok: z.boolean(),
-      stopReason: z.string().nullable(),
-      toolCalls: z.number().int().nonnegative(),
-      toolFailures: z.number().int().nonnegative(),
-      tools: z.array(z.string()),
-      finalText: z.string(),
-      model: z.string().nullable(),
-      blocked: z.array(z.object({ host: z.string().nullable(), line: z.string() })),
-    })
-    .nullable(),
+  state: z.literal("queued"),
+});
+
+export const ResearchStartResponseSchema = JobStartResponseSchema.extend({
+  /** Which AI-Q backend the question goes to. Named before sending (aiq-research skill). */
+  serverUrl: z.string().min(1),
+  target: z.string().min(1),
+});
+
+export const TrialStartResponseSchema = JobStartResponseSchema.extend({
+  /** The boundary the trial was checked against, as read at the moment it was approved. */
+  policy: z.object({
+    sandbox: z.string().min(1),
+    ready: z.boolean(),
+    busy: z.boolean(),
+    policies: z.array(z.string()),
+    missingPresets: z.array(z.string()),
+    refusedHosts: z.array(z.string()),
+    satisfied: z.boolean(),
+    reason: z.string().nullable(),
+  }),
 });
 
 export type TrialResult = z.infer<typeof TrialResultSchema>;
-export type TrialRunResponse = z.infer<typeof TrialRunResponseSchema>;
+export type JobStartResponse = z.infer<typeof JobStartResponseSchema>;
+export type ResearchStartResponse = z.infer<typeof ResearchStartResponseSchema>;
+export type TrialStartResponse = z.infer<typeof TrialStartResponseSchema>;

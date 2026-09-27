@@ -1,14 +1,15 @@
 """Today, assembled from what the database actually knows.
 
-Half of this payload describes work that does not exist yet. `leadConnection` is a
-relationship between two items that something has to find; `workingQueue` holds
-price states that only an enricher can produce;
-`suggestedQueries` need the Focus engine.
+Part of this payload describes work that does not exist yet. `leadConnection` is a
+relationship between two items that something has to find, and `suggestedQueries` need
+the Focus engine. Both come back empty rather than populated with plausible filler.
 
-All three come back empty rather than populated with plausible filler. An empty working
-queue is a true statement — nothing is running — and the screen already has a designed
-state for it. A fabricated one would be the product inventing its own activity, which is
-the failure `DESIGN.md` §3.5 exists to prevent.
+`workingQueue` is real since 2026-09-28: one row per item that has a research or trial
+job, read from the `jobs` table and the evidence those runs left
+(`PAGE_SPECIFICATIONS.md` §5.2). With no such job it is empty, and an empty working queue
+is a true statement — nothing is running — which the screen already has a designed state
+for. A fabricated one would be the product inventing its own activity, the failure
+`DESIGN.md` §3.5 exists to prevent.
 
 What *is* real: the counts, the per-day history, the per-source collection state, and the
 saved summary. Those come from rows.
@@ -31,7 +32,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..db.models import Checkpoint, CollectorRun, Item, ItemSource, MediaAsset
+from ..db.models import Checkpoint, CollectorRun, Item, ItemSource, Job, JobStep, MediaAsset
 from .cards import BOARD_COLLECTIONS, PLATFORM_LABEL, board_filter, board_of
 from .schedule import configured_zone
 
@@ -42,6 +43,8 @@ COLLECTOR_PLATFORM: dict[str, str] = {
     "instagram_saved_fashion": "instagram",
     "instagram_likes": "instagram",
     "github_stars": "github",
+    "github_stars_api": "github",
+    "huggingface_activity": "huggingface",
     "threads_reposts": "threads",
     "linkedin_reactions": "linkedin",
 }
@@ -156,6 +159,8 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
     # A collector that stopped on a challenge is the one thing on this screen that asks
     # for a person. Nothing else here is actionable yet.
     attention = sum(1 for row in checkpoints if row.last_outcome in {"auth_required", "blocked"})
+    queue = _working_queue(session)
+    attention += sum(1 for row in queue if row["kind"] == "trial_blocked")
 
     return {
         "date": today,
@@ -163,9 +168,9 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
         "greeting": _greeting(moment),
         "counts": {
             "newItems": per_day.get(today, 0),
-            # Nothing can be acted on until an enricher has run. Zero is the
-            # honest number, not a placeholder.
-            "readyActions": 0,
+            # A plan that research produced and nobody has tried yet — the one thing on
+            # this screen that is ready for the person rather than waiting on a machine.
+            "readyActions": sum(1 for row in queue if row["kind"] == "approval_required"),
             "attention": attention,
         },
         "leadConnection": None,
@@ -178,11 +183,133 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
             today_start,
             today_end,
         ),
-        "workingQueue": [],
+        "workingQueue": queue,
         "previousDays": _previous_days(session, per_day, moment, zone),
         "suggestedQueries": [],
         "sourceStatusSummary": {"sources": _source_status(session, checkpoints)},
     }
+
+
+#: Row order: what is moving, then what needs a person, then what is ready for one.
+_QUEUE_ORDER = {
+    "trial_running": 0,
+    "research_running": 1,
+    "trial_blocked": 2,
+    "approval_required": 3,
+    "trial_ready": 4,
+    "research_ready": 5,
+}
+
+#: At most this many rows. The card is a glance, and the Focus Canvas holds the rest.
+QUEUE_LIMIT = 6
+
+_ACTIVE = ("queued", "running")
+
+
+def _progress(session: Session, job: Job) -> float | None:
+    steps = session.scalars(select(JobStep.state).where(JobStep.job_id == job.id)).all()
+    if not steps:
+        return None
+    return sum(1 for state in steps if state in ("done", "skipped")) / len(steps)
+
+
+def _first_failure(session: Session, job: Job) -> str | None:
+    return session.scalar(
+        select(JobStep.message)
+        .where(JobStep.job_id == job.id, JobStep.message.is_not(None))
+        .order_by(JobStep.ordinal)
+    )
+
+
+def _working_queue(session: Session) -> list[dict[str, Any]]:
+    """One row per item with a research or trial job, in `PAGE_SPECIFICATIONS.md` §5.2 terms.
+
+    The newest state wins: a trial running on an item hides that its research finished,
+    and a finished trial hides the approval that started it. Everything is read — the job
+    rows for what is happening, the evidence for what the last finished run found.
+    """
+
+    from ..action import proposal
+    from ..research import runner as research_runner
+    from ..sandbox import trial as trial_runner
+
+    latest: dict[tuple[str, str], Job] = {}
+    for job in session.scalars(
+        select(Job)
+        .where(Job.type.in_(("research", "trial")), Job.target_id.is_not(None))
+        .order_by(Job.created_at, Job.id)
+    ):
+        latest[(str(job.target_id), job.type)] = job
+
+    rows: list[dict[str, Any]] = []
+    for item_id in {target for target, _ in latest}:
+        item = session.get(Item, item_id)
+        if item is None:
+            continue
+        research_job = latest.get((item_id, "research"))
+        trial_job = latest.get((item_id, "trial"))
+        row: dict[str, Any] = {
+            "id": f"queue-{item_id}",
+            "target": _title_of(item),
+            "href": f"/focus/{item_id}",
+            "progress": None,
+        }
+
+        if trial_job is not None and trial_job.state in _ACTIVE:
+            row |= {
+                "kind": "trial_running",
+                "nextStep": trial_job.current_step or "샌드박스 준비 중",
+                "progress": _progress(session, trial_job),
+            }
+        elif research_job is not None and research_job.state in _ACTIVE:
+            row |= {
+                "kind": "research_running",
+                "nextStep": research_job.current_step or "조사 대기 중",
+                "progress": _progress(session, research_job),
+            }
+        elif trial_job is not None and (
+            research_job is None or trial_job.created_at >= research_job.created_at
+        ):
+            if trial_job.state == "succeeded":
+                blocked = len((trial_runner.latest(session, item_id) or {}).get("blocked", []))
+                row |= {
+                    "kind": "trial_ready",
+                    "nextStep": f"결과 보기 · 차단된 연결 {blocked}건" if blocked else "결과 보기",
+                }
+            else:
+                row |= {
+                    "kind": "trial_blocked",
+                    "nextStep": _first_failure(session, trial_job) or "실행이 끝나지 못했어요",
+                }
+        else:
+            research = research_runner.latest(session, item_id)
+            if research is None:
+                # The newest research failed and no older report exists: nothing to act
+                # on and nothing sandboxed. The Focus Canvas says why; the queue does not
+                # invent a kind for it.
+                continue
+            suggestion = proposal.build(
+                subject_id=item_id,
+                subject_title=_title_of(item),
+                subject_url=item.canonical_url,
+                report=research["report"],
+            )
+            if suggestion.actionable:
+                row |= {"kind": "approval_required", "nextStep": "안전하게 실행할지 결정하기"}
+            else:
+                row |= {"kind": "research_ready", "nextStep": "조사 결과 읽기"}
+
+        row["_at"] = max(
+            (job.created_at for job in (research_job, trial_job) if job is not None), default=""
+        )
+        rows.append(row)
+
+    # Newest first within each group, then the group order.
+    rows.sort(key=lambda row: row["_at"], reverse=True)
+    rows.sort(key=lambda row: _QUEUE_ORDER[row["kind"]])
+    for row in rows:
+        del row["_at"]
+    return rows[:QUEUE_LIMIT]
 
 
 def _saved_summary(

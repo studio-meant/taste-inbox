@@ -22,6 +22,15 @@ export const JobTypeSchema = z.enum([
   "run",
   "price",
   "cleanup",
+  /**
+   * NVIDIA AI-Q research on one item, and one approved sandbox trial (2026-09-28).
+   *
+   * The service writes both types into the same `jobs` table, and the workspace layout
+   * lists every job on each render — so a type this enum lacks rejects the whole list and
+   * takes down every workspace page with it. That is how these two were found missing.
+   */
+  "research",
+  "trial",
 ]);
 
 export const JobStepSchema = z.object({

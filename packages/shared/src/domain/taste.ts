@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IsoDateTimeSchema } from "../host/host-profile";
 import { ItemKindSchema, SourcePlatformSchema } from "./common";
+import { JobStateSchema, JobStepStateSchema } from "./job";
 import { TrialResultSchema } from "./trial";
 
 /**
@@ -127,6 +128,17 @@ export const SuggestedActionSchema = z.object({
   plan: TrialPlanSchema,
 });
 
+/**
+ * One network policy as the sandbox enforces it: hosts *and* the binaries allowed to reach
+ * them. The pairing is the finding of feasibility F4 — `curl` was refused on a host the
+ * `huggingface` policy opens, because that policy lists `python3` and `node`, not `curl`.
+ */
+export const PolicyEndpointsSchema = z.object({
+  policy: z.string().min(1),
+  hosts: z.array(z.string()),
+  binaries: z.array(z.string()),
+});
+
 /** What the sandbox is, as read at the moment the person is looking. */
 export const SandboxBoundarySchema = z.object({
   sandbox: z.string().min(1),
@@ -134,6 +146,35 @@ export const SandboxBoundarySchema = z.object({
   /** Another trial holds the host lock. A wait, not a missing boundary. */
   busy: z.boolean(),
   policies: z.array(z.string()),
+  /** Presets a trial needs that are not applied. Empty while busy: the lock hides them. */
+  missingPresets: z.array(z.string()),
+  /** Empty when the ledger could not be read — drawn as unavailable, never guessed. */
+  endpoints: z.array(PolicyEndpointsSchema),
+  /** Why it is not ready, in the runtime's own words (`docker_unreachable: …`). */
+  reason: z.string().nullable(),
+});
+
+/**
+ * The newest research or trial job on the item.
+ *
+ * The evidence says what the last *finished* run found; this says what is happening now,
+ * or how the last attempt ended. A failed research run leaves the older report in place,
+ * and the screen has to be able to say both.
+ */
+export const FocusJobSchema = z.object({
+  id: z.string().min(1),
+  state: JobStateSchema,
+  currentStep: z.string().nullable(),
+  createdAt: IsoDateTimeSchema,
+  startedAt: IsoDateTimeSchema.nullable(),
+  finishedAt: IsoDateTimeSchema.nullable(),
+  steps: z.array(
+    z.object({
+      label: z.string().min(1),
+      state: JobStepStateSchema,
+      message: z.string().nullable(),
+    }),
+  ),
 });
 
 export const FocusPayloadSchema = z.object({
@@ -154,6 +195,10 @@ export const FocusPayloadSchema = z.object({
   research: ResearchReportSchema.nullable(),
   suggestion: SuggestedActionSchema.nullable(),
   trial: TrialResultSchema.nullable(),
+  jobs: z.object({
+    research: FocusJobSchema.nullable(),
+    trial: FocusJobSchema.nullable(),
+  }),
   boundary: SandboxBoundarySchema,
 });
 
@@ -164,4 +209,6 @@ export type ResearchReport = z.infer<typeof ResearchReportSchema>;
 export type TrialPlan = z.infer<typeof TrialPlanSchema>;
 export type SuggestedAction = z.infer<typeof SuggestedActionSchema>;
 export type SandboxBoundary = z.infer<typeof SandboxBoundarySchema>;
+export type PolicyEndpoints = z.infer<typeof PolicyEndpointsSchema>;
+export type FocusJob = z.infer<typeof FocusJobSchema>;
 export type FocusPayload = z.infer<typeof FocusPayloadSchema>;
