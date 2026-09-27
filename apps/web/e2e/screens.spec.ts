@@ -40,7 +40,7 @@ const SCREENS = [
   // the largest of them. Three grammars share this grid — an AI post, a fashion carousel
   // and a full-width music row — which is exactly the mix the box-measurement check below
   // exists for. (Places contributes none yet; it reuses the AI grammar when it does.)
-  { path: "/library", name: "Browse", heading: "Saved Items", minCards: 3 },
+  { path: "/library", name: "Inbox", heading: "Inbox", minCards: 3 },
   { path: "/system", name: "System", heading: "System", minCards: 1 },
   { path: "/settings", name: "Settings", heading: "Settings", minCards: 0 },
 ] as const;

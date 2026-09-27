@@ -478,7 +478,12 @@ function ActionPanel({ payload }: { readonly payload: FocusPayload }) {
               <dt lang={suggestion.plan.acceptanceCriteria === null ? undefined : "en"}>
                 {suggestion.plan.acceptanceCriteria === null ? "성공 조건" : "Acceptance criteria"}
               </dt>
-              <dd className={styles.criteria}>{suggestion.plan.successCriteria}</dd>
+              <dd>
+                {/* AI-Q's own words when a question was asked, so it is rendered the way
+                    every other piece of AI-Q text on this screen is: verbatim, line breaks
+                    kept, URLs linked and nothing trimmed. */}
+                <ReportText text={suggestion.plan.successCriteria} className={styles.criteria} />
+              </dd>
             </div>
             <div>
               <dt>여는 곳</dt>

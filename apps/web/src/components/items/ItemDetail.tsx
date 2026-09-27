@@ -127,13 +127,17 @@ export function ItemDetail({
               <ExternalLink size={15} strokeWidth={1.75} aria-hidden="true" />
               <span className="visually-hidden">(새 탭에서 열림)</span>
             </a>
-            {/* The deeper screen for one item: its research, the step it can take, and a
-                sandboxed run (PAGE_SPECIFICATIONS §6.1). Entered from here rather than from
-                the navigation, which this change does not redesign. */}
+            {/* The Lab: this item's research, the question, the plan and a sandboxed run
+                (PAGE_SPECIFICATIONS §6.1). Entered from here and from the Inbox card, never
+                from the navigation, which this change does not redesign.
+
+                `Open in Lab` in exactly those words — the same phrase on the card, on the
+                landing page and in the Lab's own breadcrumb (docs/next_step §3). The route
+                is still `/focus/[itemId]`; `Lab` is what a person reads. */}
             <Link className={styles.focusLink} href={`/focus/${item.id}`}>
               <Crosshair size={15} strokeWidth={1.75} aria-hidden="true" />
-              <span>Focus Canvas 열기</span>
-              <span className={styles.focusHint}>조사 · 안전한 실행</span>
+              <span lang="en">Open in Lab</span>
+              <span className={styles.focusHint}>조사 · 질문 · 안전한 실행</span>
             </Link>
           </header>
 

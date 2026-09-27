@@ -1,8 +1,12 @@
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
 /**
- * The Focus Canvas in a real browser — the smoke waiver `docs/DECISIONS.md` (2026-08-10)
- * gave it is lifted now that the screen exists again (NVIDIA_HACKATHON_PLAN §6.1).
+ * The Lab in a real browser — the smoke waiver `docs/DECISIONS.md` (2026-08-10) gave it is
+ * lifted now that the screen exists again (NVIDIA_HACKATHON_PLAN §6.1).
+ *
+ * The route is `/focus/[itemId]` and the component is `FocusCanvas`; `Lab` is the name a
+ * person reads (docs/next_step, 2026-09-28), which is why the panel names below are the
+ * product's words and the selectors are the route's.
  *
  * Runs on the mock fixtures like the rest of the suite, so the canvas is in its honest
  * empty state: nothing researched, the sandbox unknown, and every button that would reach
@@ -35,7 +39,7 @@ for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
     await page.goto("/items/garden-lens", { waitUntil: "networkidle" });
-    await page.getByRole("link", { name: /Focus Canvas 열기/ }).click();
+    await page.getByRole("link", { name: /Open in Lab/ }).click();
 
     await expect(page).toHaveURL(/\/focus\/garden-lens$/);
     const canvas = page.locator("[data-focus-canvas]");
@@ -53,10 +57,11 @@ for (const viewport of VIEWPORTS) {
     for (const panel of [
       "Why this matters to you",
       "NVIDIA AI-Q 조사",
-      "다음 한 걸음",
-      "Source trail",
-      "Policy ledger",
-      "Related files",
+      "무엇을 확인하고 싶으세요?",
+      "추천 검증 (Suggested Trial)",
+      "Source Trail",
+      "Policy Ledger",
+      "Related Files",
     ]) {
       await expect(page.getByRole("heading", { name: panel, level: 2 })).toBeVisible();
     }
@@ -98,8 +103,24 @@ test("an item that does not exist is a not-found page, not an error", async ({ p
   await expect(page.locator("[data-focus-canvas]")).toHaveCount(0);
 });
 
-test("the canvas leads back to its item", async ({ page }) => {
+test("the Lab leads back to the Inbox", async ({ page }) => {
   await page.goto("/focus/garden-lens", { waitUntil: "networkidle" });
-  await page.getByRole("link", { name: "항목으로" }).click();
-  await expect(page.locator("[data-item-detail]")).toBeVisible();
+  await page.getByRole("link", { name: "Inbox" }).first().click();
+  await expect(page).toHaveURL(/\/library$/);
+  await expect(page.getByRole("heading", { name: "Inbox", level: 1 })).toBeVisible();
+});
+
+test("the question composer is there, and says why it cannot be used yet", async ({ page }) => {
+  /*
+   * Mock mode reaches no AI-Q, so nothing has been researched and there is nothing to
+   * condition a question on. The panel must say so rather than offering chips that would
+   * be refused — `무엇을 확인할지는 사람` only means something if the choices are real.
+   */
+  await page.goto("/focus/garden-lens", { waitUntil: "networkidle" });
+
+  const panel = page.getByRole("region", { name: "무엇을 확인하고 싶으세요?" });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("list", { name: "확인해볼 만한 질문" })).toHaveCount(0);
+  await expect(panel.getByRole("textbox")).toBeDisabled();
+  await expect(panel.getByText(/먼저 이 항목을 조사하면/)).toBeVisible();
 });

@@ -722,6 +722,14 @@
  */
 .criteria {
   white-space: pre-line;
+  /*
+   * AI-Q answers this heading with a short list, and often with a two-column table. A
+   * Markdown renderer would be nicer and would be one more place the text could be
+   * altered, so the pipes stay — but a long row must not widen the panel and push the
+   * plan's own columns off screen.
+   */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* ------------------------------------------------------- the ledger's first line */
