@@ -167,11 +167,34 @@ else
   fail "theme identity changed (docs/THEME_SYSTEM.md, DECISIONS.md)"
 fi
 
-if grep -rIn 'OpenClaw' "${PRODUCTION_EXCLUDES[@]}" --include='*.ts' --include='*.tsx' \
-  --include='*.py' --include='*.yaml' . >/dev/null 2>&1; then
-  fail "OpenClaw is referenced; it is explicitly not used"
+# 2026-09-28: this used to fail when OpenClaw was referenced at all, because the inherited
+# product did not use it. This distribution does (docs/DECISIONS.md). Deleting the check
+# would have traded a real invariant for nothing, so it was replaced by the one the new
+# decision actually depends on: the sandbox must never see the host filesystem.
+#
+# `--host-mount` is the NemoClaw onboarding flag that would grant it. The decision that
+# re-allows code execution is only sound while that flag is absent, so absence is checked
+# rather than described. The flag name is assembled at runtime so this file does not match
+# its own pattern.
+host_mount_flag="--host-$(printf 'mount')"
+if grep -rIn -- "$host_mount_flag" "${PRODUCTION_EXCLUDES[@]}" --include='*.ts' --include='*.tsx' \
+  --include='*.py' --include='*.yaml' --include='*.sh' . >/dev/null 2>&1; then
+  fail "the sandbox is given a host mount; DECISIONS.md 2026-09-28 forbids it"
 else
-  pass "OpenClaw is not referenced"
+  pass "sandbox never mounts the host filesystem"
+fi
+
+# The agent runtime and the policy engine are reached from one place. Scattering
+# `openclaw`/`openshell`/`nemoclaw` invocations across the codebase is how an unreviewed
+# second path to execution appears; keeping them in `sandbox/` keeps the boundary auditable.
+stray_runtime_calls=$(grep -rIlE 'subprocess\.(run|Popen|check_output)' \
+  "${PRODUCTION_EXCLUDES[@]}" --include='*.py' apps services 2>/dev/null \
+  | xargs grep -lE '"(openclaw|openshell|nemoclaw)"|\x27(openclaw|openshell|nemoclaw)\x27' 2>/dev/null \
+  | grep -v '/sandbox/' || true)
+if [[ -n "$stray_runtime_calls" ]]; then
+  fail "agent runtime is invoked outside sandbox/: $stray_runtime_calls"
+else
+  pass "agent runtime is invoked only from sandbox/"
 fi
 echo
 
