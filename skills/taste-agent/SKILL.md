@@ -97,13 +97,13 @@ number this product deleted once already.
 A paper with no repository is the case that needs stage 3 most. Search in this order and
 **label the result by which step found it**:
 
-| #   | Source                                                       | Label                                                  |
-| --- | ------------------------------------------------------------ | ------------------------------------------------------ |
-| 1   | `papers/{id}.githubRepo`, `githubRepoAddedBy` names a person | `Official repo · author-linked`                        |
-| 2   | same field, `githubRepoAddedBy: "auto"`                      | `Official repo`                                        |
-| 3   | `projectPage` leads to code                                  | `Project page`                                         |
-| 4   | a `github.com` link in the paper text                        | `Likely repo · 0.xx · found in paper`                  |
-| 5   | **AI-Q research**                                            | `Likely repo · 0.xx · found by Taste Agent` + citation |
+| #   | Source                                                    | Label                                                   |
+| --- | --------------------------------------------------------- | ------------------------------------------------------- |
+| 1   | `papers/{id}.githubRepo`, `githubRepoAddedBy` is `"user"` | `Code · linked by a person` (not claimed as the author) |
+| 2   | same field, `githubRepoAddedBy: "auto"`                   | `Code · matched by the Hub`                             |
+| 3   | `projectPage` leads to code                               | `Project page`                                          |
+| 4   | a `github.com` link in the paper text                     | `Likely repo · 0.xx · found in paper`                   |
+| 5   | **AI-Q research**                                         | `Likely repo · 0.xx · found by Taste Agent` + citation  |
 
 1–2 and 4–5 must never be drawn identically. When several candidates survive, show them
 all; the user picks, and only the picked one reaches the sandbox.

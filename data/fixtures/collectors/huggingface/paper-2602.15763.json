@@ -1,0 +1,253 @@
+{
+  "id": "2602.15763",
+  "publishedAt": "2026-02-17T17:50:56.000Z",
+  "submittedOnDailyAt": "2026-02-18T00:00:00.000Z",
+  "title": "GLM-5: from Vibe Coding to Agentic Engineering",
+  "summary": "We present GLM-5, a next-generation foundation model designed to transition the paradigm of vibe coding to agentic engineering. Building upon the agentic, reasoning, and coding (ARC) capabilities of its predecessor, GLM-5 adopts DSA to significantly reduce training and inference costs while maintaining long-context fidelity. To advance model alignment and autonomy, we implement a new asynchronous reinforcement learning infrastructure that drastically improves post-training efficiency by decoupling generation from training. Furthermore, we propose novel asynchronous agent RL algorithms that further improve RL quality, enabling the model to learn from complex, long-horizon interactions more effectively. Through these innovations, GLM-5 achieves state-of-the-art performance on major open benchmarks. Most critically, GLM-5 demonstrates unprecedented capability in real-world coding tasks, surpassing previous baselines in handling end-to-end software engineering challenges. Code, models, and more information are available at https://github.com/zai-org/GLM-5.",
+  "upvotes": 220,
+  "projectPage": "https://z.ai/blog/glm-5.2",
+  "githubRepo": "https://github.com/zai-org/GLM-5",
+  "githubRepoAddedBy": "user",
+  "ai_summary": "GLM-5 advances foundation models with DSA for cost reduction, asynchronous reinforcement learning for improved alignment, and enhanced coding capabilities for real-world software engineering.",
+  "ai_keywords": [
+    "DSA",
+    "asynchronous reinforcement learning",
+    "agentic engineering",
+    "vibe coding",
+    "ARC capabilities",
+    "post-training efficiency",
+    "model alignment",
+    "autonomous agents",
+    "software engineering",
+    "open benchmarks"
+  ],
+  "ai_summary_model": "Qwen/Qwen2.5-Coder-32B-Instruct",
+  "githubStars": 7240,
+  "organization": {
+    "_id": "62ad27f19096e7f9ecb1853a",
+    "name": "zai-org",
+    "fullname": "Z.ai",
+    "avatar": "https://cdn-avatars.huggingface.co/v1/production/uploads/62dc173789b4cf157d36ebee/i_pxzM2ZDo3Ub-BEgIkE9.png"
+  },
+  "linkedModels": [
+    {
+      "author": "zai-org",
+      "authorData": {
+        "_id": "62ad27f19096e7f9ecb1853a",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/62dc173789b4cf157d36ebee/i_pxzM2ZDo3Ub-BEgIkE9.png",
+        "fullname": "Z.ai",
+        "name": "zai-org",
+        "type": "org",
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "plan": "team",
+        "followerCount": 21443,
+        "isUserFollowing": false
+      },
+      "downloads": 830202,
+      "gated": false,
+      "id": "zai-org/GLM-5.2",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-09-01T11:36:01.000Z",
+      "likes": 5137,
+      "pipeline_tag": "text-generation",
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false,
+      "widgetOutputUrls": [],
+      "numParameters": 753329940480
+    },
+    {
+      "author": "zai-org",
+      "authorData": {
+        "_id": "62ad27f19096e7f9ecb1853a",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/62dc173789b4cf157d36ebee/i_pxzM2ZDo3Ub-BEgIkE9.png",
+        "fullname": "Z.ai",
+        "name": "zai-org",
+        "type": "org",
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "plan": "team",
+        "followerCount": 21443,
+        "isUserFollowing": false
+      },
+      "downloads": 4332082,
+      "gated": false,
+      "id": "zai-org/GLM-5.3-Flash",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-09-07T12:13:47.000Z",
+      "likes": 2576,
+      "pipeline_tag": "image-text-to-text",
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false,
+      "widgetOutputUrls": [],
+      "numParameters": 321323031390
+    },
+    {
+      "author": "zai-org",
+      "authorData": {
+        "_id": "62ad27f19096e7f9ecb1853a",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/62dc173789b4cf157d36ebee/i_pxzM2ZDo3Ub-BEgIkE9.png",
+        "fullname": "Z.ai",
+        "name": "zai-org",
+        "type": "org",
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "plan": "team",
+        "followerCount": 21443,
+        "isUserFollowing": false
+      },
+      "downloads": 233350,
+      "gated": false,
+      "id": "zai-org/GLM-5",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-08-11T07:36:34.000Z",
+      "likes": 2122,
+      "pipeline_tag": "text-generation",
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false,
+      "widgetOutputUrls": [],
+      "numParameters": 753864139008
+    },
+    {
+      "author": "zai-org",
+      "authorData": {
+        "_id": "62ad27f19096e7f9ecb1853a",
+        "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/62dc173789b4cf157d36ebee/i_pxzM2ZDo3Ub-BEgIkE9.png",
+        "fullname": "Z.ai",
+        "name": "zai-org",
+        "type": "org",
+        "isHf": false,
+        "isHfAdmin": false,
+        "isMod": false,
+        "plan": "team",
+        "followerCount": 21443,
+        "isUserFollowing": false
+      },
+      "downloads": 1351716,
+      "gated": false,
+      "id": "zai-org/GLM-5.3",
+      "availableInferenceProviders": [],
+      "lastModified": "2026-09-04T06:41:23.000Z",
+      "likes": 1937,
+      "pipeline_tag": "text-generation",
+      "private": false,
+      "repoType": "model",
+      "isLikedByUser": false,
+      "widgetOutputUrls": [],
+      "numParameters": 753329940480
+    }
+  ],
+  "numTotalModels": 365,
+  "linkedDatasets": [
+    {
+      "author": "zai-org",
+      "downloads": 24356,
+      "gated": false,
+      "id": "zai-org/terminal-bench-2-verified",
+      "lastModified": "2026-08-24T05:59:42.000Z",
+      "private": false,
+      "repoType": "dataset",
+      "likes": 82,
+      "isLikedByUser": false,
+      "isBenchmark": false,
+      "isTraces": false,
+      "isEnvironment": false
+    },
+    {
+      "author": "harithoppil",
+      "downloads": 1058,
+      "gated": false,
+      "id": "harithoppil/terminal-bench-2-verified",
+      "lastModified": "2026-04-28T08:15:22.000Z",
+      "datasetsServerInfo": {
+        "viewer": "viewer",
+        "numRows": 89,
+        "libraries": [
+          "datasets",
+          "pandas",
+          "polars",
+          "mlcroissant"
+        ],
+        "formats": [
+          "json"
+        ],
+        "modalities": [
+          "document",
+          "image",
+          "text"
+        ]
+      },
+      "private": false,
+      "repoType": "dataset",
+      "likes": 2,
+      "isLikedByUser": false,
+      "isBenchmark": false,
+      "isTraces": false,
+      "isEnvironment": false
+    }
+  ],
+  "numTotalDatasets": 2,
+  "linkedSpaces": [
+    {
+      "emoji": "\ud83d\udfe9",
+      "id": "embedl/hfviewer",
+      "running": true,
+      "shortDescription": "Interactive architecture graph for any HF model",
+      "featured": false
+    },
+    {
+      "emoji": "\ud83d\udca5",
+      "id": "pliny-the-prompter/obliteratus",
+      "running": true,
+      "shortDescription": "One-click model liberation + chat playground",
+      "featured": false
+    },
+    {
+      "emoji": "\ud83d\udcb1",
+      "id": "ginigen-ai/open-router-leaderboard",
+      "running": true,
+      "shortDescription": "LLM API price, measured speed and Korean quality",
+      "featured": false
+    },
+    {
+      "emoji": "\ud83d\udcca",
+      "id": "EuroEval/euroeval_leaderboard",
+      "running": true,
+      "shortDescription": "The robust European language model benchmark.",
+      "featured": false
+    },
+    {
+      "emoji": "\ud83e\udd16",
+      "id": "lerobot/annotation-studio",
+      "running": true,
+      "shortDescription": "Robot video \u2192 subtasks, plans and memory",
+      "featured": false
+    },
+    {
+      "emoji": "\ud83c\udfc6",
+      "id": "akhaliq/anycoder",
+      "running": true,
+      "featured": false
+    },
+    {
+      "emoji": "\ud83e\udd16",
+      "id": "smolagents/ml-intern",
+      "running": true,
+      "featured": true
+    },
+    {
+      "emoji": "\ud83d\ude80",
+      "id": "GenAISecurityProject/OWASP-AIBOM-Generator",
+      "running": true,
+      "shortDescription": "OWASP GenAI Security Project - AI Bill of Materials",
+      "featured": false
+    }
+  ],
+  "numTotalSpaces": 470
+}

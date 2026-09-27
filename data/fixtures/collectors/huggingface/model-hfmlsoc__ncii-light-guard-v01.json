@@ -1,0 +1,19 @@
+{
+  "id": "hfmlsoc/ncii-light-guard-v01",
+  "author": "hfmlsoc",
+  "tags": [
+    "transformers",
+    "safetensors",
+    "gemma3_text",
+    "text-classification",
+    "en",
+    "base_model:microsoft/harrier-oss-v1-270m",
+    "base_model:finetune:microsoft/harrier-oss-v1-270m",
+    "license:mit",
+    "text-embeddings-inference",
+    "endpoints_compatible",
+    "region:us"
+  ],
+  "pipeline_tag": "text-classification",
+  "createdAt": "2026-08-06T15:27:00.000Z"
+}

@@ -217,15 +217,15 @@ describe("a paper", () => {
     render(<FocusCanvas payload={golden("paper-bundle")} />);
 
     const bundle = screen.getByRole("region", { name: "논문에서 이어지는 것" });
-    expect(within(bundle).getByText("공식 저장소 · 저자가 연결")).toBeInTheDocument();
+    expect(within(bundle).getByText("코드 저장소 · 사람이 연결")).toBeInTheDocument();
     expect(within(bundle).getByText("· Model 521")).toBeInTheDocument();
     expect(within(bundle).getByText("· Demo 4,297")).toBeInTheDocument();
     expect(within(bundle).getByText("외 4,297개")).toBeInTheDocument();
   });
 
   it("never draws a Hub match like an author's link", () => {
-    const { rerender } = render(<RepoProvenanceBadge provenance="author-linked" />);
-    const official = screen.getByText("공식 저장소 · 저자가 연결").className;
+    const { rerender } = render(<RepoProvenanceBadge provenance="person-linked" />);
+    const official = screen.getByText("코드 저장소 · 사람이 연결").className;
     rerender(<RepoProvenanceBadge provenance="auto-linked" />);
     const matched = screen.getByText("Hub 자동 연결 · 확인 필요").className;
 

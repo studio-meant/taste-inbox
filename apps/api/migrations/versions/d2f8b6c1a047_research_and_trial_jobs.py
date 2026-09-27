@@ -51,5 +51,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(sa.text(f"DELETE FROM jobs WHERE NOT ({_in('type', OLD_TYPES)})"))
+    # S608: built from this module's constant tuple; nothing is input.
+    op.execute(sa.text(f"DELETE FROM jobs WHERE NOT ({_in('type', OLD_TYPES)})"))  # noqa: S608
     _rebuild(OLD_TYPES)

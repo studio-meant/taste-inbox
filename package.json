@@ -23,8 +23,11 @@
     "api:lint": "cd apps/api && uv run ruff check . && uv run ruff format --check .",
     "api:typecheck": "cd apps/api && uv run mypy src tests",
     "api:test": "cd apps/api && uv run pytest",
+    "collectors:lint": "cd services/collectors && uv run ruff check . && uv run ruff format --check .",
+    "collectors:typecheck": "cd services/collectors && uv run mypy",
+    "collectors:test": "cd services/collectors && uv run pytest",
     "verify": "bash scripts/verify-repo.sh",
-    "verify:all": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm e2e && pnpm api:lint && pnpm api:typecheck && pnpm api:test && pnpm verify",
+    "verify:all": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm e2e && pnpm api:lint && pnpm api:typecheck && pnpm api:test && pnpm collectors:lint && pnpm collectors:typecheck && pnpm collectors:test && pnpm verify",
     "e2e": "pnpm --filter @taste-inbox/web exec playwright test",
     "community:verify": "python3 scripts/community_release.py --check-tree ."
   },

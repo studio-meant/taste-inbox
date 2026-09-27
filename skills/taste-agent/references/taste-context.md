@@ -36,7 +36,8 @@ What the user's saved history says about one item. Built from rows, never from a
 ## Reading it without the API
 
 ```bash
-python3 skills/taste-agent/scripts/taste_context.py <item-id>
+python3 skills/taste-agent/scripts/taste_context.py --list          # ids, standard library only
+cd apps/api && uv run python ../../skills/taste-agent/scripts/taste_context.py <item-id>
 ```
 
 Read-only. Opens the SQLite file and prints the context as JSON.

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Print one item's TasteContext as JSON. Read-only.
 
-    python3 skills/taste-agent/scripts/taste_context.py <item-id>
     python3 skills/taste-agent/scripts/taste_context.py --list
+    cd apps/api && uv run python ../../skills/taste-agent/scripts/taste_context.py <item-id>
 
 Opens the SQLite file directly rather than going through the API, so it works when the
 service is not running and cannot change anything. This is the stage-1 tool the skill
@@ -55,14 +55,25 @@ def main(argv: list[str] | None = None) -> int:
         with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
             return _list(connection, args.limit)
 
-    # Imported here so `--list` works without the API package installed.
+    # Imported here so `--list` works without the API package installed. The context itself
+    # is the API's own builder, so it needs the API's environment.
     sys.path.insert(0, str(REPO_ROOT / "apps" / "api" / "src"))
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
+    try:
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import Session
 
-    from taste_inbox.taste import context as taste_context
+        from taste_inbox.taste import context as taste_context
+    except ModuleNotFoundError as error:
+        print(
+            f"{error.name} is not installed here. Run it in the API's environment:\n"
+            "  cd apps/api && uv run python ../../skills/taste-agent/scripts/taste_context.py "
+            f"{args.item_id}",
+            file=sys.stderr,
+        )
+        return 2
 
-    engine = create_engine(f"sqlite:///{database}")
+    # Read-only at the driver, not by convention: `mode=ro` makes a write an error.
+    engine = create_engine(f"sqlite:///file:{database}?mode=ro&uri=true")
     with Session(engine) as session:
         built = taste_context.build(session, args.item_id)
     if built is None:

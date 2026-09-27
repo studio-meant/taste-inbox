@@ -129,7 +129,7 @@ def _bundle(session: Session, item_id: str) -> dict[str, Any] | None:
         "repoProvenance": (
             None
             if not repo
-            else ("author-linked" if (repo[0]["confidence"] or 0) >= 1.0 else "auto-linked")
+            else ("person-linked" if (repo[0]["confidence"] or 0) >= 1.0 else "auto-linked")
         ),
         "projectPage": next(iter(gather("project_page")), None),
         "models": gather("linked_model"),

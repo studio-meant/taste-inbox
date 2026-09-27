@@ -26,6 +26,8 @@ Fixtures in this tree are the only sample data allowed in version control.
 | `host-profiles/` | Runtime hardware profiles by capacity class | `packages/shared`, `apps/api` |
 | `resource-policy/expected/` | Resolved policy for each host profile | `packages/shared`, `apps/api` |
 | `research/` | NVIDIA AI-Q reports, recorded verbatim from a real run | `apps/api` |
+| `collectors/` | GitHub and Hugging Face API responses, recorded once from public endpoints | `services/collectors` |
+| `focus/` | Focus and Working Queue payloads the API writes from its real endpoints | `apps/api`, `packages/shared`, `apps/web` |
 | `sandbox/` | `nemoclaw <sandbox> status` output and `openclaw agent --json` envelopes, recorded | `apps/api` |
 
 `resource-policy/expected/` is the cross-language contract: `apps/api` asserts its
@@ -34,8 +36,21 @@ against `EffectiveResourcePolicySchema`. Neither language can drift without the 
 failing. Regenerate with `uv run python -m taste_inbox.host.goldens` after an intentional
 resolver change — never by hand.
 
-Collector response fixtures (Phase 3+) will be added under `collectors/` and must follow
-the same rules.
+## Collector responses (2026-09-28)
+
+Recorded once, unauthenticated, from public endpoints; CI replays them and never reaches the
+network (`services/collectors/tests/transport.py`).
+
+| File | Endpoint | Scrubbed |
+|---|---|---|
+| `collectors/github/starred-page.json` | `GET /users/octocat/starred?per_page=3`, `Accept: application/vnd.github.star+json` | nothing — `octocat` is GitHub's own demo account |
+| `collectors/huggingface/likes-page.json` | `GET /api/users/<public account>/likes` | the account is not stored; six entries kept, one per kind plus an unknown `kernel` |
+| `collectors/huggingface/{model,dataset,space}-*.json` | `GET /api/{models,datasets,spaces}/<name>` for exactly those likes | trimmed to the fields the parser reads (`id`, `author`, `tags`, `pipeline_tag`, `description`, `createdAt`) |
+| `collectors/huggingface/paper-*.json` | `GET /api/papers/<arXiv id>` — the two those likes cite, and DeepSeek-R1 for the `auto` repo case | `authors`, `submittedOnDailyBy`, `discussionId` removed (people's handles; unused) |
+
+Recorded facts the tests rely on: `githubRepoAddedBy` is `"user"` on 2602.15763 and `"auto"` on
+2501.12948 — not a person's name, which is why the bundle says "linked by a person" and not
+"by the author".
 
 ## Recorded NVIDIA runtime output (2026-09-28)
 

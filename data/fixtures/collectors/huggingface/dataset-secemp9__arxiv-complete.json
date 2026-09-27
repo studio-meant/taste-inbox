@@ -1,0 +1,27 @@
+{
+  "id": "secemp9/arxiv-complete",
+  "author": "secemp9",
+  "tags": [
+    "task_categories:text-generation",
+    "task_categories:text-retrieval",
+    "language:en",
+    "license:other",
+    "size_categories:100M<n<1B",
+    "format:parquet",
+    "modality:tabular",
+    "modality:text",
+    "library:datasets",
+    "library:dask",
+    "library:polars",
+    "library:mlcroissant",
+    "arxiv:2401.18030",
+    "region:us",
+    "arxiv",
+    "scientific-papers",
+    "latex",
+    "preprints",
+    "full-text"
+  ],
+  "description": "\n\t\n\t\t\n\t\n\t\n\t\tarXiv Complete Corpus\n\t\n\nA snapshot of arXiv's metadata, version history, submission files and rendered\ndocuments. It covers 3,148,796 papers and includes file contents, paths, sizes\nand SHA-256 digests. Metadata comes from arXiv's OAI-PMH arXivRaw interface;\nfiles come from the GCS mirror, S3 source archives and direct PDF fetches.\nThis release holds a PDF for 99.47% of papers and 99.54% of versions reported\nwith a non-zero submission size. It is a one-off snapshot; coverage gaps\u2026 See the full description on the dataset page: https://huggingface.co/datasets/secemp9/arxiv-complete.",
+  "createdAt": "2026-09-10T21:32:20.000Z"
+}

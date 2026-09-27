@@ -10,7 +10,7 @@ import styles from "./PaperBundleCard.module.css";
  * paper can be cited by thousands of Spaces and only a handful are stored. A branch with
  * nothing in it is not drawn, the rule `SavedSummary` already follows for its chips.
  *
- * **Who linked the code is the point of the card.** `author-linked` means a person put the
+ * **Who linked the code is the point of the card.** `person-linked` means a person put the
  * repository on the paper page; `auto-linked` means the Hub matched it. They are drawn in
  * different shapes and different words, never one badge in two colours — a guess shown as
  * the official implementation is the failure `DESIGN.md` §3.5 forbids.
@@ -116,7 +116,7 @@ export function PaperBundleCard({ bundle }: { readonly bundle: PaperBundle }) {
 }
 
 /**
- * Official versus matched, in two shapes: a filled check with "저자가 연결", an outlined
+ * Official versus matched, in two shapes: a filled check with "사람이 연결", an outlined
  * link with "Hub 자동 연결". Words first — the icon is the second channel.
  */
 export function RepoProvenanceBadge({
@@ -125,12 +125,12 @@ export function RepoProvenanceBadge({
   readonly provenance: PaperBundle["repoProvenance"];
 }) {
   if (provenance === null) return null;
-  const official = provenance === "author-linked";
+  const official = provenance === "person-linked";
   const Icon = official ? BadgeCheck : Link2;
   return (
     <span className={cx(styles.badge, official ? styles.official : styles.matched)}>
       <Icon size={14} strokeWidth={1.8} aria-hidden="true" focusable="false" />
-      {official ? "공식 저장소 · 저자가 연결" : "Hub 자동 연결 · 확인 필요"}
+      {official ? "코드 저장소 · 사람이 연결" : "Hub 자동 연결 · 확인 필요"}
     </span>
   );
 }

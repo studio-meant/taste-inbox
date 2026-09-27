@@ -78,13 +78,14 @@ const BranchSchema = z.object({
  * Paper → Code · Model · Dataset · Demo, as the Hub stated it.
  *
  * `repoProvenance` is the distinction the whole bundle exists to preserve:
- * `author-linked` means a person linked the repository, `auto-linked` means the Hub
+ * `person-linked` means a person linked the repository on the paper page (the Hub records
+ * `"user"`, not who — so this does not claim an author), `auto-linked` means the Hub
  * matched it. They must never be drawn identically — a guess presented as an official
  * implementation is exactly the failure `DESIGN.md` §3.5 forbids.
  */
 export const PaperBundleSchema = z.object({
   repo: BranchSchema.nullable(),
-  repoProvenance: z.enum(["author-linked", "auto-linked"]).nullable(),
+  repoProvenance: z.enum(["person-linked", "auto-linked"]).nullable(),
   projectPage: BranchSchema.nullable(),
   models: z.array(BranchSchema),
   datasets: z.array(BranchSchema),

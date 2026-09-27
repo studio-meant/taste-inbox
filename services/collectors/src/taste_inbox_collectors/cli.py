@@ -90,7 +90,7 @@ def cmd_api(args: argparse.Namespace) -> int:
 
     try:
         run = _run_surface(surface, args)
-    except Exception as error:  # noqa: BLE001 — a crash must still produce a capture file
+    except Exception as error:
         run = SourceRun(surface=surface)
         run.outcome = "failed"
         run.stopped_because = f"{type(error).__name__}: {error}"

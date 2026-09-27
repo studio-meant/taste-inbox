@@ -1,0 +1,57 @@
+{
+  "id": "2401.18030",
+  "publishedAt": "2024-03-04T00:00:00.000Z",
+  "title": "Distributed fixed-point algorithms for dynamic convex optimization over decentralized and unbalanced wireless networks",
+  "summary": "We consider problems where agents in a network seek a common quantity, measured independently and periodically by each agent through a local time-varying process. Numerous solvers addressing such problems have been developed in the past, featuring various adaptations of the local processing and the consensus step. However, existing solvers still lack support for advanced techniques, such as superiorization and over-the-air function computation (OTA-C). To address this limitation, we introduce a comprehensive framework for the analysis of distributed algorithms by characterizing them using the quasi-Fej\u00e9r type algorithms and an extensive communication model. Under weak assumptions, we prove almost sure convergence of the algorithm to a common estimate for all agents. Moreover, we develop a specific class of algorithms within this framework to tackle distributed optimization problems with time-varying objectives, and, assuming that a time-invariant solution exists, prove its convergence to a solution. We also present a novel OTA-C protocol for consensus step in large decentralized networks, reducing communication overhead and enhancing network autonomy as compared to the existing protocols. The effectiveness of the algorithm, featuring superiorization and OTA-C, is demonstrated in a real-world application of distributed supervised learning over time-varying wireless networks, highlighting its low-latency and energy-efficiency compared to standard approaches.",
+  "upvotes": 0,
+  "ai_summary": "A unified framework for distributed consensus and optimization integrates superiorization and over-the-air computation to achieve efficient, low-latency learning over wireless networks.",
+  "ai_keywords": [
+    "quasi-Fej\u00e9r type algorithms",
+    "over-the-air function computation",
+    "superiorization",
+    "distributed optimization",
+    "time-varying objectives",
+    "OTA-C protocol",
+    "consensus",
+    "distributed supervised learning"
+  ],
+  "ai_summary_model": "thinkingmachines/Inkling-Small",
+  "linkedModels": [],
+  "numTotalModels": 0,
+  "linkedDatasets": [
+    {
+      "author": "secemp9",
+      "downloads": 90154,
+      "gated": false,
+      "id": "secemp9/arxiv-complete",
+      "lastModified": "2026-09-19T20:39:46.000Z",
+      "datasetsServerInfo": {
+        "viewer": "viewer",
+        "numRows": 127593477,
+        "libraries": [
+          "datasets",
+          "dask",
+          "polars",
+          "mlcroissant"
+        ],
+        "formats": [
+          "parquet"
+        ],
+        "modalities": [
+          "tabular",
+          "text"
+        ]
+      },
+      "private": false,
+      "repoType": "dataset",
+      "likes": 475,
+      "isLikedByUser": false,
+      "isBenchmark": false,
+      "isTraces": false,
+      "isEnvironment": false
+    }
+  ],
+  "numTotalDatasets": 1,
+  "linkedSpaces": [],
+  "numTotalSpaces": 0
+}

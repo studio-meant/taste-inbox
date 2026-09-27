@@ -179,7 +179,9 @@ def collect(
     # A seeding run (`limit`, no checkpoint) deliberately leaves a gap below what it took,
     # so it must not claim the position. Every other completed walk may.
     seeded_partially = limit is not None and last_seen is None and not run.exhausted
-    run.advanced_checkpoint = bool(run.items) and (reached_checkpoint or run.exhausted) and not seeded_partially
+    run.advanced_checkpoint = (
+        bool(run.items) and (reached_checkpoint or run.exhausted) and not seeded_partially
+    )
 
     if malformed:
         run.note(f"{malformed} entries had no usable repository and were skipped")

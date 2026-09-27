@@ -22,6 +22,7 @@ var/
 data/fixtures/research/
 data/fixtures/sandbox/
 data/fixtures/focus/
+data/fixtures/collectors/
 
 # Python services are formatted by ruff, not prettier.
 apps/api/

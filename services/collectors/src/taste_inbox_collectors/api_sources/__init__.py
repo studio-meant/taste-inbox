@@ -43,7 +43,7 @@ SURFACES: dict[str, ApiSurface] = {
         surface=github_stars.SURFACE,
         platform=github_stars.PLATFORM,
         label="GitHub 스타",
-        token_env="GITHUB_TOKEN",
+        token_env="GITHUB_TOKEN",  # noqa: S106 — the variable's name, not its value
         # 60 requests an hour unauthenticated is not enough to walk a real star list, and
         # `/user/starred` needs a token to know whose stars are meant at all.
         token_required=True,
@@ -54,7 +54,7 @@ SURFACES: dict[str, ApiSurface] = {
         surface=huggingface.SURFACE,
         platform=huggingface.PLATFORM,
         label="Hugging Face 활동",
-        token_env="HF_TOKEN",
+        token_env="HF_TOKEN",  # noqa: S106 — the variable's name, not its value
         # Public likes answered 200 with no token when this was written; a token only
         # raises the ceiling and covers private repositories.
         token_required=False,

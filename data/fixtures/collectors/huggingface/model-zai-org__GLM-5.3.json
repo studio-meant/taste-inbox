@@ -1,0 +1,22 @@
+{
+  "id": "zai-org/GLM-5.3",
+  "author": "zai-org",
+  "tags": [
+    "transformers",
+    "safetensors",
+    "glm_moe_dsa",
+    "text-generation",
+    "conversational",
+    "en",
+    "zh",
+    "arxiv:2602.15763",
+    "license:other",
+    "eval-results",
+    "endpoints_compatible",
+    "fp8",
+    "deploy:sagemaker",
+    "region:us"
+  ],
+  "pipeline_tag": "text-generation",
+  "createdAt": "2026-08-25T06:42:50.000Z"
+}

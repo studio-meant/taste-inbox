@@ -99,19 +99,22 @@ def branches(paper: dict[str, Any]) -> list[Branch]:
     repo = paper.get("githubRepo")
     if isinstance(repo, str) and repo.strip():
         added_by = paper.get("githubRepoAddedBy")
-        author_linked = isinstance(added_by, str) and added_by not in ("", "auto")
+        # Recorded values are "auto" (the Hub matched it) and "user" (a person linked it on
+        # the paper page). "user" does not say *which* person — an author is likely but not
+        # stated — so the label claims a person, not an author.
+        person_linked = isinstance(added_by, str) and added_by not in ("", "auto")
         found.append(
             Branch(
                 type="paper.github_repo",
                 # The label is what the card prints, so the provenance lives in it rather
                 # than only in a number the UI would have to interpret.
-                label="Official repo · author-linked" if author_linked else "Official repo",
+                label="Code · linked by a person" if person_linked else "Code · matched by the Hub",
                 value=repo.strip(),
                 source_url=repo.strip(),
                 # 1.0 only when a person linked it. The Hub's own automatic match is
                 # strong evidence but it is still a match, and DESIGN.md §3.5 asks for the
                 # difference to survive to the screen.
-                confidence=1.0 if author_linked else 0.9,
+                confidence=1.0 if person_linked else 0.9,
             )
         )
 

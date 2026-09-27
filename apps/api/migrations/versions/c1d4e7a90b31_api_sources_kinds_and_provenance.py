@@ -72,6 +72,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Rows written under the wider constraint would violate the narrower one, so they are
     # removed rather than silently left behind a constraint that no longer describes them.
-    op.execute(sa.text(f"DELETE FROM items WHERE NOT ({_in('kind', OLD_KINDS)})"))
-    op.execute(sa.text(f"DELETE FROM evidence WHERE NOT ({_in('provenance', OLD_PROVENANCE)})"))
+    # S608: the clauses are built from this module's constant tuples; nothing is input.
+    kinds = _in("kind", OLD_KINDS)
+    provenance = _in("provenance", OLD_PROVENANCE)
+    op.execute(sa.text(f"DELETE FROM items WHERE NOT ({kinds})"))  # noqa: S608
+    op.execute(sa.text(f"DELETE FROM evidence WHERE NOT ({provenance})"))  # noqa: S608
     _rebuild(OLD_KINDS, OLD_PROVENANCE)

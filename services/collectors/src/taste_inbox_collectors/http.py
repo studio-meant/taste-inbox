@@ -100,7 +100,7 @@ def _next_link(headers: Any) -> str | None:
         section = part.split(";")
         if len(section) < 2:
             continue
-        url = section[0].strip()
+        url = str(section[0]).strip()
         if not (url.startswith("<") and url.endswith(">")):
             continue
         if any(bit.strip().replace('"', "") == "rel=next" for bit in section[1:]):

@@ -637,8 +637,8 @@ def record_accessibility_caption(session: Session, *, item: Item, alt_text: str 
 #: of those is a fact with a URL behind it. The collector carries them through
 #: (`capture_file.SourceItem.evidence`) rather than letting this side re-derive them,
 #: because the provenance only exists at the moment of reading — `githubRepoAddedBy`
-#: saying `auto` versus naming a person is the whole difference between "Official repo" and
-#: "Official repo · author-linked", and it is not recoverable from the URL afterwards.
+#: saying `auto` versus `user` is the whole difference between "Code · matched by the Hub"
+#: and "Code · linked by a person", and it is not recoverable from the URL afterwards.
 #:
 #: `provenance` stays whatever the collector declared, which for these is `huggingface`.
 #: It is somebody else's statement, not this product's conclusion — the same reason

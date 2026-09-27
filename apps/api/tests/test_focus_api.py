@@ -154,7 +154,7 @@ def test_focus_of_a_paper_draws_its_bundle(
 
     bundle = client.get(f"/api/focus/{paper}").json()["data"]["bundle"]
 
-    assert bundle["repoProvenance"] == "author-linked"
+    assert bundle["repoProvenance"] == "person-linked"
     assert bundle["repo"]["value"] == "deepseek-ai/DeepSeek-R1"
     assert bundle["totals"] == {"models": 521, "spaces": 4297}
     assert bundle["spaces"] == []

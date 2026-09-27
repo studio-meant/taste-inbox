@@ -1,0 +1,26 @@
+{
+  "id": "FineEnvs/SmolDataEnvs",
+  "author": "FineEnvs",
+  "tags": [
+    "task_categories:question-answering",
+    "task_categories:table-question-answering",
+    "license:mit",
+    "size_categories:1K<n<10K",
+    "format:parquet",
+    "modality:tabular",
+    "modality:text",
+    "library:datasets",
+    "library:pandas",
+    "library:polars",
+    "library:mlcroissant",
+    "region:us",
+    "smoldataenvs",
+    "data-analysis",
+    "agent",
+    "rl-environment",
+    "reinforcement-learning",
+    "code-agent"
+  ],
+  "description": "\n\n\n\n\n\t\n\t\t\n\t\n\t\n\t\t\ud83d\udcc8 SmolDataEnvs\n\t\n\n\n\n\n\n5.5K+ RL tasks for hill-climbing small models in code and data science.\n\n\n\n\n\nA 2B model on these tasks. Left: what it optimises. Right: 144 held-out tasks it never trains on.\nTwo runs over the same 5,000 tasks: shuffled against a curriculum ordered easiest to hardest.\n\n\n\nData-analysis tasks as a plain, load-and-go dataset: no runtime, no framework required. Each\nrow is one self-contained task: a real tabular dataset, a question about it, and a gold answer\u2026 See the full description on the dataset page: https://huggingface.co/datasets/FineEnvs/SmolDataEnvs.",
+  "createdAt": "2026-09-24T09:46:20.000Z"
+}
