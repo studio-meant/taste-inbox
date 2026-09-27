@@ -66,6 +66,7 @@ export function AIItemCard({
   size = "medium",
   index = 0,
   board,
+  labHref,
   returnHref,
 }: {
   readonly item: AIItemCardModel;
@@ -77,6 +78,12 @@ export function AIItemCard({
    * `/none`) plus the merged `/library`, and each of them knows which it is.
    */
   readonly board?: ItemBoard;
+  /**
+   * Where the Lab is, for this item. Passed straight through to `BrowseCard`, which draws
+   * `Open in Lab` when it is given one — every Inbox board passes it, Today's summary
+   * cards do not.
+   */
+  readonly labHref?: string;
   readonly returnHref?: string;
 }) {
   return (
@@ -85,6 +92,7 @@ export function AIItemCard({
       size={size}
       index={index}
       board={board}
+      labHref={labHref}
       returnHref={returnHref}
       eyebrow={KIND_LABEL[item.kind]}
       title={item.title}

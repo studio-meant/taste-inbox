@@ -113,7 +113,7 @@ describe("a plan waiting for approval", () => {
     expect(
       screen.getByText("리포트가 제시한 방법 3가지 중 샌드박스에서 되는 것부터 시도하기"),
     ).toBeInTheDocument();
-    const action = screen.getByRole("region", { name: "다음 한 걸음" });
+    const action = screen.getByRole("region", { name: "추천 검증 (Suggested Trial)" });
     expect(within(action).getByText("github.com")).toBeInTheDocument();
     expect(
       within(action).getByText("voicestudio.sh, www.remio.ai, tessl.io, hoangyell.com"),
@@ -171,7 +171,7 @@ describe("a trial that did not finish", () => {
   it("puts the refused connection in the ledger as a finding", () => {
     render(<FocusCanvas payload={payload} />);
 
-    const ledger = screen.getByRole("region", { name: "Policy ledger" });
+    const ledger = screen.getByRole("region", { name: "Policy Ledger" });
     expect(within(ledger).getByText("voicestudio.sh")).toBeInTheDocument();
     expect(within(ledger).getByText(/연결하려다 정책에 막혔어요/)).toBeInTheDocument();
     // Hosts and the programs allowed to reach them, as pairs.
@@ -181,7 +181,7 @@ describe("a trial that did not finish", () => {
   it("says which program was refused and why, from the sandbox's own log", () => {
     render(<FocusCanvas payload={payload} />);
 
-    const ledger = screen.getByRole("region", { name: "Policy ledger" });
+    const ledger = screen.getByRole("region", { name: "Policy Ledger" });
     // Open to git, refused to uv: the finding people do not expect.
     expect(
       within(ledger).getByText(
@@ -196,7 +196,7 @@ describe("a trial that did not finish", () => {
   it("lists what the run left behind", () => {
     render(<FocusCanvas payload={payload} />);
 
-    const files = screen.getByRole("region", { name: "Related files" });
+    const files = screen.getByRole("region", { name: "Related Files" });
     expect(within(files).getByText("plan.md")).toBeInTheDocument();
   });
 });

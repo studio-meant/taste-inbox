@@ -1,4 +1,5 @@
 import { BrandMark } from "./BrandMark";
+import { PRODUCT_NAME } from "./copy";
 import styles from "./SplashScreen.module.css";
 
 /**
@@ -31,7 +32,7 @@ export function SplashScreen({ onBegin }: SplashScreenProps) {
           <span className={styles.aura} aria-hidden="true" />
         </span>
         <h1 id="entry-splash-title" className={styles.wordmark} lang="en">
-          Taste Inbox
+          {PRODUCT_NAME}
         </h1>
         {/*
          * The reference reads `LOCAL TASTE INTELLIGENCE`. "Intelligence" is a claim about

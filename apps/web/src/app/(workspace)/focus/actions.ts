@@ -5,7 +5,8 @@ import { ApiDataError, getRepository } from "@/lib/repository";
 import { isRemoteReadOnly, REMOTE_READ_ONLY_MESSAGE } from "@/lib/remote-mode";
 
 /**
- * The Focus Canvas's two writes: ask AI-Q, and run an approved plan in the sandbox.
+ * The Lab's three writes: research the item, ask a question about it, and run an approved
+ * plan in the sandbox.
  *
  * Server Actions for the reason `app/(workspace)/actions.ts` gives — the browser never
  * learns where the API is — and a refusal is a **return value**, not a throw. The service
@@ -42,6 +43,28 @@ export async function requestResearch(itemId: string): Promise<FocusActionResult
     return { ok: true, message: started.target, jobId: started.jobId };
   } catch (error) {
     return refused(error, "조사를 시작하지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
+  }
+}
+
+/**
+ * `What do you want to know?` — record the question and start the planning pass.
+ *
+ * Reached from a suggestion chip or from the free-form field, and from nowhere else. The
+ * agent never picks the question: that is the asymmetry the Lab is built on, and it is
+ * kept by there being no caller of this but a person.
+ */
+export async function askLabQuestion(itemId: string, question: string): Promise<FocusActionResult> {
+  if (isRemoteReadOnly()) return { ok: false, message: REMOTE_READ_ONLY_MESSAGE };
+  try {
+    const started = await getRepository().askQuestion(itemId, question);
+    revalidate(itemId);
+    return {
+      ok: true,
+      message: `${started.target}에 이 질문의 검증 설계를 맡겼어요.`,
+      jobId: started.jobId,
+    };
+  } catch (error) {
+    return refused(error, "질문을 보내지 못했어요. 서비스가 실행 중인지 확인해 주세요.");
   }
 }
 

@@ -13,6 +13,7 @@ import {
   SettingsPatchRequestSchema,
   TodayPayloadSchema,
   MusicItemCardModelSchema,
+  QuestionStartResponseSchema,
   ResearchStartResponseSchema,
   StyleItemCardModelSchema,
   TrialStartResponseSchema,
@@ -27,6 +28,7 @@ import {
   type ItemDetailModel,
   type ManualItemCreateRequest,
   type ManualItemCreateResponse,
+  type QuestionStartResponse,
   type ResearchStartResponse,
   type SettingsDocument,
   type SettingsPatchRequest,
@@ -483,6 +485,14 @@ export class HttpRepository implements TasteInboxRepository {
       ResearchStartResponseSchema,
       await this.post<unknown>("/api/research", { itemId }),
       "조사 요청",
+    );
+  }
+
+  async askQuestion(itemId: string, question: string): Promise<QuestionStartResponse> {
+    return HttpRepository.parsed(
+      QuestionStartResponseSchema,
+      await this.post<unknown>("/api/lab/questions", { itemId, question }),
+      "질문",
     );
   }
 

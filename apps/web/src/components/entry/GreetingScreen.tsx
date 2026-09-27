@@ -3,7 +3,13 @@ import Link from "next/link";
 import { StatusPill } from "@/components/primitives/StatusPill";
 import { AmbientCanvas } from "@/components/shell/AmbientCanvas";
 import { BrandMark } from "./BrandMark";
-import { entryStatusPills, entrySubline, formatEntryDate, greetingHeadline } from "./copy";
+import {
+  entryStatusPills,
+  entrySubline,
+  formatEntryDate,
+  greetingHeadline,
+  PRODUCT_NAME,
+} from "./copy";
 import styles from "./GreetingScreen.module.css";
 import { cx } from "@/lib/cx";
 
@@ -45,7 +51,7 @@ export function GreetingScreen({ today, onBegin }: GreetingScreenProps) {
 
       <div className={cx(styles.brand, styles.motionItem)} style={{ ["--i" as string]: "0" }}>
         <BrandMark compact />
-        <span lang="en">Taste Inbox</span>
+        <span lang="en">{PRODUCT_NAME}</span>
       </div>
 
       <div className={styles.center}>

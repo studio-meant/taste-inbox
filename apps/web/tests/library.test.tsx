@@ -466,7 +466,7 @@ describe("the merged board", () => {
     // `?source=` on this board reaches three lists, so the rail counts all three — and the
     // rows replace rather than accumulate, as of the rail's single-select change.
     await renderLibrary();
-    const rail = screen.getByRole("navigation", { name: "저장한 항목 둘러보기" });
+    const rail = screen.getByRole("navigation", { name: "Inbox 필터" });
 
     const github = within(rail).getByRole("link", { name: /GitHub/ });
     expect(github).toHaveAttribute("href", "/library?source=github");

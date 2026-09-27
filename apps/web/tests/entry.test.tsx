@@ -199,7 +199,7 @@ describe("The greeting line", () => {
   });
 
   it("tells the truth in the sub-line when nothing was collected", () => {
-    expect(entrySubline(17)).toBe("오늘 새롭게 들어온 취향을 정리했어요.");
+    expect(entrySubline(17)).toBe("오늘 새로 들어온 관심 항목을 정리했어요.");
     expect(entrySubline(0)).toBe("오늘은 아직 새로 들어온 항목이 없어요.");
   });
 
@@ -475,6 +475,6 @@ describe("The scenic backdrop", () => {
     // hidden rather than announced a second time.
     const petals = container.querySelectorAll("span[aria-hidden='true'] > i");
     expect(petals).toHaveLength(4);
-    expect(screen.getAllByText("Taste Inbox")).toHaveLength(1);
+    expect(screen.getAllByText("Taste Inbox R&D")).toHaveLength(1);
   });
 });

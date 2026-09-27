@@ -673,3 +673,80 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+
+/* ------------------------------------------------------ the evidence eyebrows */
+
+/*
+ * `RESEARCH EVIDENCE · what the docs say` / `OBSERVED EVIDENCE · what happened when we
+ * tried`. Small, above the panel's own title, and the same words the landing page uses.
+ *
+ * It is load-bearing rather than decorative: it is what stops a sentence AI-Q found on the
+ * web from being read as something a sandbox observed. Set in the muted colour so the
+ * Korean title stays the thing the eye lands on — the eyebrow is a category, not a heading.
+ */
+.panelEyebrow {
+  margin: 0 0 2px;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------- the question, echoed */
+
+/*
+ * The question the plan below was designed for, at the top of the plan.
+ *
+ * Repeated here rather than left in the composer because this panel is where a person
+ * decides whether to approve a run, and `Try safely` has to be approvable against the
+ * thing it is supposed to answer.
+ */
+.askedLine {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--accent-deep);
+  border-radius: 0 var(--radius-sm, 8px) var(--radius-sm, 8px) 0;
+  background: color-mix(in srgb, var(--light-green) 40%, transparent);
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+/*
+ * Acceptance criteria arrive as a short list from the planning pass, so newlines are the
+ * content. Everything else in `terms2` is one sentence and is unaffected.
+ */
+.criteria {
+  white-space: pre-line;
+}
+
+/* ------------------------------------------------------- the ledger's first line */
+
+/*
+ * What the raw rows below add up to, in a sentence someone can act on.
+ *
+ * Above the rows, never instead of them: the hosts, the programs and the counts are the
+ * evidence and they stay. This is the reading.
+ */
+.ledgerSummary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm, 8px);
+  background: color-mix(in srgb, var(--oatmeal) 42%, var(--surface));
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  line-height: 1.55;
+}
+
+.ledgerSummary svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent-deep);
+}

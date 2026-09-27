@@ -33,7 +33,12 @@ from ..db.models import Job, JobStep
 logger = logging.getLogger(__name__)
 
 #: Job types that run here.
-KINDS = ("research", "trial")
+#:
+#: `plan` shares the AI-Q backend with `research` but takes its own slot: they are two
+#: different questions about two different things, and a person who asks one while the
+#: other is running should wait for the backend, not be told their question was rejected.
+#: The slot is what serialises them — one AI-Q call at a time per kind.
+KINDS = ("research", "plan", "trial")
 
 _slots: dict[str, threading.Thread] = {}
 _slots_lock = threading.Lock()

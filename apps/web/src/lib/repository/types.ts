@@ -10,6 +10,7 @@ import type {
   JobModel,
   LaunchdPlan,
   MusicItemCardModel,
+  QuestionStartResponse,
   ResearchStartResponse,
   SettingsDocument,
   SettingsPatchRequest,
@@ -257,6 +258,18 @@ export interface TasteInboxRepository {
    * job that fails later.
    */
   startResearch(itemId: string): Promise<ResearchStartResponse>;
+
+  /**
+   * `POST /api/lab/questions` — what the person wants to know, and the plan AI-Q designs
+   * for it. Answers with a queued job, like research.
+   *
+   * Reached only from a person choosing a chip or typing: the agent never picks the
+   * question, which is the asymmetry the Lab is built on.
+   *
+   * Refusals — no research yet, a question over the length bound, another planning pass
+   * running — arrive as an `ApiDataError` with the service's Korean message.
+   */
+  askQuestion(itemId: string, question: string): Promise<QuestionStartResponse>;
 
   /**
    * `POST /api/trials` — run the item's plan inside the OpenShell sandbox.

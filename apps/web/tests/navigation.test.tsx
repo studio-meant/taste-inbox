@@ -40,7 +40,7 @@ describe("navigation model", () => {
     expect(BOTTOM_NAV_DESTINATIONS.map((d) => d.id)).toEqual(["today", "browse", "system"]);
   });
 
-  it("routes Browse to its canonical library route", () => {
+  it("routes the Inbox to its canonical library route", () => {
     expect(PILL_DESTINATIONS[1]?.href).toBe("/library");
   });
 
@@ -73,29 +73,29 @@ describe("navigation model", () => {
 });
 
 describe("GlobalNavPill", () => {
-  it("renders Today and Browse as links", () => {
+  it("renders Today and the Inbox as links", () => {
     render(<GlobalNavPill />);
     const nav = screen.getByRole("navigation", { name: "주요 화면" });
     const links = within(nav).getAllByRole("link");
 
     expect(links).toHaveLength(2);
     expect(links[0]).toHaveTextContent("Today");
-    expect(links[1]).toHaveTextContent("Browse");
+    expect(links[1]).toHaveTextContent("Inbox");
   });
 
   it("marks the active destination with aria-current", () => {
     // Not colour alone: the state is exposed to assistive technology.
     render(<GlobalNavPill />);
     expect(screen.getByRole("link", { name: /Today/ })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: /Browse/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /Inbox/ })).not.toHaveAttribute("aria-current");
   });
 
   it.each(["/library", "/trends", "/style", "/items/garden-lens"])(
-    "activates Browse on %s",
+    "activates the Inbox on %s",
     (path) => {
       pathname.current = path;
       render(<GlobalNavPill />);
-      expect(screen.getByRole("link", { name: /Browse/ })).toHaveAttribute("aria-current", "page");
+      expect(screen.getByRole("link", { name: /Inbox/ })).toHaveAttribute("aria-current", "page");
       expect(screen.getByRole("link", { name: /Today/ })).not.toHaveAttribute("aria-current");
     },
   );
@@ -115,7 +115,7 @@ describe("MobileBottomNav", () => {
     const nav = screen.getByRole("navigation", { name: "주요 화면" });
     const links = within(nav).getAllByRole("link");
 
-    expect(links.map((link) => link.textContent)).toEqual(["Today", "Browse", "System"]);
+    expect(links.map((link) => link.textContent)).toEqual(["Today", "Inbox", "System"]);
   });
 
   it("marks the active destination", () => {

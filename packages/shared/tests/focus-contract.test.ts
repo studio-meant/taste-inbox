@@ -43,7 +43,10 @@ describe("focus payload goldens", () => {
     expect(payload.research).toBeNull();
     expect(payload.suggestion).toBeNull();
     expect(payload.trial).toBeNull();
-    expect(payload.jobs).toEqual({ research: null, trial: null });
+    expect(payload.jobs).toEqual({ research: null, plan: null, trial: null });
+    expect(payload.asked).toBeNull();
+    // Nothing to condition a question on yet, so nothing is offered.
+    expect(payload.suggestedQuestions).toEqual([]);
   });
 
   it("states why the boundary is down", () => {

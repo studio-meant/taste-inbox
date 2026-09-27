@@ -5,6 +5,14 @@ Two products come out of one report:
 - a **SuggestedAction** — one sentence saying what is worth doing, with the report behind it
 - a **TrialPlan** — what the sandbox agent is asked to do, and what would prove it worked
 
+**Two inputs, and the difference between them is the product.** With the research report
+alone this builds the *Suggested Trial*: AI-Q's own idea of the smallest first step, offered
+before anyone has said what they want. With a user question and the planning report that
+answered it (`research/question.py`), it builds the trial for *that question* instead — the
+verification goal and the acceptance criteria come from the plan, so success is stated in
+the user's terms rather than in "it installed". The first is a suggestion; the second is
+the thing this product exists to do, and only a person can start it.
+
 **The plan stays prose.** It is tempting to parse the report into a command list and
 execute that, but the thing on the other side is an agent, not a shell: it reads the
 intent, finds the actual entry point, and adapts when the documented command is wrong —
@@ -46,6 +54,36 @@ _STEP_HEADING = re.compile(
 )
 
 _NEXT_HEADING = re.compile(r"^#{1,6}\s+\S", re.MULTILINE)
+
+#: The three headings `research/question.py` asks the planning pass for, by name.
+#:
+#: Matched loosely on the wording and strictly on the order, because AI-Q reliably keeps the
+#: numbering it is given and less reliably keeps the exact words. A heading that does not
+#: come back leaves its field `None`, and the screen says the agent did not state it —
+#: writing an acceptance criterion here would be this product grading its own homework.
+_PLAN_HEADINGS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "goal",
+        re.compile(
+            r"^#{0,6}\s*\**\s*(?:1\s*[.)]\s*)?\**\s*verification\s+goal\b.*$",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    ),
+    (
+        "criteria",
+        re.compile(
+            r"^#{0,6}\s*\**\s*(?:2\s*[.)]\s*)?\**\s*acceptance\s+criteri(?:a|on)\b.*$",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    ),
+    (
+        "plan",
+        re.compile(
+            r"^#{0,6}\s*\**\s*(?:3\s*[.)]\s*)?\**\s*trial\s+plan\b.*$",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    ),
+)
 
 #: `**Option A — Docker …**`, `Option 2: …` — a report offering alternatives.
 _OPTION = re.compile(r"^\W{0,4}option\s+[a-z0-9]\b", re.IGNORECASE | re.MULTILINE)
@@ -98,6 +136,13 @@ class TrialPlan:
     plan_text: str
     #: Success stated before the run, so the result is a comparison rather than an opinion.
     success_criteria: str
+    #: The user's own question, when one was asked. None means this is the suggested trial.
+    question: str | None = None
+    #: What would answer it, in one sentence, as AI-Q stated it. None when the planning
+    #: pass did not state it — never written here.
+    verification_goal: str | None = None
+    #: The observable results that would settle it, verbatim from the planning report.
+    acceptance_criteria: str | None = None
     #: Hosts the plan mentions, filtered to the ones a trial may have.
     required_hosts: list[str] = field(default_factory=list)
     #: Hosts the report named that are *not* allowed. Shown, not opened.
@@ -110,6 +155,9 @@ class TrialPlan:
             "subjectUrl": self.subject_url,
             "planText": self.plan_text,
             "successCriteria": self.success_criteria,
+            "question": self.question,
+            "verificationGoal": self.verification_goal,
+            "acceptanceCriteria": self.acceptance_criteria,
             "requiredHosts": self.required_hosts,
             "refusedHosts": self.refused_hosts,
             "commandsSeen": self.commands_seen,
@@ -127,6 +175,10 @@ class SuggestedAction:
     #: True when the report gave a concrete step. False means the card must not offer
     #: `Try safely` as though there were a plan behind it.
     actionable: bool
+    #: `"suggested"` when AI-Q proposed this unprompted, `"question"` when it was designed
+    #: for something the user asked. The screen says which, because the two are different
+    #: claims about whose idea the trial was.
+    origin: str = "suggested"
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -134,8 +186,29 @@ class SuggestedAction:
             "headline": self.headline,
             "rationale": self.rationale,
             "actionable": self.actionable,
+            "origin": self.origin,
             "plan": self.plan.as_dict(),
         }
+
+
+def _plan_sections(report: str) -> dict[str, str]:
+    """The three headings the planning pass was asked for, each with its body.
+
+    Missing headings are simply absent from the result. The caller must treat absence as
+    "the agent did not say", never as a cue to write one.
+    """
+
+    found: dict[str, str] = {}
+    for name, pattern in _PLAN_HEADINGS:
+        match = pattern.search(report)
+        if match is None:
+            continue
+        rest = report[match.end() :]
+        following = _NEXT_HEADING.search(rest)
+        body = (rest[: following.start()] if following else rest).strip()
+        if body:
+            found[name] = body
+    return found
 
 
 def _section(report: str) -> str | None:
@@ -180,11 +253,35 @@ def build(
     subject_title: str,
     subject_url: str,
     report: str,
+    question: str | None = None,
+    plan_report: str | None = None,
 ) -> SuggestedAction:
-    """Read one report into a suggestion and a plan."""
+    """Read one report into a suggestion and a plan.
 
-    section = _section(report)
-    actionable = section is not None
+    With `question` and `plan_report`, the trial is built for that question instead: the
+    plan body, the verification goal and the acceptance criteria all come from the planning
+    pass, and `report` stays only as the rationale behind them. Passing a question without a
+    planning report is a plan that has not arrived yet, and produces the suggested trial —
+    the caller says which state the screen is in, this does not guess.
+    """
+
+    planned = _plan_sections(plan_report) if (question and plan_report) else {}
+    goal = planned.get("goal")
+    criteria = planned.get("criteria")
+    # A question with no plan behind it is a planning pass that is still running or that
+    # failed, and the answer is the *suggested* trial — unchanged, and not dressed up as
+    # an answer to a question nobody has designed a check for. The screen shows the open
+    # question separately, from `asked`.
+    question = question if planned else None
+
+    if planned:
+        # The plan section is the instruction; the goal and criteria travel with it so the
+        # agent is told what it is trying to establish, not only what to type.
+        section = planned.get("plan") or plan_report
+        actionable = "plan" in planned
+    else:
+        section = _section(report)
+        actionable = section is not None
     plan_body = section or report.strip()
 
     commands = [block.strip() for block in _FENCE.findall(plan_body) if block.strip()][:6]
@@ -197,7 +294,11 @@ def build(
             allowed.insert(0, host)
 
     options = len(_OPTION.findall(section)) if section else 0
-    if section is None:
+    if goal is not None:
+        # The user asked; the headline is what answering them would establish, in AI-Q's
+        # words rather than this module's.
+        headline = _first_sentence(goal)
+    elif section is None:
         headline = f"{subject_title}에 대한 조사 결과를 확인하세요"
     elif options >= 2:
         # Quoting the first option would promise it — and the first is often the one the
@@ -206,11 +307,30 @@ def build(
     else:
         headline = _first_sentence(section)
 
+    if question:
+        # The question leads, because it is the thing the run has to answer. Everything
+        # after it is how — and the agent is told to report the question unanswered rather
+        # than to substitute an easier one it can answer.
+        intent = (
+            f"Work on {subject_title} ({subject_url}).\n\n"
+            f"The person wants to know one thing:\n\n    {question.strip()}\n\n"
+            + (f"What would answer it: {goal}\n\n" if goal else "")
+            + (f"What counts as an answer:\n\n{criteria}\n\n" if criteria else "")
+            + "Below is the plan for getting there. Follow its intent rather than its "
+            "exact wording: if a command is wrong or a file has moved, find the real entry "
+            "point and say what you changed. If the plan turns out not to answer the "
+            "question, say that — do not answer a different question instead."
+        )
+    else:
+        intent = (
+            f"Work on {subject_title} ({subject_url}).\n\n"
+            f"The research below proposes the smallest verifiable first step. Follow its "
+            f"intent rather than its exact wording: if a command is wrong or a file has "
+            f"moved, find the real entry point and say what you changed."
+        )
+
     plan_text = (
-        f"Work on {subject_title} ({subject_url}).\n\n"
-        f"The research below proposes the smallest verifiable first step. Follow its "
-        f"intent rather than its exact wording: if a command is wrong or a file has moved, "
-        f"find the real entry point and say what you changed.\n\n"
+        f"{intent}\n\n"
         f"{SANDBOX_FACTS}\n\n"
         f"{plan_body}\n\n"
         f"Stop as soon as the success condition is met; do not download model weights or "
@@ -220,7 +340,9 @@ def build(
         f"working around it."
     )
 
-    success = (
+    #: The generic one, used when nobody has asked anything specific. It describes the run
+    #: rather than an answer, which is exactly right for a step nobody requested.
+    default_success = (
         "The repository is fetched, its dependencies resolve, and the documented entry "
         "point starts or its test suite runs — or the exact failure is reported with the "
         "command that produced it."
@@ -231,11 +353,15 @@ def build(
         headline=headline,
         rationale=report.strip(),
         actionable=actionable,
+        origin="question" if planned else "suggested",
         plan=TrialPlan(
             subject_id=subject_id,
             subject_url=subject_url,
             plan_text=plan_text,
-            success_criteria=success,
+            success_criteria=criteria or default_success,
+            question=question,
+            verification_goal=goal,
+            acceptance_criteria=criteria,
             required_hosts=allowed,
             refused_hosts=refused,
             commands_seen=commands,

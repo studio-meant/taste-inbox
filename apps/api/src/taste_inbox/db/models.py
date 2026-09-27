@@ -92,6 +92,10 @@ JOB_TYPES = (
     "collection",
     "enrichment",
     "research",
+    # The pass that turns a user's question into a verification goal, acceptance criteria
+    # and a trial plan (2026-09-28, `research/question.py`). Its own type because a failed
+    # planning pass is not a failed research run and must not read as one.
+    "plan",
     "trial",
     "build",
     "run",

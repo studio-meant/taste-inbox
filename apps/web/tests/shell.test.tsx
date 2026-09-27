@@ -212,7 +212,7 @@ describe("GlobalNavPill", () => {
     rerender(<GlobalNavPill />);
     const nav = screen.getByRole("navigation", { name: "주요 화면" });
     expect(nav).toHaveAttribute("data-active", "browse");
-    expect(screen.getByRole("link", { name: /Browse/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /Inbox/ })).toHaveAttribute("aria-current", "page");
   });
 
   it("parks the slider on a route outside the model instead of lying", () => {
@@ -339,7 +339,7 @@ describe("TasteQueryDock", () => {
 });
 
 describe("WorkspaceQueryDock", () => {
-  it.each(["/today", "/focus/datasette", "/library", "/style", "/items/garden-lens"])(
+  it.each(["/today", "/library", "/style", "/items/garden-lens"])(
     "mounts on the workspace route %s",
     (path) => {
       pathname.current = path;
@@ -350,6 +350,18 @@ describe("WorkspaceQueryDock", () => {
 
   it.each(["/system", "/settings", "/nope"])("stays out of %s", (path) => {
     pathname.current = path;
+    const { container } = render(<WorkspaceQueryDock />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("leaves the Lab to its own live composer", () => {
+    /*
+     * `/focus/[itemId]` renders the same dock itself, as `What do you want to know?`, in
+     * the panel between the research it is asked about and the plan it produces. Mounting
+     * the floating read-only one as well would put two composers on one screen — one
+     * saying questions are not open while the other takes them.
+     */
+    pathname.current = "/focus/datasette";
     const { container } = render(<WorkspaceQueryDock />);
     expect(container).toBeEmptyDOMElement();
   });

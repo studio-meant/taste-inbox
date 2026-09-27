@@ -58,7 +58,7 @@ describe("the places board", () => {
     // the layout's left column, and a column that is sometimes absent is a layout that is
     // sometimes absent.
     await renderPlaces();
-    expect(screen.getByRole("navigation", { name: "저장한 항목 둘러보기" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Inbox 필터" })).toBeInTheDocument();
   });
 
   it("does not claim an empty board is sample data", async () => {

@@ -2,7 +2,7 @@ import type { SourcePlatform } from "@taste-inbox/shared";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
-import { visibleBrowseModes } from "@/lib/navigation/edition";
+import { boardsAreAnAxis, visibleBrowseModes } from "@/lib/navigation/edition";
 import { cx } from "@/lib/cx";
 import { toUrlObject, type RawSearchParams } from "@/lib/filters/board-filters";
 import { canNarrowByDay, formatDayShort, type CollectedDay } from "@/lib/filters/collected-days";
@@ -124,45 +124,61 @@ export function CollectionRail({
   const dayIsFilter = canNarrowByDay(days);
   const onlyDay = dayIsFilter ? undefined : days[0];
 
+  /*
+   * `Browse by type` is a board list, and a board list is only a filter where the boards
+   * can differ. In the `rnd` edition they cannot: `Trends` holds everything the collectors
+   * produce, `None` holds nothing, and the three Instagram boards do not fill at all — so
+   * the block offered `All 135 / Trends 135 / None 0`, three rows that answer with the same
+   * screen (`lib/navigation/edition.ts`). The Inbox's real axes are below it: what kind of
+   * artifact, where it came from, and when it arrived.
+   *
+   * **Hidden, not removed.** `/trends` and `/none` still exist and still render; a tree
+   * without the marker — the personal workspace, where all five boards fill — draws the
+   * block exactly as before.
+   */
+  const boardModes = boardsAreAnAxis() ? visibleBrowseModes() : [];
+
   return (
-    <nav className={styles.rail} aria-label="저장한 항목 둘러보기">
-      <section className={styles.section}>
-        <h2 className={styles.label} lang="en">
-          Browse by type
-        </h2>
-        <ul className={styles.list}>
-          {visibleBrowseModes().map((mode) => {
-            const count = byMode[mode.id] ?? 0;
-            const active = pathname === mode.href || pathname.startsWith(`${mode.href}/`);
-            const name = `${mode.label} ${String(count)}개`;
-            return (
-              <li key={mode.id}>
-                <Link
-                  className={cx(styles.row, active ? styles.rowOn : null)}
-                  href={mode.href}
-                  /* A board is a destination, unlike a filter — so `page`, matching
+    <nav className={styles.rail} aria-label="Inbox 필터">
+      {boardModes.length === 0 ? null : (
+        <section className={styles.section}>
+          <h2 className={styles.label} lang="en">
+            Browse by type
+          </h2>
+          <ul className={styles.list}>
+            {boardModes.map((mode) => {
+              const count = byMode[mode.id] ?? 0;
+              const active = pathname === mode.href || pathname.startsWith(`${mode.href}/`);
+              const name = `${mode.label} ${String(count)}개`;
+              return (
+                <li key={mode.id}>
+                  <Link
+                    className={cx(styles.row, active ? styles.rowOn : null)}
+                    href={mode.href}
+                    /* A board is a destination, unlike a filter — so `page`, matching
                      GlobalNavPill and the mode tabs. */
-                  aria-current={active ? "page" : undefined}
-                  /* Collapsed, only the glyph shows, so both are mandatory (DESIGN.md
+                    aria-current={active ? "page" : undefined}
+                    /* Collapsed, only the glyph shows, so both are mandatory (DESIGN.md
                      §11.2) — and the count travels in the name rather than in colour. */
-                  aria-label={name}
-                  title={name}
-                >
-                  <span className={styles.glyph} aria-hidden="true" lang="en">
-                    {mode.label.slice(0, 1)}
-                  </span>
-                  <span className={styles.text} lang="en">
-                    {mode.label}
-                  </span>
-                  <span className={styles.count} aria-hidden="true">
-                    {count.toLocaleString("ko-KR")}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+                    aria-label={name}
+                    title={name}
+                  >
+                    <span className={styles.glyph} aria-hidden="true" lang="en">
+                      {mode.label.slice(0, 1)}
+                    </span>
+                    <span className={styles.text} lang="en">
+                      {mode.label}
+                    </span>
+                    <span className={styles.count} aria-hidden="true">
+                      {count.toLocaleString("ko-KR")}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {showSourceCounts ? (
         <>
@@ -171,7 +187,7 @@ export function CollectionRail({
               nothing, and unlike the rows above these have no tooltip to fall back on. */}
           <section className={cx(styles.section, styles.wideOnly)}>
             <h2 className={styles.label} lang="en">
-              Sources
+              Source
             </h2>
             <ul className={styles.list}>
               {sources.map((source) => (

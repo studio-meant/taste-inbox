@@ -191,19 +191,27 @@ export function parseMusicFilters(params: RawSearchParams): MusicBoardFilters {
 }
 
 /**
- * Browse > All — the merged board.
+ * The Inbox — the merged board.
  *
- * It carries exactly one facet, `source`, because that is the only field an AI post, a
- * fashion carousel and a saved Reel all answer. `kind` is deliberately absent: it exists on
- * one of the three models, so a merged board offering it would filter one board and silently
- * pass the other two through.
+ * It carries `source` unconditionally, because that is the only field an AI post, a fashion
+ * carousel and a saved Reel all answer. `kind` is conditional, and the condition is the
+ * board's own contents rather than a setting: a merged board offering a facet that exists
+ * on one of its three models would filter one list and silently pass the other two
+ * through — which is the failure docs/DECISIONS.md (2026-08-08) calls worse than not
+ * offering the filter at all.
  *
- * That is the same shape Style's parser already produces, so this is that parser under the
- * name of the board that reads it — an alias rather than a second copy, so the two cannot
- * drift apart.
+ * `withKind` is that condition, and the caller decides it by looking: when nothing on the
+ * board is a Style or Music row, every entry carries `kind` and the facet is honest. In the
+ * `rnd` edition that is every render — the browser collectors that fill those boards do not
+ * run — and in the personal workspace it is whichever days nothing was saved from
+ * Instagram. Either way it is read from the items, not declared.
  */
-export const parseLibraryFilters: (params: RawSearchParams) => StyleBoardFilters =
-  parseStyleFilters;
+export function parseLibraryFilters(
+  params: RawSearchParams,
+  { withKind = false }: { readonly withKind?: boolean } = {},
+): AIBoardFilters | StyleBoardFilters {
+  return withKind ? parseAIFilters(params) : parseStyleFilters(params);
+}
 
 /** True when the board is showing everything it has. */
 export function isUnfiltered(filters: AIBoardFilters | StyleBoardFilters): boolean {

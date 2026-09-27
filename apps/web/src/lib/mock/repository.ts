@@ -26,6 +26,7 @@ import {
   type SourcePlatform,
   type StyleItemCardModel,
   type TodayPayload,
+  type QuestionStartResponse,
   type TrialStartResponse,
 } from "@taste-inbox/shared";
 import hostProfileFixture from "../../../../../data/fixtures/host-profiles/capacity-16gb-512gb.json";
@@ -490,15 +491,20 @@ export class MockRepository implements TasteInboxRepository {
         canonicalUrl: item.source.originalUrl,
         author: item.source.author ?? null,
         actionAt: null,
+        actionType: item.source.actionType ?? null,
         firstSeenAt: item.firstSeenAt,
       },
       context: null,
       outbound: { serverUrl: null, local: null, query: null, error: MOCK_RUNTIME_MESSAGE },
       bundle: null,
       research: null,
+      asked: null,
+      // Mock mode reaches no runtime, so there is no research to condition a question on
+      // and nothing is offered. The Lab says why rather than showing four dead chips.
+      suggestedQuestions: [],
       suggestion: null,
       trial: null,
-      jobs: { research: null, trial: null },
+      jobs: { research: null, plan: null, trial: null },
       boundary: {
         sandbox: "taste-inbox",
         ready: false,
@@ -512,6 +518,10 @@ export class MockRepository implements TasteInboxRepository {
   }
 
   startResearch(): Promise<ResearchStartResponse> {
+    return Promise.reject(new ApiDataError("mock_mode", MOCK_RUNTIME_MESSAGE, false));
+  }
+
+  askQuestion(): Promise<QuestionStartResponse> {
     return Promise.reject(new ApiDataError("mock_mode", MOCK_RUNTIME_MESSAGE, false));
   }
 

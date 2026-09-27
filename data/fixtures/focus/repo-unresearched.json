@@ -8,6 +8,7 @@
     "canonicalUrl": "https://github.com/debpalash/VoiceStudio",
     "author": "debpalash",
     "actionAt": "2026-09-26T09:00:00Z",
+    "actionType": "star",
     "firstSeenAt": "2026-09-28T00:00:00Z"
   },
   "context": {
@@ -101,10 +102,13 @@
   },
   "bundle": null,
   "research": null,
+  "asked": null,
+  "suggestedQuestions": [],
   "suggestion": null,
   "trial": null,
   "jobs": {
     "research": null,
+    "plan": null,
     "trial": null
   },
   "boundary": {

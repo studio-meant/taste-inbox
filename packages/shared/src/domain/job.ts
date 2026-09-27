@@ -23,6 +23,15 @@ export const JobTypeSchema = z.enum([
   "price",
   "cleanup",
   /**
+   * The pass that turns a user's question into a verification goal, acceptance criteria
+   * and a trial plan (2026-09-28, `research/question.py`).
+   *
+   * Added here the same day it was added to the service, and for the reason the note
+   * below already records: a type this enum lacks rejects the whole job list and takes
+   * every workspace page down with it. It happened again with this one.
+   */
+  "plan",
+  /**
    * NVIDIA AI-Q research on one item, and one approved sandbox trial (2026-09-28).
    *
    * The service writes both types into the same `jobs` table, and the workspace layout

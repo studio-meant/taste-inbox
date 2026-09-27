@@ -31,6 +31,7 @@ export function StyleItemCard({
   size = "tall",
   index = 0,
   board,
+  labHref,
   returnHref,
 }: {
   readonly item: StyleItemCardModel;
@@ -38,6 +39,7 @@ export function StyleItemCard({
   readonly index?: number;
   /** The board the page is showing; `BrowseCard` draws the picker when it is given one. */
   readonly board?: ItemBoard;
+  readonly labHref?: string;
   readonly returnHref?: string;
 }) {
   const photos = item.media;
@@ -74,6 +76,7 @@ export function StyleItemCard({
       size={size}
       index={index}
       board={board}
+      labHref={labHref}
       returnHref={returnHref}
       eyebrow="Style"
       title={item.descriptor}

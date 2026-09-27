@@ -129,7 +129,11 @@ def test_focus_before_any_research(
     assert body["research"] is None
     assert body["suggestion"] is None
     assert body["trial"] is None
-    assert body["jobs"] == {"research": None, "trial": None}
+    assert body["asked"] is None
+    assert body["jobs"] == {"research": None, "plan": None, "trial": None}
+    # No research yet, so nothing to condition a question on. Four generic chips here would
+    # be a guess wearing a suggestion's clothes.
+    assert body["suggestedQuestions"] == []
     assert body["boundary"]["ready"] is True
     assert body["boundary"]["missingPresets"] == []
     assert any(row["policy"] == "github" for row in body["boundary"]["endpoints"])

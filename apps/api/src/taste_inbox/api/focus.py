@@ -21,8 +21,9 @@ from urllib.parse import urlsplit
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..action import proposal
+from ..action import proposal, questions
 from ..db.models import Evidence, Item, Job, JobStep
+from ..research import question as question_runner
 from ..research import runner as research_runner
 from ..sandbox import nemoclaw
 from ..sandbox import policy as sandbox_policy
@@ -168,6 +169,34 @@ def _outbound(context: Any) -> dict[str, Any]:
     }
 
 
+def current_suggestion(
+    session: Session, item: Item
+) -> tuple[proposal.SuggestedAction | None, dict[str, Any] | None]:
+    """The trial as it stands for this item, and the question behind it if there is one.
+
+    **One composer, called by both readers.** `GET /api/focus` draws this and
+    `POST /api/trials` runs it, and the second must run exactly what the first showed. They
+    each built their own before this existed, which was fine only for as long as there was
+    one way to build it; a question that changes the plan makes two builders two plans, and
+    the user would approve one and get the other.
+    """
+
+    research = research_runner.latest(session, item.id)
+    asked = question_runner.latest(session, item.id)
+    if not research or not research.get("report"):
+        return None, asked
+
+    built = proposal.build(
+        subject_id=item.id,
+        subject_title=item.title or item.canonical_url,
+        subject_url=item.canonical_url,
+        report=research["report"],
+        question=(asked or {}).get("question"),
+        plan_report=(asked or {}).get("report"),
+    )
+    return built, asked
+
+
 def payload(session: Session, item_id: str) -> dict[str, Any] | None:
     """The whole screen, or None when there is no such item."""
 
@@ -178,16 +207,10 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
     context = taste_context.build(session, item_id)
     research = research_runner.latest(session, item_id)
     trial = trial_runner.latest(session, item_id)
+    bundle = _bundle(session, item_id)
 
-    suggestion: dict[str, Any] | None = None
-    if research and research.get("report"):
-        built = proposal.build(
-            subject_id=item_id,
-            subject_title=item.title or item.canonical_url,
-            subject_url=item.canonical_url,
-            report=research["report"],
-        )
-        suggestion = built.as_dict()
+    built, asked = current_suggestion(session, item)
+    suggestion = built.as_dict() if built else None
 
     # Read rather than assumed: the card says which sandbox and which policies a trial
     # would run under, and it has to be true at the moment the person is looking.
@@ -206,16 +229,38 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
             # per-source value exists for items that arrived through more than one signal.
             "actionAt": item.action_at
             or next((source.action_at for source in item.sources if source.action_at), None),
+            # What the user actually did — star, like, upvote. The canvas printed a label
+            # keyed by *platform* before this, which said 좋아요 on an upvoted paper.
+            "actionType": next(
+                (source.action_type for source in item.sources if source.action_type), None
+            ),
             "firstSeenAt": item.first_seen_at,
         },
         "context": context.as_dict() if context else None,
         "outbound": _outbound(context),
-        "bundle": _bundle(session, item_id),
+        "bundle": bundle,
         "research": research,
+        "asked": asked,
+        # Offered only once there is something to ask *about*. Before research the Lab has
+        # nothing to condition a question on, and four generic chips would be a guess
+        # dressed as a suggestion.
+        "suggestedQuestions": [
+            row.as_dict()
+            for row in questions.build(
+                kind=item.kind,
+                title=item.title or item.canonical_url,
+                platform=item.platform,
+                bundle=bundle,
+                context=context.as_dict() if context else None,
+                has_research=bool(research and research.get("report")),
+                actionable=built.actionable if built else None,
+            )
+        ],
         "suggestion": suggestion,
         "trial": trial,
         "jobs": {
             "research": _latest_job(session, item_id, "research"),
+            "plan": _latest_job(session, item_id, "plan"),
             "trial": _latest_job(session, item_id, "trial"),
         },
         "boundary": {
@@ -239,4 +284,4 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
     }
 
 
-__all__ = ["BOUNDARY_TTL_SECONDS", "forget_boundary", "payload"]
+__all__ = ["BOUNDARY_TTL_SECONDS", "current_suggestion", "forget_boundary", "payload"]

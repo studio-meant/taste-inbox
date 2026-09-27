@@ -80,7 +80,7 @@ describe("the no-board inbox", () => {
     // left column, and a column that is sometimes absent is a layout that is sometimes
     // absent.
     await renderShelf(new MockRepository());
-    expect(screen.getByRole("navigation", { name: "저장한 항목 둘러보기" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Inbox 필터" })).toBeInTheDocument();
   });
 
   it("draws no filter over a shelf that has nothing to separate", async () => {

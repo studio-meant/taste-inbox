@@ -56,7 +56,16 @@ export const DESTINATIONS: readonly Destination[] = [
   },
   {
     id: "browse",
-    label: "Browse",
+    /*
+     * `Inbox`, not `Browse` (2026-09-28).
+     *
+     * The id stays `browse` because it keys the route matcher, the shortcut and every
+     * test; the *label* is what a person reads, and this destination is not exploration in
+     * general. It is where the R&D interest signals someone left on GitHub and Hugging
+     * Face gather and get connected — `Taste Inbox R&D → Inbox → Lab` is the product's own
+     * structure, and `Browse` names none of it.
+     */
+    label: "Inbox",
     href: "/library",
     icon: Compass,
     // AI, Style, Music and Places are contextual modes inside Browse, so all of them keep
@@ -80,9 +89,10 @@ export const DESTINATIONS: readonly Destination[] = [
 ];
 
 /**
- * The desktop pill carries only Today and Browse.
+ * The desktop pill carries only Today and the Inbox.
  *
- * IA §4: "중앙 pill navigation은 `Today / Browse` 두 공간만 담는다." System is reached
+ * IA §4: "중앙 pill navigation은 `Today / Browse` 두 공간만 담는다." (The second is labelled
+ * `Inbox` as of 2026-09-28; it is the same destination.) System is reached
  * from the right-hand status indicator, the mobile bar, or `⌘ K`.
  *
  * Note: DESIGN.md §4 "Navigation states → Today" still lists a four-item pill

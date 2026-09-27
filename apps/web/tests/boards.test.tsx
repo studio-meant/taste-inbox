@@ -534,7 +534,7 @@ describe("CollectionRail", () => {
         groups={[]}
       />,
     );
-    expect(screen.getByRole("navigation", { name: "저장한 항목 둘러보기" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Inbox 필터" })).toBeInTheDocument();
   });
 
   it("counts every board, and says the number in the accessible name", () => {

@@ -10,6 +10,17 @@ import { APP_LOCALE } from "@/lib/format/datetime";
  */
 
 /**
+ * The product's name, as it is said out loud.
+ *
+ * `Taste Inbox R&D` since 2026-09-28. The `R&D` is not decoration: it names the scope this
+ * build works in — the interest signals a person leaves on GitHub and Hugging Face — and
+ * without it the splash reads as a taste app for music and clothes, which is what the tree
+ * this one forked from was (`docs/PROVENANCE.md`). One constant, so the splash, the
+ * greeting and the document title cannot disagree.
+ */
+export const PRODUCT_NAME = "Taste Inbox R&D";
+
+/**
  * The only name this product has.
  *
  * It is a literal, not a setting. `packages/shared/src/domain/settings.ts` `SETTING_KEYS`
@@ -61,8 +72,10 @@ export function greetingHeadline(greeting: string, name: string = PROFILE_NAME):
  * `api/today.py` follows throughout require the zero state to say so.
  */
 export function entrySubline(newItems: number): string {
+  // `취향` → `관심 항목` (2026-09-28). The same sentence shape, about the right thing: this
+  // build collects stars, likes and paper upvotes, and 취향 sets up a music-and-clothes app.
   return newItems > 0
-    ? "오늘 새롭게 들어온 취향을 정리했어요."
+    ? "오늘 새로 들어온 관심 항목을 정리했어요."
     : "오늘은 아직 새로 들어온 항목이 없어요.";
 }
 

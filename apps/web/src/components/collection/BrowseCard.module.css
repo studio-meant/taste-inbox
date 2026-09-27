@@ -351,3 +351,70 @@
   animation: none;
   transition: none;
 }
+
+/* ──────────────────────────────────────────────────────── the tail of the tags */
+
+/*
+ * `+11`. A count, not a control: the cell is a fixed grid row and there is nothing to
+ * expand into without shoving every neighbour down. The tags it stands for travel in its
+ * accessible name and are all on the item's own page.
+ */
+.tagRest {
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--ink) 16%, transparent);
+  color: var(--subtle);
+  font-weight: 600;
+}
+
+/* ───────────────────────────────────────────────────────────── open in lab */
+
+/*
+ * The card's next action, sitting where the classification dropdown used to.
+ *
+ * `z-index` above the stretched title link: the whole card is clickable through that
+ * anchor, and without this the Lab link would be covered by the thing it sits inside.
+ */
+.lab {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin-block-start: var(--space-2);
+  padding: 4px 10px 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--forest) 22%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--light-green) 46%, var(--surface));
+  color: var(--accent-deep);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.lab:hover,
+.lab:focus-visible {
+  background: var(--light-green);
+  border-color: color-mix(in srgb, var(--forest) 40%, transparent);
+}
+
+.labArrow {
+  transition: transform 160ms ease;
+}
+
+.lab:hover .labArrow {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .labArrow {
+    transition: none;
+  }
+
+  .lab:hover .labArrow {
+    transform: none;
+  }
+}

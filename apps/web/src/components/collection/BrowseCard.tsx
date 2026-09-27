@@ -1,5 +1,6 @@
 import type { ItemBoard, SourceRef } from "@taste-inbox/shared";
 import type { StatusTone } from "@taste-inbox/ui/theme";
+import { FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/components/primitives";
 import { BoardPicker } from "./BoardPicker";
@@ -156,6 +157,14 @@ export interface BrowseCardProps {
    * changes, three mappers and a fourth place for the answer to be wrong.
    */
   readonly board?: ItemBoard;
+  /**
+   * Where this item is investigated — `/focus/[itemId]`, which a person reads as the Lab.
+   *
+   * Supplying it draws the card's next action; omitting it draws nothing. Every collected
+   * item can be opened there, so every Inbox board passes it; Today's summary cards do
+   * not, because they are a glance rather than a place to choose from.
+   */
+  readonly labHref?: string;
   /** Exact filtered Browse URL to restore after reading the detail page. */
   readonly returnHref?: string;
 }
@@ -174,6 +183,7 @@ export function BrowseCard({
   tags = [],
   children,
   board,
+  labHref,
   returnHref,
 }: BrowseCardProps) {
   const headingId = `browse-${id}`;
@@ -253,6 +263,27 @@ export function BrowseCard({
           <BoardPicker itemId={id} board={board} itemTitle={title} compact />
         )}
 
+        {/*
+          The card's next action, in the slot the board picker used to own alone.
+
+          `Open in Lab`, and not `Send to Lab` or `Explore in Lab`: one phrase across the
+          landing page, the card, the breadcrumb and the Lab's own toolbar
+          (docs/next_step §3). It is above the footer for the same reason the picker is —
+          `.foot` is `display: none` on a `small` card, which is exactly the card a repo
+          with no picture gets, and the one action the Inbox exists to offer must not
+          vanish on the plainest rows.
+        */}
+        {labHref === undefined ? null : (
+          <Link className={styles.lab} href={toUrlObject(labHref)}>
+            <FlaskConical size={13} strokeWidth={1.9} aria-hidden="true" />
+            <span lang="en">Open in Lab</span>
+            <span className="visually-hidden">{` — ${title}`}</span>
+            <span className={styles.labArrow} aria-hidden="true">
+              →
+            </span>
+          </Link>
+        )}
+
         <div className={styles.foot}>
           <span className={styles.footStatus}>
             <StatusPill tone={status.tone} ariaLabel={status.ariaLabel}>
@@ -273,20 +304,46 @@ export function BrowseCard({
 }
 
 /**
- * The hashtags the author wrote, with the first one greened.
+ * How many tags a card prints before the rest become a count.
+ *
+ * Measured against the collected library rather than chosen: a GitHub repository carries
+ * up to twenty topics and a Hugging Face model its whole tag list, and a card printing all
+ * of them is a tag wall two thirds the height of the card with the title above it and the
+ * next action buried under it. The Inbox card's job is **scan and choose**; the whole list
+ * is one click away in the Lab, which is where depth belongs (docs/next_step UI §1.6).
+ */
+const VISIBLE_TAGS = 4;
+
+/**
+ * The hashtags the author wrote, with the first one greened and the tail counted.
  *
  * `tone: i === 0 ? 'green' : 'neutral'` in the reference. It is emphasis, not meaning — the
  * lead tag is not a different kind of tag — so nothing here depends on the colour.
+ *
+ * The `+N` is a count, not a control: there is nothing to expand into on a fixed-height
+ * grid cell, and the full list is on the item's own page. It carries the remaining tags as
+ * its accessible name, so nothing is hidden from a screen reader that is visible to a
+ * sighted reader who clicks through.
  */
 export function BrowseTags({ tags }: { readonly tags: readonly string[] }) {
   if (tags.length === 0) return null;
+  const shown = tags.slice(0, VISIBLE_TAGS);
+  const rest = tags.slice(VISIBLE_TAGS);
   return (
     <ul className={styles.tagRow} aria-label="해시태그">
-      {tags.map((tag, i) => (
+      {shown.map((tag, i) => (
         <li key={tag} className={cx(styles.tag, i === 0 ? styles.tagLead : null)}>
           {tag}
         </li>
       ))}
+      {rest.length === 0 ? null : (
+        <li className={cx(styles.tag, styles.tagRest)} title={rest.join(", ")}>
+          +{rest.length}
+          <span className="visually-hidden">
+            {`그 밖의 태그 ${String(rest.length)}개: ${rest.join(", ")}`}
+          </span>
+        </li>
+      )}
     </ul>
   );
 }

@@ -1,8 +1,9 @@
-import type { FocusJob, FocusPayload, SourcePlatform, TrialDenial } from "@taste-inbox/shared";
+import type { FocusJob, FocusPayload, SourceRef, TrialDenial } from "@taste-inbox/shared";
 import { ArrowLeft, ExternalLink, FileText, ShieldAlert, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/components/primitives";
 import { PaperBundleCard } from "@/components/paper/PaperBundleCard";
+import { LabQueryDock } from "@/components/query/LabQueryDock";
 import { RefreshWhileRunning } from "@/components/shell/RefreshWhileRunning";
 import { SourceMark } from "@/components/today/SourceMark";
 import { platformLabel } from "@/components/collection/source-vocabulary";
@@ -23,12 +24,26 @@ import { TrySafely } from "./TrySafely";
 import styles from "./FocusCanvas.module.css";
 
 /**
- * Focus Canvas — one item, the evidence around it, and the step it can take.
+ * The Lab — one item, what the docs say about it, what happened when we tried.
  *
  * `/focus/[itemId]`, PAGE_SPECIFICATIONS §6.1 (the 2026-09-28 `itemId` build) and
- * NVIDIA_HACKATHON_PLAN §6.1. A Server Component throughout: every panel is a statement
- * read from one payload, and the only client code is the two buttons that start work and
- * the re-read that follows it (`RefreshWhileRunning`), mounted only while a job is moving.
+ * NVIDIA_HACKATHON_PLAN §6.1. The route and the components keep the name they were built
+ * with; **Lab** is what a person reads, because that is the product's own word for the
+ * place an interest becomes evidence (docs/next_step, 2026-09-28). Renaming the files
+ * would cost a morning and buy a diff.
+ *
+ * A Server Component throughout: every panel is a statement read from one payload, and the
+ * only client code is the composer, the two buttons that start work, and the re-read that
+ * follows them (`RefreshWhileRunning`), mounted only while a job is moving.
+ *
+ * ── The one division this screen is organised around ────────────────────────────────
+ *
+ *   RESEARCH EVIDENCE  · What the docs say          ← AI-Q, citations intact
+ *   OBSERVED EVIDENCE  · What happened when we tried ← OpenShell, exit codes and refusals
+ *
+ * They are never mixed and never styled alike. A claim found on the web and a result
+ * observed in a sandbox are different kinds of fact, and the whole product is the distance
+ * between them.
  *
  * **What this screen will not do** is draw a number nobody measured. The reference's
  * `Peak RAM 6.4GB · Disk 3.8GB · Port 7860` panel is replaced by what the sandbox itself
@@ -36,15 +51,28 @@ import styles from "./FocusCanvas.module.css";
  * with nothing to say says so in words.
  */
 
-const ACTION_LABEL: Readonly<Record<SourcePlatform, string>> = {
-  github: "스타",
-  huggingface: "좋아요",
-  arxiv: "저장",
-  threads: "리포스트",
-  linkedin: "반응",
-  instagram: "저장",
-  web: "추가",
+/**
+ * What the user did, from what they actually did.
+ *
+ * Keyed on `actionType`, not on the platform. Keyed on the platform it said 좋아요 for
+ * every Hugging Face row, which stopped being true the day paper upvotes became their own
+ * signal — an upvoted paper and a paper a liked model happens to cite are two different
+ * claims about the person (`ingest/captures.py::API_SURFACES`).
+ */
+const ACTION_LABEL: Readonly<Record<NonNullable<SourceRef["actionType"]>, string>> = {
+  star: "스타",
+  like: "좋아요",
+  upvote: "업보트",
+  save: "저장",
+  repost: "리포스트",
 };
+
+/** `GitHub 스타`, `Hugging Face 업보트`. The platform alone when the act was not recorded. */
+function signalLabel(payload: FocusPayload): string {
+  const platform = platformLabel(payload.item.platform);
+  const action = payload.item.actionType;
+  return action === null ? platform : `${platform} ${ACTION_LABEL[action]}`;
+}
 
 export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
   const state = canvasState(payload);
@@ -55,12 +83,12 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
       {state.moving ? <RefreshWhileRunning /> : null}
 
       <div className={styles.toolbar}>
-        <Link className={styles.back} href={`/items/${item.id}`}>
+        <Link className={styles.back} href="/library">
           <ArrowLeft size={15} strokeWidth={1.75} aria-hidden="true" />
-          항목으로
+          Inbox
         </Link>
         <p className={styles.toolbarLabel} lang="en">
-          Focus Canvas · one item · connected evidence · prepared action
+          Lab · what the docs say · what happened when we tried
         </p>
       </div>
 
@@ -70,7 +98,7 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
             <span className={styles.kindChip}>{KIND_LABEL[item.kind]}</span>
             <span className={styles.source}>
               <SourceMark platform={item.platform} size={14} />
-              {platformLabel(item.platform)} {ACTION_LABEL[item.platform]}
+              {signalLabel(payload)}
               {item.actionAt === null ? null : (
                 <>
                   {" · "}
@@ -105,6 +133,7 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
           <ResearchPanel payload={payload} />
         </div>
         <div className={styles.column}>
+          <QuestionPanel payload={payload} />
           <ActionPanel payload={payload} />
           <TrialPanel payload={payload} />
         </div>
@@ -121,6 +150,7 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
 
 function Panel({
   id,
+  eyebrow,
   title,
   titleLang,
   aside,
@@ -128,6 +158,15 @@ function Panel({
   className,
 }: {
   readonly id: string;
+  /**
+   * Which kind of evidence this panel holds — `RESEARCH EVIDENCE`, `OBSERVED EVIDENCE`.
+   *
+   * English, small and above the title, because it is one of the product's own nouns and
+   * the landing page uses the same words (docs/next_step §11). It is not decoration: it is
+   * what stops a reader from taking a sentence AI-Q found on the web for something a
+   * sandbox observed.
+   */
+  readonly eyebrow?: string;
   readonly title: string;
   readonly titleLang?: string;
   readonly aside?: React.ReactNode;
@@ -137,9 +176,16 @@ function Panel({
   return (
     <section className={cx(styles.panel, className)} aria-labelledby={id}>
       <div className={styles.panelHead}>
-        <h2 id={id} className={styles.panelTitle} lang={titleLang}>
-          {title}
-        </h2>
+        <div>
+          {eyebrow === undefined ? null : (
+            <p className={styles.panelEyebrow} lang="en">
+              {eyebrow}
+            </p>
+          )}
+          <h2 id={id} className={styles.panelTitle} lang={titleLang}>
+            {title}
+          </h2>
+        </div>
         {aside}
       </div>
       {children}
@@ -245,7 +291,12 @@ function ResearchPanel({ payload }: { readonly payload: FocusPayload }) {
       : `${outbound.serverUrl} (${outbound.local === true ? "이 기계" : "외부 서버"})`;
 
   return (
-    <Panel id="focus-research" title="NVIDIA AI-Q 조사" aside={<JobPill job={job} />}>
+    <Panel
+      id="focus-research"
+      eyebrow="Research evidence · what the docs say"
+      title="NVIDIA AI-Q 조사"
+      aside={<JobPill job={job} />}
+    >
       {isActive(job) && job !== null ? (
         <JobSteps job={job} />
       ) : job?.state === "failed" ? (
@@ -314,6 +365,58 @@ function ResearchPanel({ payload }: { readonly payload: FocusPayload }) {
   );
 }
 
+/* ──────────────────────────────────────────── what do you want to know? */
+
+/**
+ * The half of the Lab only a person can start.
+ *
+ * Research first, then the question — that is the order the product is built in, and it is
+ * why this panel says "조사를 먼저" rather than offering a field that would be refused. The
+ * suggestions come from the item's own row (`action/questions.py`), the composer is the
+ * dock this product has always had, and both end in the same POST.
+ *
+ * What it must never do is choose. An agent that picked the question would be answering a
+ * question about a benchmark it invented, which is the failure this whole screen is
+ * arranged against.
+ */
+function QuestionPanel({ payload }: { readonly payload: FocusPayload }) {
+  const job = payload.jobs.plan;
+  const planning = isActive(job);
+  const failed = job?.steps.find((step) => step.state === "failed") ?? null;
+
+  const disabledReason =
+    payload.research === null
+      ? "먼저 이 항목을 조사하면, 조사 결과를 바탕으로 질문을 제안해 드려요."
+      : (payload.outbound.error ?? null);
+
+  return (
+    <Panel
+      id="focus-question"
+      eyebrow="What do you want to know?"
+      title="무엇을 확인하고 싶으세요?"
+      aside={<JobPill job={job} />}
+    >
+      <p className={styles.lead}>무엇을 확인할지는 사람이, 어떻게 확인할지는 Agent가 정해요.</p>
+
+      {planning && job !== null ? <JobSteps job={job} /> : null}
+      {!planning && job?.state === "failed" ? (
+        <p className={styles.refusal} role="status">
+          검증 설계가 끝나지 못했어요{failed?.message ? `: ${failed.message}` : "."} 질문은 그대로
+          남아 있어요 — 다시 보내면 같은 질문으로 설계를 시도해요.
+        </p>
+      ) : null}
+
+      <LabQueryDock
+        itemId={payload.item.id}
+        suggestions={payload.suggestedQuestions}
+        asked={payload.asked}
+        planning={planning}
+        disabledReason={disabledReason}
+      />
+    </Panel>
+  );
+}
+
 /* ───────────────────────────────────────────────────── action preview / try */
 
 function ActionPanel({ payload }: { readonly payload: FocusPayload }) {
@@ -330,8 +433,20 @@ function ActionPanel({ payload }: { readonly payload: FocusPayload }) {
           ? `필요한 정책 프리셋이 적용되지 않았어요: ${boundary.missingPresets.join(", ")}`
           : null;
 
+  /*
+   * Whose idea this trial was. The two are different claims, and the panel says which:
+   * `suggested` is AI-Q's own first step, offered before anyone asked for anything;
+   * `question` is a check designed for something the person actually wanted to know.
+   */
+  const fromQuestion = suggestion?.origin === "question";
+
   return (
-    <Panel id="focus-action" title="다음 한 걸음" className={styles.actionPanel}>
+    <Panel
+      id="focus-action"
+      eyebrow={fromQuestion ? "Trial plan · your question" : "Suggested trial · AI-Q proposed it"}
+      title={fromQuestion ? "질문 기반 Trial Plan" : "추천 검증 (Suggested Trial)"}
+      className={styles.actionPanel}
+    >
       {suggestion === null ? (
         <p className={styles.empty}>조사가 끝나면 가장 작은 검증 가능한 한 걸음이 여기 나와요.</p>
       ) : !suggestion.actionable ? (
@@ -340,11 +455,30 @@ function ActionPanel({ payload }: { readonly payload: FocusPayload }) {
         </p>
       ) : (
         <>
+          {fromQuestion && suggestion.plan.question !== null ? (
+            <p className={styles.askedLine}>
+              <span className={styles.label} lang="en">
+                The agent turned your question into a trial
+              </span>
+              {suggestion.plan.question}
+            </p>
+          ) : null}
           <p className={styles.headline}>{suggestion.headline}</p>
           <dl className={styles.terms2}>
+            {suggestion.plan.verificationGoal === null ? null : (
+              <div>
+                <dt lang="en">Verification goal</dt>
+                <dd>{suggestion.plan.verificationGoal}</dd>
+              </div>
+            )}
             <div>
-              <dt>성공 조건</dt>
-              <dd>{suggestion.plan.successCriteria}</dd>
+              {/* Named for what it is. Before a question it is this product's generic
+                  "the thing started"; after one it is AI-Q's own criteria for the
+                  question, and calling both 성공 조건 would hide that. */}
+              <dt lang={suggestion.plan.acceptanceCriteria === null ? undefined : "en"}>
+                {suggestion.plan.acceptanceCriteria === null ? "성공 조건" : "Acceptance criteria"}
+              </dt>
+              <dd className={styles.criteria}>{suggestion.plan.successCriteria}</dd>
             </div>
             <div>
               <dt>여는 곳</dt>
@@ -422,7 +556,12 @@ function TrialPanel({ payload }: { readonly payload: FocusPayload }) {
   ];
 
   return (
-    <Panel id="focus-trial" title="샌드박스 실행 결과" aside={<JobPill job={job} />}>
+    <Panel
+      id="focus-trial"
+      eyebrow="Observed evidence · what happened when we tried"
+      title="샌드박스 실행 결과"
+      aside={<JobPill job={job} />}
+    >
       {job === null ? null : <JobSteps job={job} />}
       {trial === null || isActive(job) ? null : (
         <>
@@ -461,11 +600,19 @@ function TrialPanel({ payload }: { readonly payload: FocusPayload }) {
 
 /* ─────────────────────────────────────────────────────────── lower row */
 
+/**
+ * Interest signal → Research → Question → Trial plan → Execution → Evidence.
+ *
+ * Five steps rather than three, and the two new ones are the ones that make it a *trail*
+ * rather than a pipeline diagram: a question somebody asked, and the plan an agent designed
+ * for it. Every row is drawn from something that actually happened — a step with no time is
+ * drawn as not reached, never as pending-but-assumed.
+ */
 function EvidenceTrail({ payload }: { readonly payload: FocusPayload }) {
-  const { item, research, trial, jobs } = payload;
+  const { item, research, asked, trial, jobs } = payload;
   const trail: readonly { label: string; detail: string; at: string | null }[] = [
     {
-      label: `${platformLabel(item.platform)} ${ACTION_LABEL[item.platform]}`,
+      label: signalLabel(payload),
       detail: "당신이 남긴 신호",
       at: item.actionAt ?? item.firstSeenAt,
     },
@@ -480,13 +627,28 @@ function EvidenceTrail({ payload }: { readonly payload: FocusPayload }) {
       at: research?.observedAt ?? null,
     },
     {
+      label: "질문 · 사용자",
+      detail: asked === null ? "아직 묻지 않음" : asked.question,
+      at: asked?.askedAt ?? null,
+    },
+    {
+      label: "검증 설계 · NVIDIA AI-Q",
+      detail:
+        asked?.report != null
+          ? "검증 기준과 Trial Plan"
+          : jobs.plan === null
+            ? "아직 하지 않음"
+            : JOB_STATE_LABEL[jobs.plan.state],
+      at: asked?.observedAt ?? null,
+    },
+    {
       label: "샌드박스 실행 · OpenShell",
       detail: jobs.trial === null ? "아직 하지 않음" : JOB_STATE_LABEL[jobs.trial.state],
       at: trial?.observedAt ?? null,
     },
   ];
   return (
-    <Panel id="focus-trail" title="Source trail" titleLang="en">
+    <Panel id="focus-trail" title="Source Trail" titleLang="en">
       <ol className={styles.trail}>
         {trail.map((step) => (
           <li key={step.label} data-reached={step.at !== null}>
@@ -514,8 +676,34 @@ function PolicyLedger({ payload }: { readonly payload: FocusPayload }) {
   const endpoints = payload.boundary.endpoints;
   const hostCount = new Set(endpoints.flatMap((row) => row.hosts)).size;
 
+  /*
+   * One sentence over the rows, and only when there are rows to summarise.
+   *
+   * The ledger's value is that it names the actual host and the actual program, and that
+   * stays below. What it was missing is the line a person can act on: which hosts, how
+   * many attempts, and that the next run can be given them. Built from the rows rather
+   * than written beside them, so it cannot say something the rows do not.
+   */
+  const attempts = denials.reduce((total, row) => total + (row.count ?? 1), 0);
+  const hosts = [...new Set(denials.map((row) => row.host))];
+  const summary =
+    hosts.length === 0
+      ? null
+      : `${hosts.slice(0, 2).join(", ")}${hosts.length > 2 ? ` 외 ${String(hosts.length - 2)}곳` : ""} 접근이 현재 정책에서 차단됐어요 (시도 ${String(attempts)}회). 필요한 endpoint만 허용한 뒤 다시 실행할 수 있어요.`;
+
   return (
-    <Panel id="focus-ledger" title="Policy ledger" titleLang="en">
+    <Panel
+      id="focus-ledger"
+      eyebrow="Observed evidence · the boundary, as it behaved"
+      title="Policy Ledger"
+      titleLang="en"
+    >
+      {summary === null ? null : (
+        <p className={styles.ledgerSummary} role="status">
+          <ShieldAlert size={15} strokeWidth={1.75} aria-hidden="true" />
+          {summary}
+        </p>
+      )}
       <div className={styles.ledgerBlock}>
         <p className={styles.label}>실행 중 막힌 연결</p>
         {payload.trial === null ? (
@@ -601,7 +789,12 @@ function denialSentence(row: TrialDenial): string {
 function Artifacts({ payload }: { readonly payload: FocusPayload }) {
   const artifacts = payload.trial?.artifacts ?? [];
   return (
-    <Panel id="focus-files" title="Related files" titleLang="en">
+    <Panel
+      id="focus-files"
+      eyebrow="Observed evidence · left in the sandbox"
+      title="Related Files"
+      titleLang="en"
+    >
       {payload.trial === null ? (
         <p className={styles.empty}>실행하면 샌드박스 작업 폴더에 남은 파일이 여기 나와요.</p>
       ) : artifacts.length === 0 ? (

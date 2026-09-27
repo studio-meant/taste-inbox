@@ -483,6 +483,122 @@ def research_start(
     return {"data": {"jobId": job_id, "state": "queued", "serverUrl": server_url, "target": target}}
 
 
+#: The longest question this endpoint accepts.
+#:
+#: It is the one piece of free text this product sends off the machine that the user wrote
+#: rather than chose, so it is bounded — a pasted document would become a prompt nobody
+#: reviewed, and `api/focus.py` shows the brief before it is sent on the assumption that a
+#: person can read it.
+MAX_QUESTION_CHARS = 500
+
+
+@app.post("/api/lab/questions", status_code=202)
+def lab_question_start(
+    body: dict[str, Any] | None = None, session: Session = Depends(get_session)
+) -> dict[str, Any]:
+    """`What do you want to know?` — the question, and the plan AI-Q designs for it.
+
+    The question is recorded synchronously and the planning pass runs in the background,
+    so the screen can say "this is what you asked" the moment it answers, even if the pass
+    later fails. Research has to exist first: the planning pass is given the earlier report
+    for continuity, and without it the agent would be designing a check for a subject
+    nobody has looked at.
+
+    **Only a person reaches this.** The agent never picks a question — that is the whole
+    asymmetry the Lab is built on (`무엇을 확인할지는 사람, 어떻게 확인할지는 Agent`).
+    """
+
+    from ..research import question as question_runner
+    from ..research import runner as research_runner
+    from ..research.aiq_client import (
+        AiqUnavailable,
+        describe_target,
+        ensure_backend,
+        resolve_server,
+    )
+    from . import background
+
+    payload = body or {}
+    item_id = str(payload.get("itemId") or "").strip()
+    question = str(payload.get("question") or "").strip()
+    if not item_id:
+        raise ApiError(422, "item_required", "질문할 항목을 지정해 주세요.", recoverable=True)
+    if not question:
+        raise ApiError(
+            422, "question_required", "무엇을 확인하고 싶은지 적어주세요.", recoverable=True
+        )
+    if len(question) > MAX_QUESTION_CHARS:
+        raise ApiError(
+            422,
+            "question_too_long",
+            f"질문은 {MAX_QUESTION_CHARS}자까지예요. 확인하고 싶은 한 가지로 좁혀 주세요.",
+            recoverable=True,
+        )
+
+    item = session.get(Item, item_id)
+    if item is None:
+        raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False)
+
+    research = research_runner.latest(session, item_id)
+    if not research or not research.get("report"):
+        raise ApiError(
+            409,
+            "research_required",
+            "먼저 조사를 실행해야 질문을 검증 계획으로 바꿀 수 있어요.",
+            recoverable=True,
+        )
+
+    try:
+        server_url = resolve_server()
+        target = describe_target(server_url)
+        ensure_backend(server_url)
+    except AiqUnavailable as error:
+        raise ApiError(503, "aiq_unavailable", str(error), recoverable=True) from error
+
+    busy_error = ApiError(
+        409,
+        "plan_busy",
+        "다른 검증 설계가 진행 중입니다. 끝난 뒤 다시 시도해 주세요.",
+        recoverable=True,
+    )
+    if background.busy("plan"):
+        raise busy_error
+
+    # Before the job, and committed: a planning pass that dies still leaves the screen able
+    # to say which question is open.
+    question_runner.record_question(session, item_id, question)
+    job = question_runner.open_job(
+        session,
+        item_id=item_id,
+        title=item.title or item.canonical_url,
+        question=question,
+        state="queued",
+    )
+    session.commit()
+    job_id = job.id
+
+    started = background.start(
+        "plan",
+        job_id,
+        lambda worker: question_runner.run(
+            worker, item_id, question, server_url=server_url, job_id=job_id
+        ),
+        session_factory=_Session,
+    )
+    if not started:
+        _abandon(session, job_id)
+        raise busy_error
+    return {
+        "data": {
+            "jobId": job_id,
+            "state": "queued",
+            "question": question,
+            "serverUrl": server_url,
+            "target": target,
+        }
+    }
+
+
 def _abandon(session: Session, job_id: str) -> None:
     """A queued job that lost the race for its slot: removed, never shown."""
     from ..db.models import Job
@@ -508,12 +624,11 @@ def trial_start(
     answer is the queued job's id.
     """
 
-    from ..action import proposal
-    from ..research import runner as research_runner
     from ..sandbox import nemoclaw
     from ..sandbox import policy as sandbox_policy
     from ..sandbox import trial as trial_runner
     from . import background
+    from .focus import current_suggestion
 
     payload = body or {}
     item_id = str(payload.get("itemId") or "").strip()
@@ -531,21 +646,15 @@ def trial_start(
     if item is None:
         raise ApiError(404, "item_not_found", "그 항목을 찾을 수 없어요.", recoverable=False)
 
-    research = research_runner.latest(session, item_id)
-    if not research or not research.get("report"):
+    # The same composer the screen read, so the plan approved is the plan that runs.
+    suggestion, _asked = current_suggestion(session, item)
+    if suggestion is None:
         raise ApiError(
             409,
             "research_required",
             "먼저 조사를 실행해야 실행 계획이 생깁니다.",
             recoverable=True,
         )
-
-    suggestion = proposal.build(
-        subject_id=item_id,
-        subject_title=item.title or item.canonical_url,
-        subject_url=item.canonical_url,
-        report=research["report"],
-    )
     if not suggestion.actionable:
         raise ApiError(
             409,

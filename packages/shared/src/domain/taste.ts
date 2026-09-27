@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { IsoDateTimeSchema } from "../host/host-profile";
-import { ItemKindSchema, SourcePlatformSchema } from "./common";
+import { ItemKindSchema, SourceActionTypeSchema, SourcePlatformSchema } from "./common";
 import { JobStateSchema, JobStepStateSchema } from "./job";
 import { TrialResultSchema } from "./trial";
 
@@ -109,6 +109,21 @@ export const TrialPlanSchema = z.object({
   subjectUrl: z.url(),
   planText: z.string().min(1),
   successCriteria: z.string().min(1),
+  /**
+   * The user's own question, when one was asked. Null is the *Suggested Trial* — AI-Q's
+   * own idea of a first step, offered before anybody said what they wanted.
+   */
+  question: z.string().nullable(),
+  /**
+   * What would answer it, in one sentence, as AI-Q stated it in the planning pass.
+   *
+   * Null means the pass did not state it, and the screen says so. Nothing writes this
+   * locally: an acceptance criterion this product composed would be this product grading
+   * its own homework.
+   */
+  verificationGoal: z.string().nullable(),
+  /** The observable results that would settle it, verbatim from the planning report. */
+  acceptanceCriteria: z.string().nullable(),
   requiredHosts: z.array(z.string()),
   /**
    * Hosts the report named that are **not** opened.
@@ -126,7 +141,46 @@ export const SuggestedActionSchema = z.object({
   rationale: z.string(),
   /** False means the report gave no concrete step — the card must not offer `Try safely`. */
   actionable: z.boolean(),
+  /**
+   * Whose idea this trial was.
+   *
+   * `suggested` — AI-Q proposed it from the research report, unprompted.
+   * `question` — the user asked something and AI-Q designed a check for that.
+   *
+   * The screen says which, because they are different claims and the product's whole
+   * asymmetry lives in the difference: 무엇을 확인할지는 사람, 어떻게 확인할지는 Agent.
+   */
+  origin: z.enum(["suggested", "question"]),
   plan: TrialPlanSchema,
+});
+
+/**
+ * A question this item can support, and the fact that makes it askable.
+ *
+ * Offered, never chosen. `because` is shown with the chip so an offered question can be
+ * judged before it is picked — the same rule the rest of the product follows about values
+ * it inferred rather than read.
+ */
+export const SuggestedQuestionSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+  because: z.string().min(1),
+});
+
+/**
+ * The open question, and the plan AI-Q designed for it.
+ *
+ * `report` null with a `question` present is a real state, not a loading artefact: the
+ * planning pass failed or is still running, and the screen must say so rather than falling
+ * back to the suggested trial as though nobody had asked anything.
+ */
+export const AskedQuestionSchema = z.object({
+  question: z.string().min(1),
+  askedAt: IsoDateTimeSchema.nullable(),
+  report: z.string().nullable(),
+  observedAt: IsoDateTimeSchema.nullable(),
+  sourceUrl: z.string().nullable(),
+  brief: z.string().nullable(),
 });
 
 /**
@@ -204,16 +258,23 @@ export const FocusPayloadSchema = z.object({
     author: z.string().nullable(),
     /** When the user starred or liked it. The API collectors are why this is not null. */
     actionAt: IsoDateTimeSchema.nullable(),
+    /** Star, like, upvote — what the user actually did. Not derivable from the platform. */
+    actionType: SourceActionTypeSchema.nullable(),
     firstSeenAt: IsoDateTimeSchema,
   }),
   context: TasteContextSchema.nullable(),
   outbound: OutboundSchema,
   bundle: PaperBundleSchema.nullable(),
   research: ResearchReportSchema.nullable(),
+  asked: AskedQuestionSchema.nullable(),
+  /** Empty before research: there is nothing to condition a question on yet. */
+  suggestedQuestions: z.array(SuggestedQuestionSchema),
   suggestion: SuggestedActionSchema.nullable(),
   trial: TrialResultSchema.nullable(),
   jobs: z.object({
     research: FocusJobSchema.nullable(),
+    /** The pass that turns a question into a goal, criteria and a plan. */
+    plan: FocusJobSchema.nullable(),
     trial: FocusJobSchema.nullable(),
   }),
   boundary: SandboxBoundarySchema,
@@ -225,6 +286,8 @@ export type PaperBundle = z.infer<typeof PaperBundleSchema>;
 export type ResearchReport = z.infer<typeof ResearchReportSchema>;
 export type TrialPlan = z.infer<typeof TrialPlanSchema>;
 export type SuggestedAction = z.infer<typeof SuggestedActionSchema>;
+export type SuggestedQuestion = z.infer<typeof SuggestedQuestionSchema>;
+export type AskedQuestion = z.infer<typeof AskedQuestionSchema>;
 export type SandboxBoundary = z.infer<typeof SandboxBoundarySchema>;
 export type PolicyEndpoints = z.infer<typeof PolicyEndpointsSchema>;
 export type FocusJob = z.infer<typeof FocusJobSchema>;

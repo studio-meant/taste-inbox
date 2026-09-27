@@ -68,6 +68,18 @@ export const ResearchStartResponseSchema = JobStartResponseSchema.extend({
   target: z.string().min(1),
 });
 
+/**
+ * `POST /api/lab/questions` — the question, and the planning pass AI-Q runs on it.
+ *
+ * The question comes back so the screen shows what the service actually stored: it is
+ * trimmed there, and a user who typed trailing whitespace should see what was sent.
+ */
+export const QuestionStartResponseSchema = JobStartResponseSchema.extend({
+  question: z.string().min(1),
+  serverUrl: z.string().min(1),
+  target: z.string().min(1),
+});
+
 export const TrialStartResponseSchema = JobStartResponseSchema.extend({
   /** The boundary the trial was checked against, as read at the moment it was approved. */
   policy: z.object({
@@ -86,4 +98,5 @@ export type TrialDenial = z.infer<typeof TrialDenialSchema>;
 export type TrialResult = z.infer<typeof TrialResultSchema>;
 export type JobStartResponse = z.infer<typeof JobStartResponseSchema>;
 export type ResearchStartResponse = z.infer<typeof ResearchStartResponseSchema>;
+export type QuestionStartResponse = z.infer<typeof QuestionStartResponseSchema>;
 export type TrialStartResponse = z.infer<typeof TrialStartResponseSchema>;
