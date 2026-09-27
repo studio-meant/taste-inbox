@@ -1,0 +1,359 @@
+/**
+ * Theme picker — geometry ported from `reference/taste-inbox-ui-ux-final.html`
+ * (`.theme-layer`, `.theme-drawer`, `.drawer-head`, `.theme-list`, `.theme-card`,
+ * `.theme-check`, `.drawer-foot`).
+ *
+ * The reference writes its colours as literal rgba; every one of them is a token here
+ * instead (DESIGN.md §20 — no raw hex outside `packages/ui`). The scrim and the card
+ * grounds are mixed from `--inverse`, `--surface` and `--light-green`, so the drawer is
+ * painted in whichever theme is applied *right now* — including the one just chosen,
+ * which is what makes the change visible without closing it.
+ */
+
+.wrap {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* --------------------------------------------------------------- the summary */
+
+.current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--padding-card-compact);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.currentCopy {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  /* Takes the slack so the trigger stays on the right until the row wraps. */
+  flex: 1 1 12ch;
+  min-width: 0;
+}
+
+.currentCopy strong {
+  color: var(--ink);
+}
+
+.eyebrow {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: none;
+  min-height: var(--control-height-primary);
+  padding-inline: var(--control-padding-primary);
+  border: 1px solid var(--forest);
+  border-radius: var(--radius-pill);
+  background: var(--forest);
+  color: var(--surface);
+  font-size: var(--type-body-small-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trigger:focus-visible,
+.close:focus-visible,
+.scrim:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- the drawer */
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--inverse) 34%, transparent);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  animation: scrimIn var(--duration-slow) var(--ease-standard) both;
+}
+
+.drawer {
+  position: absolute;
+  inset-block: var(--space-3);
+  inset-inline-end: var(--space-3);
+  z-index: var(--z-dialog);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(520px, 44vw);
+  padding: var(--space-6);
+  border-radius: var(--radius-story);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(28px) saturate(1.1);
+  overflow: hidden;
+  animation: drawerIn var(--duration-scene-forward) var(--ease-cinematic) both;
+}
+
+@media (max-width: 1279px) {
+  .drawer {
+    width: min(540px, 94vw);
+  }
+}
+
+@media (max-width: 767px) {
+  .drawer {
+    inset: var(--space-2);
+    width: auto;
+    padding: var(--space-4);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-block-end: var(--space-4);
+}
+
+.headCopy {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 40ch;
+}
+
+.headCopy h2 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.headCopy p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--control-height-compact);
+  height: var(--control-height-compact);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------- the list */
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  margin: 0;
+  padding: var(--space-1) var(--space-1) var(--space-5);
+  border: 0;
+  overflow-y: auto;
+}
+
+.item {
+  position: relative;
+  display: grid;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-default) var(--ease-standard),
+    background var(--duration-default) var(--ease-standard);
+  animation: cardIn var(--duration-slow) var(--ease-cinematic) both;
+  animation-delay: calc(var(--i) * var(--stagger-card));
+}
+
+.card:hover {
+  background: var(--surface);
+}
+
+/* Selected reads as a tint *and* a heavier border *and* the marked state below. */
+.cardSelected {
+  border-color: var(--forest);
+  border-width: 2px;
+  padding: calc(var(--space-3) - 1px);
+  background: color-mix(in srgb, var(--light-green) 28%, var(--surface));
+}
+
+.radio:focus-visible + .card {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.titleRow strong {
+  color: var(--ink);
+}
+
+.badge,
+.group {
+  flex: none;
+  padding: var(--space-1) 7px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.badge {
+  background: var(--forest);
+  color: var(--surface);
+}
+
+.group {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.description {
+  color: var(--muted);
+}
+
+.note {
+  color: var(--subtle);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+}
+
+.state {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  flex: none;
+  /* Reserved whether or not this card is the chosen one, so choosing another does not
+     shift every row sideways. */
+  min-width: 42px;
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: var(--surface);
+}
+
+.inUse {
+  color: var(--forest);
+  text-align: center;
+}
+
+/* ----------------------------------------------------------------- the foot */
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+  font-size: var(--type-body-small-size);
+}
+
+.foot strong {
+  color: var(--ink);
+}
+
+.foot span {
+  color: var(--muted);
+}
+
+/* ----------------------------------------------------------------- motion */
+
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(calc(100% + var(--space-8)));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-4));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Opt-out, both ways.
+ *
+ * The OS preference and the product's own Reduced mode each remove the movement and keep
+ * the drawer's arrival to opacity alone (DESIGN.md §14/§18, CLAUDE.md §6). The scrim's
+ * fade stays: it is opacity, which is what reduced motion keeps.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .card {
+    animation: none;
+  }
+
+  .card {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .drawer,
+:global(:root[data-motion="reduced"]) .card {
+  animation: none;
+}
+
+:global(:root[data-motion="reduced"]) .card {
+  transition: none;
+}

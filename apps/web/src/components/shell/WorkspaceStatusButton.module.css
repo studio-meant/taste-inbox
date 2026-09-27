@@ -1,0 +1,105 @@
+/**
+ * The right-hand system entry — IA §4:
+ * "System은 오른쪽 status indicator, mobile bottom navigation, 또는 ⌘ K에서 연다."
+ *
+ * The reference's `.nav-icon-btn`: a 2cqw circle on a translucent surface that rotates
+ * 12° on hover. Ours opens `/system` rather than the theme drawer — the container is the
+ * reference's, the contents are this product's.
+ */
+
+.button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  /* ref: 2cqw square (28.8px @1440); floored to stay a real control on a narrow frame */
+  width: max(28px, 2cqw);
+  height: max(28px, 2cqw);
+  flex: none;
+  padding: 0;
+  overflow: visible;
+  line-height: 1;
+  border: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+  color: var(--muted);
+  text-decoration: none;
+  transition:
+    transform 200ms ease,
+    background 200ms ease,
+    color 200ms ease;
+}
+
+.button:hover {
+  transform: rotate(12deg);
+  background: var(--surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button:hover {
+    transform: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .button:hover {
+  transform: none;
+}
+
+.glyph {
+  display: block;
+  width: 58%;
+  height: 58%;
+  flex: 0 0 auto;
+}
+
+/*
+ * Tone is the *second* signal, never the first: the glyph already differs per state and
+ * the accessible name spells the state out in Korean.
+ */
+.healthy {
+  color: var(--status-ready-fg);
+}
+
+.attention {
+  color: var(--status-warning-fg);
+}
+
+.failed {
+  color: var(--status-danger-fg);
+}
+
+.attention,
+.failed {
+  border-color: color-mix(in srgb, currentcolor 32%, transparent);
+}
+
+/*
+ * The count, offset onto the circle's shoulder. A digit is information a colour cannot
+ * carry, so this is kept even though the label is gone.
+ */
+.dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding-inline: 4px;
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* `currentcolor` cannot be used here: `color` on the badge is its own foreground. */
+.attention .dot {
+  background: var(--status-warning-fg);
+}
+
+.failed .dot {
+  background: var(--status-danger-fg);
+}

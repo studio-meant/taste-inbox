@@ -1,0 +1,88 @@
+/**
+ * StyleItemCard — DESIGN.md §11.17.
+ *
+ * "원본 이미지가 주인공이며, 구매 정보는 Oasira식 작은 white panel로 이미지 아래 또는
+ *  옆에 붙인다."
+ *
+ * The image still leads and the panel below it still stays quiet — the card is now the
+ * Saved Items card (`collection/BrowseCard.module.css`), whose media block and body are
+ * that split. What the panel holds is the post itself — caption, hashtags, links — because
+ * there is no purchase information and there will not be (docs/DECISIONS.md, 2026-08-09).
+ *
+ * BrowseCard reserves the cover ratio for each size; the text panel grows independently.
+ * A long caption or several shop links must never shrink or clip the lower controls.
+ */
+
+/*
+ * Every photo the post contained, one per screenful, scrolled sideways.
+ *
+ * A grid of `100%` columns is what makes one photo and ten the same layout: with one
+ * there is nothing to scroll and the strip is indistinguishable from a plain image box.
+ * Snapping keeps a half-photo from ever being the resting state.
+ */
+.gallery {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* A sideways swipe over the card must not also drag the page or trigger back-navigation. */
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* The strip is a focusable region when it scrolls; the ring must not be clipped away. */
+  outline-offset: -2px;
+}
+
+.gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.frame {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+.frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.frameEmpty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--subtle);
+}
+
+/*
+ * How many photos there are. Bottom-right, separate from the source link at top-right.
+ * Only ever shown above one photo.
+ */
+.count {
+  position: absolute;
+  bottom: var(--space-2);
+  right: var(--space-2);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--ink) 62%, transparent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.meta {
+  margin: 0;
+  color: var(--subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

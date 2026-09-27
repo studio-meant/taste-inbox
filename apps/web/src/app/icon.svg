@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Taste Inbox">
+  <title>Taste Inbox</title>
+  <!--
+    The reference's `.brand-mark`: four petals in a 2×2 grid, each the same asymmetric blob
+    (border-radius 68% 32% 66% 34%) rotated a quarter turn from the one before it, over a
+    light-green → deep-accent gradient. Opacity walks 1 / .72 / .58 / .86 in DOM order, which
+    is what stops it reading as a flat four-dot logo.
+
+    Added because every page load asked for /favicon.ico and got a 404 — the smoke suite's
+    "no failed requests" rule found it on all seven screens. Fixing the asset rather than
+    allowlisting the request: an allowlist for 404s is how the /api/media 404 that broke 297
+    images would have gone unnoticed a second time.
+
+    Colours are the default theme's, written out rather than tokenised: a favicon is fetched
+    outside the document and has no access to :root.
+  -->
+  <rect width="32" height="32" rx="8" fill="#FAF5EB" />
+  <defs>
+    <linearGradient id="petal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EDF2E0" />
+      <stop offset="1" stop-color="#50654E" />
+    </linearGradient>
+  </defs>
+  <g fill="url(#petal)">
+    <path d="M6 6h8.6a0 0 0 0 1 0 0v5.8a2.8 2.8 0 0 1-2.8 2.8H6a0 0 0 0 1 0 0V8.8A2.8 2.8 0 0 1 6 6Z" />
+    <path
+      d="M17.4 6H26a0 0 0 0 1 0 0v5.8a2.8 2.8 0 0 1-2.8 2.8h-5.8a0 0 0 0 1 0 0V8.8A2.8 2.8 0 0 1 17.4 6Z"
+      opacity="0.72"
+      transform="rotate(90 21.7 10.3)"
+    />
+    <path
+      d="M6 17.4h8.6a0 0 0 0 1 0 0v5.8a2.8 2.8 0 0 1-2.8 2.8H6a0 0 0 0 1 0 0v-5.8A2.8 2.8 0 0 1 6 17.4Z"
+      opacity="0.58"
+      transform="rotate(-90 10.3 21.7)"
+    />
+    <path
+      d="M17.4 17.4H26a0 0 0 0 1 0 0v5.8a2.8 2.8 0 0 1-2.8 2.8h-5.8a0 0 0 0 1 0 0v-5.8a2.8 2.8 0 0 1 2.8-2.8Z"
+      opacity="0.86"
+      transform="rotate(180 21.7 21.7)"
+    />
+  </g>
+</svg>

@@ -1,0 +1,102 @@
+/**
+ * Filter chips — DESIGN.md §5.4, Oasira's tactile controls at utility scale.
+ *
+ * Quieter than a status pill on purpose. A chip says what the user asked for; a status
+ * pill says what the product found. Confusing the two would let a filter read as a finding.
+ */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-5);
+}
+
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  float: none;
+  padding: 0;
+  margin-inline-end: var(--space-1);
+  color: var(--subtle);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  /*
+   * 32px painted so a chip stays quieter than a status pill; the 44px target (DESIGN.md
+   * §18) comes from the `hit-44` overlay in the TSX. The comment used to claim the 44px
+   * without anything producing it.
+   */
+  min-height: var(--control-height-compact);
+  padding-inline: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.chip:hover {
+  border-color: var(--forest);
+  color: var(--ink);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Selected state carries weight and a check icon, never colour alone. */
+.chipOn {
+  border-color: var(--forest);
+  background: var(--focus);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.count {
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.chipOn .count {
+  color: var(--muted);
+}
+
+/* `.clear` — the "필터 N개 지우기" chip — was removed on 2026-08-10 with the control
+   it painted. A chip is its own undo; a dashed button beside a row of them was a
+   second way to say the same thing. */
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}

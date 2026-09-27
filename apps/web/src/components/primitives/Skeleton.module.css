@@ -1,0 +1,56 @@
+/**
+ * DESIGN.md §14 "Loading": "강한 shimmer보다 낮은 대비의 skeleton pulse를 사용한다."
+ *
+ * So this is an opacity pulse between two adjacent surface tokens, not a gradient
+ * sweep. It is also cheaper: opacity composites on the GPU, whereas animating a
+ * 220%-wide background position repaints every placeholder on every frame.
+ */
+
+.skeleton {
+  display: block;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  /* A skeleton reserves the space its content will need, so no layout shift. */
+  animation: pulse calc(var(--duration-slow) * 5) var(--ease-standard) infinite alternate;
+}
+
+.text {
+  border-radius: var(--radius-control);
+}
+
+.media {
+  border-radius: var(--radius-media);
+}
+
+.card {
+  border-radius: var(--radius-card);
+}
+
+.pill {
+  border-radius: var(--radius-pill);
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.62;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/**
+ * Reduced motion keeps the placeholder but drops the loop
+ * (DESIGN.md §14, MOTION_SPEC.json reducedMotion.disableContinuousLoops).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .skeleton {
+  animation: none;
+  opacity: 1;
+}

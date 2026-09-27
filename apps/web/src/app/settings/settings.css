@@ -1,0 +1,39 @@
+/**
+ * Settings page styling — the page's own header only.
+ *
+ * The AppShell owns the outer inset and scroll container, and `Settings.module.css` owns
+ * every section and control. Tokens only (DESIGN.md §20).
+ */
+
+.settings-header {
+  display: grid;
+  gap: var(--gap-title-body);
+  max-width: 62ch;
+  margin-block-end: var(--gap-section-to-section);
+}
+
+.settings-lead {
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+/* The section with no controls. Quieter than the ones that do something. */
+.settings-absent-list {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 62ch;
+}
+
+.settings-absent-heading {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.settings-absent-body {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+}

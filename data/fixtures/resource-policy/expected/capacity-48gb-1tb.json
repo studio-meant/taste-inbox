@@ -1,0 +1,34 @@
+{
+  "hostProfileId": "fixture-capacity-48gb-1tb",
+  "resolvedAt": "2026-08-08T07:00:00Z",
+  "memory": {
+    "unifiedMemoryGb": 48.0,
+    "reservedForSystemGb": 12.0,
+    "usableMemoryGb": 36.0,
+    "autoPrepareLimitGb": 25.2,
+    "manualReviewLimitGb": 32.4
+  },
+  "storage": {
+    "totalStorageGb": 1000.0,
+    "freeStorageGb": 612.8,
+    "reservedFreeGb": 100.0,
+    "cacheBudgetGb": 200.0,
+    "cacheShares": {
+      "modelGb": 110.0,
+      "containerGb": 60.0,
+      "mediaGb": 30.0
+    },
+    "belowReserve": false
+  },
+  "concurrency": {
+    "browserCollectors": 1,
+    "environmentBuilds": 3,
+    "allowLocalModelWhileBuilding": true
+  },
+  "gates": {
+    "acceptNewHeavyJobs": true,
+    "stopRunningHeavyJobs": false,
+    "reason": null
+  },
+  "appliedTightenings": []
+}

@@ -1,0 +1,353 @@
+/**
+ * The Saved Items card — `reference/ref.css` `.browse-card` and its children.
+ *
+ * The reference is authored in `cqw` against a 1452px board (`--content-max` minus two
+ * `--content-padding-wide`), so 1cqw = 14.5px for geometry. Every literal below is that
+ * conversion, snapped to the nearest token where one exists. Type is *not* converted at
+ * the same rate — the artboard's type scale solves to ~22px/cqw, which is why `.82cqw`
+ * becomes an 18px card title rather than an 11px one.
+ *
+ * Two deliberate departures from the reference, both recorded rather than accidental:
+ *
+ * - **Hover is `translateY(-1px)` with no scale.** The reference lifts 4.9px and scales to
+ *   1.008; DESIGN.md §13 caps card hover at 1px and forbids the scale, and
+ *   `CardSurface.module.css` already documents the same refusal.
+ * - **The footer pill keeps `StatusPill`'s own geometry**, scaled here rather than in the
+ *   primitive. The reference shrinks it to 10px/17px, which is a change to a shared
+ *   component's size; the row that wants it smaller does the scaling instead.
+ */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 100%;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--library-card-accent, var(--ink)) 10%, transparent);
+  /* 1.15cqw ≈ 17px. The reference uses two card radii — browse cards at 1.15cqw and
+     Today's overview cards at 1.45cqw ≈ 21px — which land on `utility` and `card`. */
+  border-radius: var(--radius-utility);
+  background: var(--library-card-bg, color-mix(in srgb, var(--surface) 94%, transparent));
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition:
+    transform 320ms var(--ease-soft),
+    box-shadow 320ms ease,
+    border-color 260ms ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-float);
+  border-color: color-mix(in srgb, var(--library-card-accent, var(--accent)) 40%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────── media */
+
+.media {
+  position: relative;
+  flex: none;
+  /* Reserve the picture independently of the caption; extra text grows the card. */
+  aspect-ratio: 4 / 3;
+  min-height: 122px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--light-green) 68%, var(--surface)),
+    color-mix(in srgb, var(--oatmeal) 76%, var(--surface))
+  );
+  overflow: hidden;
+}
+
+/*
+ * The gradient is the ground, not the picture. Anything the card puts in the block fills
+ * it, so a photo that has not loaded (or a signed URL that has expired) leaves the ground
+ * showing rather than a hole.
+ */
+.mediaFill {
+  position: absolute;
+  inset: 0;
+}
+
+.mediaFill img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Image-led cards keep a predictable cover, never squeeze their body to fit a row span. */
+.sizeTall .media {
+  aspect-ratio: 1;
+}
+
+.sizeWide .media {
+  aspect-ratio: 16 / 7;
+  max-height: 320px;
+}
+
+/* A card with no picture has no media block at all — the reference hides it outright. */
+.sizeSmall .media {
+  display: none;
+}
+
+/* The source is the upper-right action on every card, visible without hover. */
+.badgeFloating {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  max-width: calc(100% - var(--space-4));
+}
+
+/* No media block to float on — the badge takes the eyebrow row's right-hand slot. */
+.badgeInline {
+  margin-inline-start: auto;
+}
+
+/* ──────────────────────────────────────────────────────────────────── body */
+
+.body {
+  position: relative;
+  flex: 1 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* .8cqw .9cqw 1.02cqw */
+  padding: 12px 13px 15px;
+}
+
+/* A fixed grid span used to shrink clamped headings to half a line and crop the footer.
+   Every body row now contributes its natural height to the card and the parent grid. */
+.body > * {
+  flex-shrink: 0;
+}
+
+.typeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: 700;
+  /* .08em here, against .13em on the page eyebrow — the reference uses both. */
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* DESIGN.md §8: Latin only. A Korean eyebrow is neither spaced nor upper-cased. */
+.typeRow:lang(ko) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.title {
+  margin: 6px 0 4px;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.titleLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+/*
+ * The card body opens the item, and the title link is what does it — a stretched
+ * pseudo-element rather than an `onClick` on the article, so it is a real link: it works
+ * before hydration, opens in a new tab, and lands in the tab order once. Everything else
+ * inside the body sits above it (`.extras`, `.foot`).
+ *
+ * The body, not the whole card: `.body` is the nearest positioned ancestor, which is what
+ * keeps this off the media block above it — that block holds the source chip and, on
+ * Style, a horizontally scrolled gallery, and a target laid over them would swallow both.
+ *
+ * The focus ring stays on the link itself rather than being moved to the card with
+ * `:has()`. A ring around the title is unambiguous, and it cannot be the case that a
+ * selector the browser does not understand leaves the focus indicator invisible.
+ */
+.titleLink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.38;
+  /* Untrusted third-party text, so it wraps rather than pushing the grid open. */
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.sizeSmall .subtitle {
+  font-size: 12px;
+  line-height: 1.34;
+  -webkit-line-clamp: 1;
+}
+
+/* Anything interactive the card body carries has to clear the stretched title link. */
+.extras {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  margin-block-start: var(--space-2);
+}
+
+.tagRow {
+  /* .58cqw above and below */
+  margin: var(--space-2) 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--oatmeal) 40%, var(--surface));
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The reference greens the first tag only, so the row has a lead rather than a stripe. */
+.tagLead {
+  background: color-mix(in srgb, var(--light-green) 62%, var(--surface));
+  color: var(--accent-deep);
+}
+
+/* ────────────────────────────────────────────────────────────────── footer */
+
+.foot {
+  position: relative;
+  z-index: 2;
+  margin-block-start: auto;
+  /* .76cqw */
+  padding-block-start: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--type-label-size);
+  border-block-start: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+/* The reference drops the footer on the one-row card; there is no room for it. */
+.sizeSmall .foot {
+  display: none;
+}
+
+/*
+ * `.browse-card-foot .status-pill { font-size:.43cqw; min-height:1.2cqw; padding:0 .48cqw }`
+ * — the row shrinks the pill, matched on the element rather than on a class this module
+ * cannot see. StatusPill's own 26px/12px is a primitive decision and stays untouched.
+ */
+.footStatus {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.footStatus > span {
+  min-height: 18px;
+  padding-inline: 7px;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.footStatus svg {
+  width: 11px;
+  height: 11px;
+}
+
+.footMeta {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────────────────────────────────────────────────────────────── the grid */
+
+/*
+ * Span classes, applied to the grid item rather than the card: `grid-column` and
+ * `grid-row` only mean something on a child of the board grid.
+ */
+.spanWide {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.spanTall {
+  grid-row: span 3;
+}
+
+.spanMedium {
+  grid-row: span 2;
+}
+
+.spanSmall {
+  grid-row: span 1;
+}
+
+/* ──────────────────────────────────────────────────────────────────── entry */
+
+/*
+ * `cardScatterIn` — ref.css:348-354. `--i` is the card's index on the board.
+ *
+ * The reference offsets alternating cards with `(var(--i) % 2)`, which no browser applies:
+ * `%` is not an operator inside `calc()` (it reads as a percentage unit), so that whole
+ * declaration is dropped and the reference's own cards do not alternate either. Written as
+ * a single offset rather than reached for with `mod()` — the difference is 4px on every
+ * other card, and it is not worth a declaration that fails outright where `mod()` is not
+ * supported.
+ *
+ * `--stagger-card` and `--delay-heading` already collapse to 0ms under both reduced-motion
+ * triggers (`packages/ui/src/styles/motion.css`), so the delay disappears on its own; the
+ * transform and blur are removed explicitly below because a token cannot do that.
+ */
+@keyframes cardScatterIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.card {
+  animation: cardScatterIn var(--duration-shared-element) var(--ease-cinematic) both;
+  animation-delay: calc(var(--delay-heading) + var(--i, 0) * var(--stagger-card));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+    transition: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .card {
+  animation: none;
+  transition: none;
+}

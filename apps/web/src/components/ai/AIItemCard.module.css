@@ -1,0 +1,23 @@
+/**
+ * AIItemCard — DESIGN.md §11.16.
+ *
+ * Almost nothing is left here on purpose. The card's shape is the Saved Items card
+ * (`collection/BrowseCard.module.css`), which is what the reference draws for every board;
+ * what stays is the one block that is this board's own — where else the post points.
+ *
+ * The 16:10 inset preview, the `--radius-media` frame and the standalone footer with its
+ * outbound button all went with that move. The reference's media block is flush to the top
+ * of the card with no radius of its own, clipped by the card, and the source link lives on
+ * it as a floating chip rather than in a footer row.
+ */
+
+/*
+ * The outbound list is the one thing on the card that competes with the title for space,
+ * so it is capped rather than allowed to push the grid row open. Most items carry none;
+ * the ones that carry four are LinkedIn posts whose subject lives on four other domains,
+ * and the fourth is reachable from the item page.
+ */
+.links {
+  max-height: 60px;
+  overflow: hidden;
+}

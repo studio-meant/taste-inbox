@@ -1,0 +1,63 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local runtime config. The *.example.yaml files are the committed templates; a real
+# config carries account handles and collection ids and must never be committed.
+config/*.yaml
+!config/*.example.yaml
+*.pem
+*.key
+
+# Runtime data
+var/
+data/*.db
+data/*.sqlite*
+*.sqlite*
+*.db
+browser-profiles/
+media-cache/
+model-cache/
+repo-cache/
+debug/
+logs/
+
+# Node / Python
+node_modules/
+.next/
+.next-e2e/
+.next-remote/
+.next-remote-e2e/
+dist/
+build/
+target/
+apps/desktop/src-tauri/gen/schemas/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.pnpm-store/
+*.tsbuildinfo
+next-env.d.ts
+
+# Test and build output
+coverage/
+.turbo/
+playwright-report/
+test-results/
+__screenshots__/
+*.local
+
+# macOS / editors
+.DS_Store
+.vscode/settings.json
+.idea/
+
+# User/session artifacts
+*.har
+*cookies*.json
+*storage-state*.json
+*auth-state*.json

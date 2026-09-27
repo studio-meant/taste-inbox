@@ -1,0 +1,144 @@
+/**
+ * The ceremonial container and the two-layer scene transition.
+ *
+ * The mat and the frame are `AppShell.module.css:25-97` reproduced rather than imported:
+ * the shell always mounts `main.content` (with `--content-max`, the content padding and an
+ * 80px bottom reservation) and the query dock, and these two screens are absolutely
+ * positioned children of the frame with no content column at all. Duplicating the geometry
+ * is the repo's established answer for that (design-qa.md, "per-module duplication"), and
+ * it is what makes Splash → Greeting → Today land inside the same mat rather than jumping
+ * out of it on the last step.
+ *
+ * The scene layers are ref.css:117-123 and the two `sceneIn/OutForward` keyframes at
+ * ref.css:348-349, in `cqw` exactly as written, against the frame's own container.
+ */
+
+.mat {
+  position: relative;
+  z-index: var(--z-content);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+@media (min-width: 768px) {
+  .mat {
+    padding: var(--shell-inset-tablet);
+    border-radius: var(--radius-shell);
+    background: color-mix(in srgb, var(--surface) 76%, transparent);
+  }
+}
+
+@media (min-width: 1280px) {
+  .mat {
+    padding: var(--shell-inset-desktop);
+    box-shadow: var(--shadow-shell);
+  }
+}
+
+@media (min-width: 1600px) {
+  .mat {
+    padding: var(--shell-inset-wide);
+  }
+}
+
+.frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: clip;
+  isolation: isolate;
+  container-type: inline-size;
+  background: var(--shell);
+  border-radius: 0;
+}
+
+@media (min-width: 768px) {
+  .frame {
+    border-radius: var(--radius-shell-inner);
+  }
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--shell);
+  transform-origin: 50% 46%;
+}
+
+.currentLayer {
+  z-index: 3;
+}
+
+/*
+ * The layer is `tabIndex={-1}` so the controller can move focus onto the arriving screen;
+ * it is never reached by tabbing, so it never wants a ring of its own. Focus stays visible
+ * on the controls inside it.
+ */
+.layer:focus {
+  outline: none;
+}
+
+.previousLayer {
+  z-index: 2;
+  /* It is on its way out and `aria-hidden`; it must not catch a click meant for the top. */
+  pointer-events: none;
+}
+
+.enter {
+  animation: sceneInForward var(--duration-scene-forward) var(--ease-cinematic) both;
+}
+
+.exit {
+  animation: sceneOutForward var(--duration-scene-forward) var(--ease-cinematic) both;
+}
+
+@keyframes sceneInForward {
+  from {
+    opacity: 0.18;
+    transform: translateY(1.1cqw) scale(0.991);
+    filter: blur(0.65cqw);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes sceneOutForward {
+  from {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.55cqw) scale(1.008);
+    filter: blur(0.45cqw);
+  }
+}
+
+/*
+ * Under reduced motion the screens swap; they do not travel.
+ *
+ * `motion.css` would otherwise leave a 150ms blur-and-slide, which is the same move in less
+ * time. The controller does not even mount the outgoing layer in this mode, so nothing is
+ * being crossfaded to — removing the animation is the whole transition, and the incoming
+ * screen is simply already there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .exit {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .enter,
+:global(:root[data-motion="reduced"]) .exit {
+  animation: none;
+}

@@ -1,0 +1,44 @@
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: var(--control-height-compact);
+  height: var(--control-height-compact);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.iconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.outlined {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.large {
+  width: var(--control-height-primary);
+  height: var(--control-height-primary);
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+}
+
+.large .icon {
+  width: 20px;
+  height: 20px;
+}

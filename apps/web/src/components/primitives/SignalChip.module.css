@@ -1,0 +1,69 @@
+/**
+ * SignalChip — DESIGN.md §11.13.
+ * height 28–32px · icon or dot + label · tinted background.
+ *
+ * Deliberately distinct from StatusPill: a chip is a filter or a category, a pill is a
+ * state. The document warns against confusing decorative category colour with semantic
+ * status colour, so this component has no semantic tones at all.
+ */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding-inline: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.interactive:hover {
+  background: var(--focus);
+  color: var(--ink);
+}
+
+/* Selection is carried by fill, border and `aria-pressed` — never by colour alone. */
+.selected {
+  background: var(--focus);
+  border-color: var(--forest);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot-color, var(--sage));
+}
+
+.count {
+  margin-inline-start: 2px;
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.selected .count {
+  color: var(--muted);
+}

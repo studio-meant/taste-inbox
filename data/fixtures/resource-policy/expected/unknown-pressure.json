@@ -1,0 +1,34 @@
+{
+  "hostProfileId": "fixture-unknown-pressure",
+  "resolvedAt": "2026-08-08T07:00:00Z",
+  "memory": {
+    "unifiedMemoryGb": 24.0,
+    "reservedForSystemGb": 6.0,
+    "usableMemoryGb": 18.0,
+    "autoPrepareLimitGb": 9.6,
+    "manualReviewLimitGb": 16.2
+  },
+  "storage": {
+    "totalStorageGb": 512.0,
+    "freeStorageGb": 300.0,
+    "reservedFreeGb": 51.2,
+    "cacheBudgetGb": 102.4,
+    "cacheShares": {
+      "modelGb": 56.32,
+      "containerGb": 30.72,
+      "mediaGb": 15.36
+    },
+    "belowReserve": false
+  },
+  "concurrency": {
+    "browserCollectors": 1,
+    "environmentBuilds": 1,
+    "allowLocalModelWhileBuilding": false
+  },
+  "gates": {
+    "acceptNewHeavyJobs": true,
+    "stopRunningHeavyJobs": false,
+    "reason": "memory pressure could not be read; limits use the conservative branch"
+  },
+  "appliedTightenings": []
+}

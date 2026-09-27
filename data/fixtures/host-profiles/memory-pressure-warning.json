@@ -1,0 +1,12 @@
+{
+  "id": "fixture-memory-pressure-warning",
+  "deviceModel": "AppleSiliconFixture,2",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 48,
+  "availableMemoryGb": 9.4,
+  "totalStorageGb": 1000,
+  "freeStorageGb": 480,
+  "memoryPressure": "warning",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}

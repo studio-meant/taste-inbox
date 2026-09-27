@@ -1,0 +1,295 @@
+/**
+ * Settings rows — PAGE_SPECIFICATIONS.md §11.
+ *
+ * The one visual idea here: a value the user changed themselves has to be findable at a
+ * glance without reading every row, and it cannot be findable by colour alone
+ * (CLAUDE.md §6). So `.rowChanged` carries an accent rule, a filled ground *and* a weight
+ * change, and the row still says 직접 바꾼 값 in words next to it. Any one of the four
+ * removed still leaves the other three.
+ *
+ * Tokens only — no literal colour, no number outside the 4px spacing scale (DESIGN.md §20).
+ */
+
+.rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--padding-card-standard);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Second channel for 직접 바꾼 값: an inline start rule that survives a greyscale print. */
+.rowChanged {
+  border-inline-start: 3px solid var(--forest);
+  background: var(--focus);
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  justify-content: space-between;
+}
+
+.label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.rowChanged .label {
+  /* Weight, not hue — the third channel. */
+  font-weight: 700;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.description,
+.reason,
+.effectNote,
+.hint {
+  margin: 0;
+  color: var(--muted);
+  max-width: 68ch;
+}
+
+.reason,
+.effectNote {
+  color: var(--subtle);
+}
+
+.control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.number,
+.text,
+.select {
+  min-height: var(--control-height-primary);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.number {
+  width: 8ch;
+}
+
+.text,
+.select {
+  min-width: 20ch;
+}
+
+.number:disabled,
+.text:disabled,
+.select:disabled,
+.switch:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.unit {
+  color: var(--muted);
+}
+
+/*
+ * A native checkbox promoted to a switch. Painted rather than replaced, so it keeps the
+ * keyboard behaviour, the focus ring and the checked state a screen reader reads — the
+ * things a div with an onClick has to re-implement and usually re-implements wrongly.
+ */
+.switch {
+  appearance: none;
+  flex: none;
+  width: 52px;
+  height: var(--control-height-compact);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  inset-block: 3px;
+  inset-inline-start: 3px;
+  width: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.switch:checked {
+  background: var(--forest);
+  border-color: var(--forest);
+}
+
+.switch:checked::after {
+  transform: translateX(20px);
+}
+
+/* Reduced motion is written twice: the OS setting, and the product's own mode. */
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .switch,
+:global(:root[data-motion="reduced"]) .switch::after {
+  transition: none;
+}
+
+/* Words, so the state is never only a position and a fill. */
+.switchState {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* The read-only answer. Monospace-ish alignment so a column of values scans. */
+.value {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- save bar */
+
+.saveBar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--z-content);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-6);
+  padding: var(--padding-card-compact);
+  background: var(--shell);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-float);
+}
+
+.saveSummary {
+  flex: 1 1 24ch;
+  margin: 0;
+  color: var(--muted);
+}
+
+.saveError {
+  margin-block-start: var(--space-4);
+}
+
+/* ---------------------------------------------------------------- sources */
+
+.sources {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--padding-card-standard);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.sourceHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.sourceName {
+  margin: 0;
+  font-weight: 600;
+}
+
+.sourceMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  color: var(--muted);
+}
+
+.sourceMeta dt {
+  display: inline;
+}
+
+.sourceMeta dd {
+  display: inline;
+  margin: 0 0 0 var(--space-2);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.sourcePair {
+  display: flex;
+  align-items: baseline;
+}
+
+/* ---------------------------------------------------------------- absent */
+
+.absent {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--padding-card-standard);
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+}
+
+.absentItem {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.absentTerm {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.absentBody {
+  margin: 0;
+  color: var(--muted);
+  max-width: 68ch;
+}

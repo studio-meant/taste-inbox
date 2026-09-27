@@ -1,0 +1,101 @@
+/**
+ * BoardPicker — the one control on a card that changes stored data.
+ *
+ * Quieter than a chip and quieter than a status pill, because it is not a claim about the
+ * item: it says where the item is, in the same weight as the rest of the card's metadata.
+ * The only thing that raises its voice is a failure, and that raises it in words as well as
+ * in tone (DESIGN.md §18 — no colour-only status).
+ *
+ * Every value is a token. `--danger` for the failed state is the theme's own hue, so the
+ * six palettes each say "이건 실패했다" in their own register rather than in a hex this file
+ * chose (DESIGN.md §20).
+ */
+
+.picker {
+  /* Above the stretched title link that covers the card body (`BrowseCard.module.css`). */
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  margin-block-start: var(--space-2);
+}
+
+.label {
+  color: var(--subtle);
+  font-size: var(--type-label-size);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+}
+
+.select {
+  /*
+   * The product's primary control height on the item's own page, and the chips' 32px on a
+   * card — a control this quiet at full height would out-shout the card it sits in.
+   */
+  min-height: var(--control-height-primary);
+  width: 100%;
+  max-width: 100%;
+  padding-inline: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-utility);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--type-body-small-size);
+  line-height: 1.2;
+  /* The native control keeps its own disclosure and its own popup: on iOS that is a wheel,
+     on desktop a menu, and both are better than anything reimplemented here. */
+  appearance: auto;
+  /* An Instagram caption in an option can be long; the closed control must not stretch the
+     grid column it sits in. */
+  text-overflow: ellipsis;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.select:disabled {
+  color: var(--muted);
+  cursor: progress;
+}
+
+.select[data-read-only="true"] {
+  cursor: default;
+}
+
+.compact .select {
+  min-height: var(--control-height-compact);
+  font-size: 12px;
+}
+
+/* What the chosen board is for. One line, under the control, and only where there is room. */
+.meaning {
+  margin: 0;
+  color: var(--muted);
+}
+
+.status {
+  margin: 0;
+  min-height: 0;
+  color: var(--muted);
+  font-size: var(--type-label-size);
+  line-height: 1.35;
+  /* Untrusted only in the sense that it is a service message; wrap rather than push the
+     grid open. */
+  overflow-wrap: anywhere;
+}
+
+/* Weight and wording carry the failure as much as the hue does. */
+.failed {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* `:empty` rather than conditional rendering: the live region has to stay in the tree for a
+   screen reader to announce into it, and an empty <p> with a min-height would reserve a
+   blank line under every card on the board. */
+.status:empty {
+  display: none;
+}

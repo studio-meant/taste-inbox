@@ -1,0 +1,12 @@
+{
+  "id": "fixture-unknown-pressure",
+  "deviceModel": "AppleSiliconFixture,3",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 24,
+  "availableMemoryGb": 12,
+  "totalStorageGb": 512,
+  "freeStorageGb": 300,
+  "memoryPressure": "unknown",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}

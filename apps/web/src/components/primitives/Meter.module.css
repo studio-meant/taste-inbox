@@ -1,0 +1,113 @@
+/**
+ * Meter — DESIGN.md §11.19 CompactMeter.
+ *
+ *   Estimated peak memory
+ *   {value} GB of {max} GB                      {verdict}
+ *   ━━━━━━━━━━━━░░░░░░
+ *
+ * A short horizontal bar. DESIGN.md §20 forbids decorative donuts and 3D charts, and
+ * forbids showing the same number twice — hence one value line, one bar.
+ */
+
+.meter {
+  display: grid;
+  gap: 6px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.label {
+  color: var(--muted);
+}
+
+.value {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.value strong {
+  font-weight: 600;
+}
+
+.of {
+  color: var(--subtle);
+}
+
+.track {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3, var(--surface-2));
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--meter-fill, var(--sage));
+  /* COMPONENT_MOTION_SPEC §3: progress bars draw from the left over 1100ms. */
+  transform-origin: left center;
+  transform: scaleX(var(--meter-ratio, 0));
+  transition: transform var(--duration-progress-draw) var(--ease-cinematic);
+}
+
+/*
+ * The overflow marker exists because a value above the budget is the single most
+ * important thing this component can say. It is a shape change, not just a colour
+ * change, so it survives greyscale (DESIGN.md §18).
+ */
+.over .fill {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--status-danger-fg) 0,
+    var(--status-danger-fg) 4px,
+    color-mix(in srgb, var(--status-danger-fg) 55%, var(--surface)) 4px,
+    color-mix(in srgb, var(--status-danger-fg) 55%, var(--surface)) 8px
+  );
+}
+
+.ready .fill {
+  background: var(--forest);
+}
+
+.warning .fill {
+  background: var(--status-warning-fg);
+}
+
+.danger .fill {
+  background: var(--status-danger-fg);
+}
+
+.neutral .fill {
+  background: var(--sage);
+}
+
+.unknown .track {
+  /* No measurement to draw. A hatched track states that plainly. */
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--surface-2) 0,
+    var(--surface-2) 5px,
+    var(--surface) 5px,
+    var(--surface) 10px
+  );
+}
+
+.footnote {
+  color: var(--subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .fill {
+  transition: none;
+}

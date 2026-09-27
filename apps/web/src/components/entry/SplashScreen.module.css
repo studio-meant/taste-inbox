@@ -1,0 +1,234 @@
+/**
+ * Splash — ref.css:162-176 and ref.css:356-358.
+ *
+ * ── On the `cqw` floors ──────────────────────────────────────────────────────────────
+ * The reference is measured against a fixed 3:2 lab stage that is always ~1540px wide, so
+ * `2.05cqw` is always ~32px there. Our frame is the window: at 390px, `2.05cqw` is 8px and
+ * `.43cqw` is 1.7px. Every type value below therefore carries a floor —
+ * `max(11px, .43cqw)` — which resolves to the reference's own number at 1540 and stops
+ * being illegible below it. The repo already does this at
+ * `AppShell.module.css:144` (`max(64px, 4.8cqw)`). Where a floored value has to stay
+ * aligned with another (the tagline's left edge is the mark plus the gap), the floors are
+ * summed rather than restated, so they cannot drift apart at any width.
+ *
+ * ── On the two literals ──────────────────────────────────────────────────────────────
+ * `#1f1b18` and `#fff9f1` are the reference's own literals and are deliberately not theme
+ * tokens: IA §7.0 specifies an "almost-black graphite background" for this screen in every
+ * palette. Only the `::before` glow picks up `--accent-deep`, so the seven themes still
+ * tint it. DESIGN.md §20 governs the palette; this is a screen that has none.
+ */
+
+.splash {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #1f1b18;
+  color: #fff9f1;
+}
+
+.splash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--accent-deep) 26%, transparent),
+      transparent 30%
+    ),
+    radial-gradient(circle at 48% 44%, rgb(255 255 255 / 4%), transparent 16%);
+}
+
+/* The reference's data-URI, byte for byte: an feTurbulence field at .07 alpha. */
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");
+}
+
+.center {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: max(12px, 1.2cqw);
+  transform: translateY(calc(-1 * max(5px, 0.5cqw)));
+}
+
+.markWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Two classes, so this wins over `BrandMark.module.css .mark` whatever the import order. */
+.markWrap .mark {
+  width: max(40px, 4cqw);
+  height: max(40px, 4cqw);
+  grid-template-columns: repeat(2, max(18px, 1.8cqw));
+  grid-template-rows: repeat(2, max(18px, 1.8cqw));
+  gap: max(2.5px, 0.25cqw);
+}
+
+.markWrap .mark i {
+  animation: petalWake 1.2s var(--ease-cinematic) both;
+}
+
+.markWrap .mark i:nth-child(2) {
+  animation-delay: 90ms;
+}
+
+.markWrap .mark i:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.markWrap .mark i:nth-child(4) {
+  animation-delay: 270ms;
+}
+
+.aura {
+  position: absolute;
+  inset: calc(-1 * max(12px, 1.2cqw));
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 8%), transparent 68%);
+  animation: auraPulse 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.wordmark {
+  margin: 0;
+  font-size: max(28px, 2.05cqw);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+/*
+ * Out of the flex flow, pinned flush with the wordmark's left edge — the reference's
+ * `left: 5.2cqw` is exactly the mark (4cqw) plus the gap (1.2cqw).
+ */
+.tagline {
+  position: absolute;
+  left: calc(max(40px, 4cqw) + max(12px, 1.2cqw));
+  top: max(24px, 3.1cqw);
+  margin: 0;
+  font-size: max(11px, 0.43cqw);
+  letter-spacing: 0.22em;
+  color: rgb(255 249 241 / 42%);
+  white-space: nowrap;
+}
+
+/*
+ * The whole screen is the control (ref.js:484 makes the section itself clickable), but as
+ * a real button: focusable, Enter/Space activated, and with a ring you can see.
+ */
+.hit {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hit:focus-visible {
+  outline: 2px solid rgb(255 249 241 / 72%);
+  /* Inset, because an outline on a full-frame element is otherwise clipped away. */
+  outline-offset: -6px;
+  border-radius: var(--radius-shell-inner);
+}
+
+.hint {
+  position: absolute;
+  bottom: max(28px, 4.1cqw);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: max(11px, 0.48cqw);
+  color: rgb(255 249 241 / 34%);
+  white-space: nowrap;
+  animation: hintPulse 2.8s ease-in-out infinite;
+}
+
+/*
+ * DESIGN.md §8: a Korean line is neither letter-spaced nor upper-cased. The reference
+ * applies `letter-spacing: .15em; text-transform: uppercase` here because its hint is
+ * English; ours is not, and `text-transform` on Hangul only breaks the rhythm.
+ */
+.hint:lang(ko) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@keyframes petalWake {
+  from {
+    opacity: 0;
+    transform: scale(0.45) rotate(-18deg);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes auraPulse {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: scale(1.12);
+    opacity: 0.75;
+  }
+}
+
+@keyframes hintPulse {
+  0%,
+  100% {
+    opacity: 0.34;
+  }
+
+  50% {
+    opacity: 0.72;
+  }
+}
+
+/*
+ * Reduced motion removes these rather than shortening them.
+ *
+ * `motion.css` caps every animation at one iteration and 150ms, which is the right answer
+ * for an entrance but the wrong one for a loop: one 150ms pass of `auraPulse` is still a
+ * scale from .92 to 1.12 and back, i.e. movement, just quicker. The petals still arrive —
+ * they simply arrive already in place.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .markWrap .mark i,
+  .aura,
+  .hint {
+    animation: none;
+  }
+
+  .aura {
+    opacity: 0.5;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .markWrap .mark i,
+:global(:root[data-motion="reduced"]) .aura,
+:global(:root[data-motion="reduced"]) .hint {
+  animation: none;
+}
+
+:global(:root[data-motion="reduced"]) .aura {
+  opacity: 0.5;
+}

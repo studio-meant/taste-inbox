@@ -1,0 +1,34 @@
+{
+  "hostProfileId": "fixture-low-free-storage",
+  "resolvedAt": "2026-08-08T07:00:00Z",
+  "memory": {
+    "unifiedMemoryGb": 16.0,
+    "reservedForSystemGb": 4.0,
+    "usableMemoryGb": 12.0,
+    "autoPrepareLimitGb": 5.76,
+    "manualReviewLimitGb": 10.8
+  },
+  "storage": {
+    "totalStorageGb": 512.0,
+    "freeStorageGb": 18.6,
+    "reservedFreeGb": 51.2,
+    "cacheBudgetGb": 0.0,
+    "cacheShares": {
+      "modelGb": 0.0,
+      "containerGb": 0.0,
+      "mediaGb": 0.0
+    },
+    "belowReserve": true
+  },
+  "concurrency": {
+    "browserCollectors": 1,
+    "environmentBuilds": 1,
+    "allowLocalModelWhileBuilding": false
+  },
+  "gates": {
+    "acceptNewHeavyJobs": false,
+    "stopRunningHeavyJobs": false,
+    "reason": "free storage is below the reserve; new heavy jobs are paused"
+  },
+  "appliedTightenings": []
+}

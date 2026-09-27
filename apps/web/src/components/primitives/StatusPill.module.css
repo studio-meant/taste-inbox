@@ -1,0 +1,73 @@
+/**
+ * StatusPill — DESIGN.md §11.15.
+ * height 24–28px · icon 12–14px · label 12px / 600 · semantic colour.
+ */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  /* Colour is one of two channels; the icon and the label carry the same meaning. */
+  background: var(--pill-bg);
+  color: var(--pill-fg);
+}
+
+.icon {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+/* Long Korean status text must wrap rather than overflow its container. */
+.wrap {
+  white-space: normal;
+  padding-block: 4px;
+  text-align: start;
+}
+
+.ready {
+  --pill-bg: var(--status-ready-bg);
+  --pill-fg: var(--status-ready-fg);
+}
+
+.info {
+  --pill-bg: var(--status-info-bg);
+  --pill-fg: var(--status-info-fg);
+}
+
+.warning {
+  --pill-bg: var(--status-warning-bg);
+  --pill-fg: var(--status-warning-fg);
+}
+
+.danger {
+  --pill-bg: var(--status-danger-bg);
+  --pill-fg: var(--status-danger-fg);
+}
+
+.neutral {
+  --pill-bg: var(--status-neutral-bg);
+  --pill-fg: var(--status-neutral-fg);
+}
+
+/* On a scenic backdrop the pill needs its own ground to stay legible. */
+.onScenic {
+  background: color-mix(in srgb, var(--pill-bg) 78%, var(--glass-strong));
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* Status changes crossfade; they never bounce (DESIGN.md §14). A scene-length
+   duration on a 26px chip would read as a bug, so this uses the interaction scale. */
+.pill {
+  transition:
+    background-color var(--duration-default) var(--ease-standard),
+    color var(--duration-default) var(--ease-standard);
+}

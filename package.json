@@ -1,0 +1,41 @@
+{
+  "name": "taste-inbox",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal local workspace that turns explicit interest signals into next actions",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "desktop:dev": "pnpm --filter @taste-inbox/desktop tauri dev",
+    "desktop:build": "pnpm --filter @taste-inbox/desktop tauri build",
+    "dev:mock": "pnpm --filter @taste-inbox/web dev",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "pnpm -r --if-present build",
+    "api:lint": "cd apps/api && uv run ruff check . && uv run ruff format --check .",
+    "api:typecheck": "cd apps/api && uv run mypy src tests",
+    "api:test": "cd apps/api && uv run pytest",
+    "verify": "bash scripts/verify-repo.sh",
+    "verify:all": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm e2e && pnpm api:lint && pnpm api:typecheck && pnpm api:test && pnpm verify",
+    "e2e": "pnpm --filter @taste-inbox/web exec playwright test",
+    "community:verify": "python3 scripts/community_release.py --check-tree ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^22.20.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.39.2",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^3.2.4"
+  }
+}

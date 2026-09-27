@@ -1,0 +1,132 @@
+/**
+ * CardSurface — the styling contract in frontend architecture §20:
+ *   <CardSurface tone="warm" elevation="floating" radius="story">
+ *
+ * Variants express a visual role, never a domain meaning.
+ */
+
+.surface {
+  position: relative;
+  display: block;
+  border: 1px solid transparent;
+  /* Nested surfaces are separated by background difference plus a hairline, and depth
+     never exceeds two levels (DESIGN.md §6 "Oasira-style nesting"). */
+  container-type: inline-size;
+}
+
+/* ------------------------------------------------------------------- tone */
+
+.plain {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.warm {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.tinted {
+  background: var(--focus);
+  border-color: color-mix(in srgb, var(--forest) 22%, transparent);
+}
+
+/* Reads through to the scenic backdrop. Body copy stays opaque enough to read. */
+.glass {
+  background: var(--glass-strong);
+  border-color: var(--border);
+  backdrop-filter: blur(18px);
+}
+
+.inverse {
+  background: var(--inverse);
+  border-color: transparent;
+  color: var(--surface);
+}
+
+/* ------------------------------------------------------------- elevation */
+
+.flat {
+  box-shadow: none;
+}
+
+.raised {
+  box-shadow: var(--shadow-card);
+}
+
+/* Drawers, popovers and the primary floating surface only (DESIGN.md §9). */
+.floating {
+  box-shadow: var(--shadow-float);
+}
+
+/* --------------------------------------------------------------- radius */
+
+.utility {
+  border-radius: var(--radius-utility);
+}
+
+.card {
+  border-radius: var(--radius-card);
+}
+
+.story {
+  border-radius: var(--radius-story);
+}
+
+.media {
+  border-radius: var(--radius-media);
+}
+
+/* --------------------------------------------------------------- padding */
+
+.padCompact {
+  padding: var(--padding-card-compact);
+}
+
+.padStandard {
+  padding: var(--padding-card-standard);
+}
+
+.padLarge {
+  padding: var(--padding-card-large);
+}
+
+/* ----------------------------------------------------------- interaction */
+
+/*
+ * DESIGN.md §13 / COMPONENT_MOTION_SPEC §4: hover lifts the card and deepens the
+ * shadow. The lift is small and translation-only — no scale, which reduced motion
+ * removes entirely.
+ */
+.interactive {
+  cursor: pointer;
+  transition:
+    transform var(--duration-default) var(--ease-standard),
+    box-shadow var(--duration-default) var(--ease-standard),
+    border-color var(--duration-default) var(--ease-standard);
+}
+
+/*
+ * DESIGN.md §13 "Hover" caps the displacement at `translateY(-1px)` 이내.
+ * COMPONENT_MOTION_SPEC.md's 0.34cqw lift was authored against the prototype's fixed
+ * artboard and would make a wide card jump further than a narrow one, so it does not
+ * port. The depth cue comes from the shadow swap, which is resolution-independent.
+ */
+.interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-float);
+}
+
+.interactive:focus-within {
+  border-color: color-mix(in srgb, var(--forest) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive:hover {
+    transform: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .interactive:hover {
+  transform: none;
+}

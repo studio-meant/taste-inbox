@@ -1,0 +1,12 @@
+{
+  "id": "fixture-memory-pressure-critical",
+  "deviceModel": "AppleSiliconFixture,1",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 16,
+  "availableMemoryGb": 1.8,
+  "totalStorageGb": 512,
+  "freeStorageGb": 96,
+  "memoryPressure": "critical",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}

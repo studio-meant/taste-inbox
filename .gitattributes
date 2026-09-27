@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.mp4 binary
+*.woff binary
+*.woff2 binary
+
+prototype/vendor/** linguist-vendored
+pnpm-lock.yaml -diff linguist-generated
+uv.lock -diff linguist-generated

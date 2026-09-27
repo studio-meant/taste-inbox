@@ -1,0 +1,77 @@
+[project]
+name = "taste-inbox-api"
+version = "0.1.0"
+description = "Taste Inbox local service: host detection, adaptive resource policy, and local API"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "fastapi>=0.115",
+    # The packaged desktop uses FastAPI's in-process TestClient as its stdio transport.
+    "httpx2>=2.0",
+    "uvicorn[standard]>=0.32",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "mypy>=1.11",
+    "ruff>=0.6",
+    "types-pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/taste_inbox"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",    # pycodestyle / pyflakes
+    "I",              # isort
+    "UP",             # pyupgrade
+    "B",              # bugbear
+    "SIM",            # simplify
+    "RUF",
+    "ANN",            # missing annotations
+    "S",              # bandit
+    "PTH",            # prefer pathlib
+]
+ignore = [
+    "ANN401",         # Any is occasionally required at trust boundaries
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]  # assert is the point of a test
+# Alembic writes these. A CHECK constraint arrives as one unbreakable string literal, and
+# hand-wrapping generated files means the next `--autogenerate` reintroduces the warning.
+"migrations/versions/**" = ["E501"]
+# `Depends(...)` and `Query(...)` in a default is how FastAPI declares dependencies; the
+# rule is written for ordinary functions where a call in a default is a shared-state bug.
+"src/taste_inbox/api/app.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+disallow_any_generics = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --strict-config"
+pythonpath = ["src"]

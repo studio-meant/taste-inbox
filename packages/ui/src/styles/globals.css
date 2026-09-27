@@ -1,0 +1,135 @@
+/**
+ * Global baseline.
+ *
+ * Import order matters: structural tokens, then motion, then the generated theme
+ * blocks, then this file. `apps/web/src/app/globals.css` owns that order.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--ink);
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      color-mix(in srgb, var(--surface) 80%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 82% 18%,
+      color-mix(in srgb, var(--light-green) 42%, transparent),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 78% 86%,
+      color-mix(in srgb, var(--light-wood) 22%, transparent),
+      transparent 32%
+    ),
+    linear-gradient(135deg, var(--outer), var(--outer-deep));
+  background-attachment: fixed;
+  /* A theme change is a token swap; the ambient wash follows it. */
+  transition:
+    background var(--duration-scene-forward) var(--ease-cinematic),
+    color var(--duration-scene-back) ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/*
+ * DESIGN.md §13 "Focus" — the ring is specified literally:
+ *   outline: 2px solid var(--focus-ring);
+ *   outline-offset: 3px;
+ * The token is derived per theme to clear 3:1 against the content surface.
+ */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-control);
+}
+
+/*
+ * On the dark capsule and other inverse grounds the light-ground ring disappears, so
+ * the paired high-contrast ring takes over. Components opt in with `data-ground`.
+ */
+[data-ground="inverse"]:focus-visible,
+[data-ground="scenic"]:focus-visible {
+  outline-color: var(--focus-ring-contrast);
+}
+
+/*
+ * WCAG 2.2 Target Size (Minimum) — DESIGN.md §18 sets a hard 44x44px floor.
+ * The painted control keeps its designed height; the *target* is expanded with an
+ * overlay that changes no layout. Applied to controls smaller than 44px.
+ */
+.hit-44 {
+  position: relative;
+}
+
+.hit-44::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
+:where(a) {
+  color: inherit;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* DESIGN.md §18 / architecture §23 — screen-reader-only content. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link is visible on focus only. */
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-command-palette);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-float);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}

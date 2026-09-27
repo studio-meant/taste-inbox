@@ -1,0 +1,138 @@
+/**
+ * Structural tokens — everything that does not change with the theme.
+ *
+ * Source of truth: docs/DESIGN.md §6 (layout), §8 (typography), §9 (shape, border,
+ * shadow), §10 (spacing). Colour tokens are theme-owned and emitted from
+ * `packages/ui/src/theme`; they must not be duplicated here.
+ *
+ * CSS rule from DESIGN.md §20: no arbitrary hex outside the theme registry.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---------------------------------------------------------------- shell */
+  --shell-inset-wide: 16px;
+  --shell-inset-desktop: 12px;
+  /* DESIGN.md §6 and §19 give the tablet band a 6–8px inset but no token; 8px keeps
+     the step down from the 12px desktop inset legible. */
+  --shell-inset-tablet: 8px;
+  --rail-width: 68px;
+  --context-bar-height: 60px;
+  --content-max: 1540px;
+  --content-padding-wide: 44px;
+  --content-padding-desktop: 32px;
+  --content-padding-mobile: 16px;
+  --grid-gap: 20px;
+
+  /* ------------------------------------------------------------- typography */
+  --font-sans:
+    "Pretendard Variable", Pretendard, "Inter Tight", Inter, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "Geist Mono", Consolas, monospace;
+
+  --type-hero-size: 60px;
+  --type-hero-line: 62px;
+  --type-hero-weight: 580;
+  --type-hero-tracking: -0.05em;
+
+  --type-page-title-size: 42px;
+  --type-page-title-line: 46px;
+  --type-page-title-weight: 600;
+  --type-page-title-tracking: -0.04em;
+
+  --type-section-title-size: 25px;
+  --type-section-title-line: 30px;
+  --type-section-title-tracking: -0.025em;
+
+  --type-card-title-large-size: 23px;
+  --type-card-title-large-line: 28px;
+  --type-card-title-large-tracking: -0.025em;
+
+  --type-card-title-size: 18px;
+  --type-card-title-line: 24px;
+  --type-card-title-tracking: -0.015em;
+
+  --type-body-size: 14px;
+  --type-body-line: 21px;
+  --type-body-tracking: -0.005em;
+
+  --type-body-small-size: 13px;
+  --type-body-small-line: 19px;
+
+  --type-label-size: 11px;
+  --type-label-line: 15px;
+  --type-label-weight: 650;
+  --type-label-tracking: 0.05em;
+
+  --type-mono-size: 12px;
+  --type-mono-line: 17px;
+  --type-mono-weight: 500;
+  --type-mono-tracking: -0.01em;
+
+  /* ------------------------------------------------------------------ radius */
+  --radius-control: 12px;
+  --radius-media: 14px;
+  --radius-utility: 18px;
+  --radius-card: 22px;
+  --radius-story: 26px;
+  --radius-shell: 30px;
+  --radius-pill: 999px;
+
+  /* ----------------------------------------------------------------- spacing */
+  /* 4px base unit — DESIGN.md §10 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  --padding-card-compact: var(--space-4);
+  --padding-card-standard: var(--space-6);
+  --padding-card-large: var(--space-8);
+  --gap-title-body: var(--space-3);
+  --gap-body-metadata: var(--space-5);
+  --gap-content-cta: var(--space-6);
+  --gap-section-title-content: var(--space-6);
+  --gap-section-to-section: var(--space-20);
+
+  /* ------------------------------------------------------------------ shadow */
+  /* Colour comes from the active theme; geometry does not. */
+  --shadow-shell: 0 24px 80px var(--shadow-color);
+  --shadow-card:
+    0 1px 1px color-mix(in srgb, var(--shadow-color) 22%, transparent),
+    0 10px 30px color-mix(in srgb, var(--shadow-color) 40%, transparent);
+  --shadow-float: 0 18px 60px var(--shadow-color);
+
+  /* ---------------------------------------------------------------- controls */
+  --control-height-primary: 40px;
+  --control-padding-primary: 18px;
+  --control-height-compact: 32px;
+  --icon-stroke-width: 1.6;
+
+  /* --------------------------------------------------------------- z-index */
+  --z-backdrop: 0;
+  --z-content: 10;
+  --z-rail: 20;
+  --z-context-bar: 30;
+  --z-query-dock: 40;
+  --z-drawer: 50;
+  --z-dialog: 60;
+  --z-toast: 70;
+  --z-command-palette: 80;
+
+  /* ------------------------------------------------------------ breakpoints */
+  /* Mirrors docs/DESIGN.md §6; kept as custom properties for documentation only —
+     media queries cannot interpolate them and must repeat the literal values. */
+  --breakpoint-mobile-max: 767px;
+  --breakpoint-tablet-min: 768px;
+  --breakpoint-desktop-min: 1280px;
+  --breakpoint-wide-min: 1600px;
+}

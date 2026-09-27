@@ -1,0 +1,12 @@
+{
+  "id": "fixture-capacity-48gb-1tb",
+  "deviceModel": "AppleSiliconFixture,2",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 48,
+  "availableMemoryGb": 31.5,
+  "totalStorageGb": 1000,
+  "freeStorageGb": 612.8,
+  "memoryPressure": "normal",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}

@@ -1,0 +1,242 @@
+/**
+ * The Saved Items rail — `reference/ref.css` `.context-rail`.
+ *
+ * A filled dark-green panel, not an outline column, and **always rendered**. The rail
+ * that returned null when no facet could narrow the board is what let `/style` become a
+ * 2px board: every one of its 76 items is from Instagram, so the one remaining facet had
+ * a single option, the rail disappeared, and the board landed in an `auto` grid track
+ * sized to a grid of `1fr` columns. The panel's first section is board counts, which are
+ * always available, so there is no state in which it has nothing to say.
+ *
+ * Contrast. The reference's ground is `color-mix(--forest 84%, --oatmeal)` = `#677761`
+ * (L 0.170) with idle text at `rgba(255,253,248,.7)` — 3.18:1, and its section labels at
+ * `.52` — 2.48:1. Both are 11–13px, so AA wants 4.5:1 and neither reaches it. Measured on
+ * `var(--forest)` (`#50654E`, L 0.117) instead: `.88` → 5.22:1 and `.78` → 4.53:1, both
+ * passing, with the panel reading slightly deeper than the reference rather than lighter.
+ */
+
+.rail {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .rail {
+    display: flex;
+    flex-direction: column;
+    /* 1.15cqw 1cqw */
+    padding: var(--space-4) var(--space-3);
+    /* 1.2cqw ≈ 17.4px */
+    border-radius: var(--radius-utility);
+    background: var(--forest);
+    color: var(--surface);
+    box-shadow: var(--shadow-card);
+    /* Collapsed: an icon column at 768–1279, per DESIGN.md §11.2. The reference has no
+       collapsed state — it was never drawn below its own artboard width. */
+    width: 68px;
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 1280px) {
+  .rail {
+    width: 200px;
+    padding-inline: var(--space-4);
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  /* .2cqw. The rows are 44px painted rather than 29px, so the tight stack and DESIGN.md
+     §18's target floor hold at the same time and no `hit-44` overlay is needed — a 44px
+     overlay on a 29px row would overlap its neighbours by 12px. */
+  gap: 3px;
+}
+
+.label {
+  /* Collapsed there is no room for it; every row carries its own accessible name. */
+  display: none;
+  /* .6cqw */
+  margin-block-end: var(--space-2);
+  color: rgba(255, 253, 248, 0.78);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.label:lang(ko) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (min-width: 1280px) {
+  .label {
+    display: block;
+  }
+}
+
+/* Only meaningful once labels are visible — see the source list. */
+.wideOnly {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .wideOnly {
+    display: flex;
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * One row shape for a link, for a static count, and for a rail action — the reference
+ * paints `.rail-section button` and `.rail-action` identically apart from alignment.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  /* .62cqw */
+  padding-inline: 10px;
+  border: 0;
+  /* .62cqw ≈ 9px */
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 253, 248, 0.88);
+  font-size: var(--type-body-small-size);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  /* Collapsed the row is a square, so the glyph stays centred under the 68px column. */
+  .row {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
+
+a.row:hover {
+  color: var(--surface);
+  /* .12cqw */
+  transform: translateX(2px);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--focus-ring-contrast);
+  outline-offset: -2px;
+}
+
+.rowOn {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+/*
+ * A count that is not a control.
+ *
+ * When a facet cannot separate the board — every Style item is from Instagram — offering
+ * it as a filter would return the same board and read as "no matches", which is a claim
+ * about the items rather than about the product. The row still says how many there are;
+ * it just does not pretend to be a filter.
+ */
+.rowStatic {
+  color: rgba(255, 253, 248, 0.78);
+  cursor: default;
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* `.source-color` — 8px (.54cqw). Decorative: the label beside it carries the identity. */
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot-color, var(--sun));
+}
+
+.text,
+.count {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* `.rail-section em { font-size:.48cqw; opacity:.55 }` — .55 is 2.5:1 on this ground. */
+  .count {
+    display: block;
+    margin-inline-start: auto;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+  }
+}
+
+/* `.rail-divider { height:1px; margin:.9cqw 0; background:rgba(255,255,255,.11) }` */
+.divider {
+  flex: none;
+  height: 1px;
+  margin-block: var(--space-3);
+  border: 0;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.actionIcon {
+  flex: none;
+  /* `.rail-action svg { width:.48cqw }` ≈ 7px at the geometry rate, which is below the
+     12px floor a glyph can be read at; the icon:text ratio (.48/.56) against our 13px row
+     gives 11.1, rounded up. */
+  width: 12px;
+  height: 12px;
+}
+
+/* ────────────────────────────────────────────────────── the facet block */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* `.clear` — the dashed "필터 지우기" row — was removed on 2026-08-10 with the control it
+   painted. Every facet row here clears itself on a second click, so the panel no longer
+   has a row that undoes rather than selects. */
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+
+  a.row:hover {
+    transform: none;
+  }
+}

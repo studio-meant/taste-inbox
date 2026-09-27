@@ -1,0 +1,1121 @@
+/**
+ * Today — ported from the approved reference (`reference/taste-inbox-ui-ux-final.html`,
+ * extracted to `reference/ref.css` / `reference/ref.js`).
+ *
+ * The reference sizes everything in `cqw` against a 1440 × 960 artboard, so **1cqw =
+ * 14.4px**. Geometry ports at that rate, snapped to the 4px token grid; type ports by
+ * *rank* rather than by px, because the reference's bottom four steps land at 6–9px,
+ * under any legible floor. Each block below carries the reference selector and the
+ * literal cqw value it came from so the mapping stays auditable.
+ *
+ * Two deliberate departures from the reference, both a11y:
+ * - the eyebrow uses `--subtle`, not `color-mix(--muted 82%, white)` — the latter is
+ *   3.35:1 on the scenic ground and fails AA at 11px (`--subtle` measures 4.86:1);
+ * - the "Updated" pill's ground is `--inverse` at 84%, not the reference's 31%. At 31%
+ *   the white label measures 1.9:1. 84% keeps the dark-glass register at 5.4:1.
+ *
+ * Grid: IA_WIREFRAMES §7.2 documents 6/3/3 at ≥1280px; the approved reference is
+ * `1.15fr .94fr 1.04fr`. The reference wins at ≥1280px (see `.grid`) and the documented
+ * 12-column behaviour is kept below it. Flagged to the user — see the handoff notes.
+ */
+
+/* ───────────────────────────────────────────────────────────────────── page */
+
+/*
+ * `.today-content` (ref.css:227) is `padding: 2.25cqw 6.1cqw 7cqw` — a 32px top
+ * (AppShell already supplies it) and an 87.8px side gutter, i.e. a 1264px inner column
+ * on the 1440px artboard. AppShell's `--content-max` is 1540, so the page re-clamps.
+ */
+.page {
+  display: grid;
+  /* `.today-grid { margin-top: 1.45cqw }` and `.yesterday-block { margin-top: 1.4cqw }`
+     — 20.9px and 20.2px, one step on the 4px grid. */
+  gap: var(--space-5);
+  max-width: 1264px;
+  margin-inline: auto;
+}
+
+/* `.page-title-row` — ref.css:222. */
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/*
+ * `.eyebrow` — ref.css:183: `.62cqw / 700 / .13em / uppercase`. 8.9px is below the
+ * product's 11px label floor, so it ports by rank onto `--type-label-*`; the .13em
+ * tracking is the reference's own and overrides the token's .05em.
+ */
+.eyebrow {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: 650;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/*
+ * `.page-title-row h1` — ref.css:223: `margin:.22cqw 0 0; 2.9cqw / 580 / lh 1 / -.055em`.
+ * 2.9cqw = 41.8px, which is `--type-page-title-size` to the pixel; line-height, weight
+ * and tracking are the reference's, not the token's (46 / 600 / -.04em).
+ */
+.pageTitle {
+  margin: 0;
+  font-size: var(--type-page-title-size);
+  line-height: 1;
+  font-weight: 580;
+  letter-spacing: -0.055em;
+}
+
+/*
+ * The reference's Today header has no lead line — `greeting` belongs to its Greeting
+ * screen (ref.js:452), which this product has not built yet (CLAUDE.md §9). Dropping the
+ * string outright would be a product change, so it stays as one quiet line under the
+ * title, sized to the reference's smallest body step rather than the 14px body.
+ */
+.pageLead {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/*
+ * `.status-pill.tone-glass` — ref.css:195, offset by `margin-bottom:.18cqw` (ref.css:224).
+ * Geometry follows StatusPill (26px / 10px / 12px / 600) so the two read as one family;
+ * the ground is darkened from the reference's 31% for contrast (see the file header).
+ */
+.updatedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  margin-bottom: 2px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--surface) 22%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--inverse) 84%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--surface);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.updatedIcon {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+/* ───────────────────────────────────────────────────────────────────── grid */
+
+/*
+ * `.today-grid` — ref.css:228: `1.15fr .94fr 1.04fr; gap:1.25cqw` (18px).
+ * Mobile is one column; the tablet band keeps IA §7.2's documented 8 + 4 with the
+ * queue on the next row.
+ */
+.grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  .connections {
+    grid-column: span 8;
+  }
+
+  .saved {
+    grid-column: span 4;
+  }
+
+  .queue {
+    grid-column: span 12;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid {
+    grid-template-columns: 1.15fr 0.94fr 1.04fr;
+  }
+
+  .connections,
+  .saved,
+  .queue {
+    grid-column: auto;
+  }
+}
+
+/* ────────────────────────────────────────────────────── shared card shell */
+
+/*
+ * `.overview-card` — ref.css:229:
+ *   min-height:20.8cqw (299.5px) · padding:1.45cqw (20.9) · radius:1.45cqw (20.9)
+ *   border:1px rgba(255,255,255,.48) · background:color-mix(--surface 88%, transparent)
+ *   box-shadow:var(--shadow-card) · backdrop-filter:blur(18px)
+ *
+ * The 88% ground is the whole point of the card: it reads as glass over the scenic
+ * hills rather than as opaque paper. The white hairline becomes a token-safe
+ * `color-mix(--surface 48%, transparent)` (DESIGN.md §20 forbids raw hex).
+ *
+ * `.update-row` is absolutely positioned in the reference. Here the card is a column
+ * and the footer takes `margin-top:auto`: identical rendering, and Korean copy that
+ * wraps pushes the footer instead of colliding with it.
+ */
+.overviewCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--surface) 48%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
+  overflow: hidden;
+  transition:
+    box-shadow var(--duration-slow) var(--ease-standard),
+    background var(--duration-scene-back) ease;
+}
+
+/*
+ * The reference lifts every card on hover. Only the Saved card actually activates
+ * anything, so the other two get the depth cue without the false affordance, and the
+ * lift is DESIGN.md §13's 1px cap rather than the reference's 5px.
+ */
+.overviewCard:hover {
+  box-shadow: var(--shadow-float);
+}
+
+/* `.working-card` — ref.css:263: the queue card sits one step further back. */
+.workingCard {
+  background: color-mix(in srgb, var(--surface) 74%, transparent);
+}
+
+/* `.card-heading` — ref.css:231: `min-height:1.4cqw` (20.2), label `.78cqw / 650`. */
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 24px;
+}
+
+.cardHeadingTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.cardHeadingIcon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+
+/* `.card-divider` — ref.css:245: 1px, `1.1cqw` (15.8px) vertical margin. */
+.cardDivider {
+  flex: none;
+  height: 1px;
+  margin: var(--space-4) 0;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+/*
+ * `.update-row` — ref.css:249: gap .65cqw (9.4), padding-top .9cqw (13), meta .53cqw
+ * and lead .62cqw, which port by rank to 12px muted and 13px ink.
+ */
+.updateRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.updateLead {
+  margin-right: auto;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/*
+ * An empty card keeps the shell, the heading and the footer; only the body changes
+ * (DESIGN.md §15). `EmptyState` brings its own 32px padding, so this only has to hand
+ * it the leftover height.
+ */
+.emptyBody {
+  display: grid;
+  align-content: center;
+  flex: 1;
+}
+
+/* ─────────────────────────────────────────────────────────── source dots */
+
+/*
+ * `.source-dots` — ref.css:234: 1.15cqw (16.6px) discs, -.2cqw overlap, a .12cqw
+ * `--surface` ring and a .42cqw / 750 glyph. Ported at 18 / -3 / 2 / 9.
+ *
+ * The reference's brand hexes (#2E302E, #5C7990, …) are not tokens, so each disc takes
+ * a token ground and keeps the platform initial: identity survives in the glyph, which
+ * is also why this is not a colour-only signal.
+ */
+.sourceDots {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sourceDot {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: -3px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--inverse);
+  color: var(--surface);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.sourceDot:first-child {
+  margin-left: 0;
+}
+
+.sourceDotInstagram {
+  background: linear-gradient(135deg, var(--wood), var(--orchid));
+}
+
+.sourceDotThreads {
+  background: var(--ink);
+}
+
+.sourceDotLinkedin {
+  background: var(--forest);
+}
+
+.sourceDotWeb {
+  background: var(--leaf);
+}
+
+/* `.source-dots > span` — ref.css:237: the trailing "+3". */
+.sourceDotsMore {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ────────────────────────────────────────────────────── connections card */
+
+/* `.connection-feature` — ref.css:238: `4.15cqw 1fr` (59.8px), gap .85cqw, mt 1.15cqw. */
+.featureRow {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  align-items: center;
+}
+
+/* `.feature-thumb` — ref.css:239, verbatim apart from `#FFFDF8` → `var(--surface)`. */
+.featureThumb {
+  height: 60px;
+  border-radius: var(--radius-media);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 70% 30%, var(--sun), transparent 28%),
+    linear-gradient(145deg, var(--forest), color-mix(in srgb, var(--leaf) 68%, var(--wood)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 12%, transparent);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.featureCopy {
+  min-width: 0;
+}
+
+/* `.connection-feature strong` — ref.css:240: .86cqw (12.4px) → `--type-card-title`. */
+.featureTitle {
+  margin: 0;
+  font-size: var(--type-card-title-size);
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: var(--type-card-title-tracking);
+}
+
+/* `.connection-feature p` — ref.css:241: `margin:.28cqw 0 .5cqw`, .62cqw → 13px. */
+.featureMeta {
+  margin: var(--space-1) 0 7px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* ───────────────────────────────────────────────────────────────── tags */
+
+/*
+ * `.tag` / `.tag-row` — ref.css:243: 1.25cqw tall (18px), .55cqw inline padding,
+ * .52cqw / 650. Ported at 22 / 10 / 11, the smallest legible step. Measured on the
+ * default theme: neutral 4.72:1, green 5.41:1.
+ *
+ * This is not `SignalChip`: a chip is a filter, a tag is a label (DESIGN.md §11.13).
+ */
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--oatmeal) 40%, var(--surface));
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.tagGreen {
+  background: color-mix(in srgb, var(--light-green) 62%, var(--surface));
+  color: var(--accent-deep);
+}
+
+.tagWarm {
+  background: color-mix(in srgb, var(--sun) 40%, var(--surface));
+  color: var(--status-warning-fg);
+}
+
+/* ─────────────────────────────────────────────────────────── insight row */
+
+/*
+ * `.insight-row` — ref.css:246: `2.25cqw 1fr` (32.4px) grid, gap .75cqw, tile radius
+ * .72cqw (10.4 → `--radius-control`), strong .72cqw and p .58cqw → 14 / 13.
+ *
+ * The reference shows one of these. Ours carries the related items PAGE_SPECIFICATIONS
+ * §5.2 requires ("related item 2–4개"), which the reference has no slot for — same row
+ * shape, repeated, and each row is the link to that item.
+ */
+.relatedList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insightRow {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 11px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.insightIcon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--light-green) 55%, var(--surface));
+  color: var(--accent-deep);
+}
+
+.insightIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.insightCopy {
+  min-width: 0;
+}
+
+.insightTitle {
+  display: block;
+  font-size: 14px;
+  line-height: 19px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insightBody {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+a.insightRow:hover .insightTitle {
+  text-decoration: underline;
+}
+
+/* The card is a flex column; without this the capsule would stretch its full width. */
+.leadAction {
+  align-self: flex-start;
+  flex: none;
+  margin-block: var(--space-4);
+}
+
+/* ─────────────────────────────────────────────────────────────── saved card */
+
+/*
+ * `.saved-overview-card` — ref.css:251. The whole surface navigates to the collection.
+ * It is one stretched link rather than a `<button>`, because it is a destination, and
+ * the card holds no other interactive element, so nothing nests.
+ */
+.savedCard {
+  cursor: pointer;
+}
+
+.savedLink {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.savedLink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+}
+
+.savedCard:hover {
+  transform: translateY(-1px);
+}
+
+/* The hit area is the whole card, so the ring belongs on the whole card too. */
+.savedCard:has(.savedLink:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* `.saved-count` — ref.css:252: 3.1cqw (44.6px) / 560 / lh .9 / -.06em, unit .68cqw. */
+.savedCount {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 15px 0 0;
+}
+
+.savedCountValue {
+  font-size: 44px;
+  line-height: 0.9;
+  font-weight: 560;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.savedCountUnit {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/*
+ * `.saved-meter` — ref.css:254: `.28cqw` tall (4px), `1cqw` margin-block (14.4),
+ * `.25cqw` gap. The reference's three fixed fractions become the real AI / Style split,
+ * so the bar reports data instead of decorating. It is `aria-hidden` because the same
+ * split is spelled out in the tag row underneath (CLAUDE.md §6 — no colour-only status).
+ */
+.savedMeter {
+  display: grid;
+  flex: none;
+  height: 4px;
+  margin: 14px 0;
+  gap: 4px;
+}
+
+.savedMeterSegment {
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transform-origin: left;
+  animation: meterGrow 1200ms var(--ease-cinematic) both;
+}
+
+.savedMeterSegment:nth-child(2) {
+  background: var(--sun);
+  animation-delay: 150ms;
+}
+
+.savedMeterSegment:nth-child(3) {
+  background: var(--wood);
+  animation-delay: 300ms;
+}
+
+/*
+ * Up to three actual thumbnails from the day this card counts. Empty slots stay empty:
+ * an abstract tile beside "6 new" looked like a specific saved item and became stale
+ * decoration on a card whose job is to summarise live data.
+ */
+.savedTiles {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  height: 75px;
+  margin-top: 14px;
+}
+
+.savedTiles[data-count="1"] {
+  grid-template-columns: 1fr;
+}
+
+.savedTiles[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oatmeal) 45%, var(--surface));
+}
+
+.tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* `.saved-sources` — ref.css:262: dots left, "View all" right, .55cqw → 12px. */
+.savedFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────── working queue */
+
+/* `.queue-orbit` — ref.css:264: 2.2 × 1.2cqw with two 1.15cqw discs, the second
+   offset .62cqw. A two-disc eclipse, not a status: decorative, so it is hidden. */
+.queueOrbit {
+  position: relative;
+  width: 32px;
+  height: 18px;
+}
+
+.queueOrbit i {
+  position: absolute;
+  top: 0;
+  right: 9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--light-green), var(--leaf));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--shadow-color) 70%, transparent);
+}
+
+.queueOrbit i:nth-child(2) {
+  right: 0;
+  opacity: 0.76;
+  background: linear-gradient(145deg, var(--surface), var(--accent-deep));
+}
+
+.queueList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * `.queue-row` — ref.css:265: `2cqw 1fr` (28.8px) grid, gap .7cqw, `1cqw` padding-block
+ * (14.4), a hairline under *every* row including the last, and a staggered entry.
+ * No radius and no fill: the reference's rows are transparent.
+ */
+.queueRow {
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 7%, transparent);
+  animation: queueIn 600ms var(--ease-cinematic) both;
+  animation-delay: calc(280ms + var(--row, 0) * var(--stagger-queue-row));
+}
+
+.queueLink {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding-block: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.queueLink:hover .queueTarget {
+  text-decoration: underline;
+}
+
+/*
+ * `.queue-check` — ref.css:266: 1.75cqw (25.2px) square, radius .56cqw (8px —
+ * `--radius-control` at 12 is too round at this size), 13px icon.
+ * The reference's third tone hard-codes `#756936`; `--status-warning-fg` is the token
+ * that means the same thing.
+ */
+.queueCheck {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  margin-top: 1px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--oatmeal) 42%, var(--surface));
+  color: var(--muted);
+}
+
+.queueCheck svg {
+  width: 13px;
+  height: 13px;
+}
+
+.queueCheckReady {
+  background: color-mix(in srgb, var(--light-green) 70%, var(--surface));
+  color: var(--accent-deep);
+}
+
+.queueCheckActive {
+  background: color-mix(in srgb, var(--sun) 38%, var(--surface));
+  color: var(--status-warning-fg);
+}
+
+/* `.queue-copy` — ref.css:269: gap .18cqw, strong .68cqw, small .52cqw → 14 / 12. */
+.queueCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.queueTarget {
+  font-size: 14px;
+  line-height: 19px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queueMeta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/*
+ * `.mini-progress` — ref.css:268: `.24cqw` tall (3.5 → 4), `.35cqw` top margin,
+ * a `--ink 6%` track and an accent → accent-deep fill drawn from the left.
+ */
+.miniProgress {
+  display: block;
+  height: 4px;
+  margin-top: 5px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.miniProgressFill {
+  display: block;
+  height: 100%;
+  width: var(--progress, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  transform-origin: left;
+  animation: progressGrow var(--duration-progress-draw) var(--ease-cinematic) both;
+}
+
+/* `.text-action` — ref.css:269: bottom-left, .58cqw, muted → ink on hover. */
+.queueFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-3);
+}
+
+.textAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.textAction:hover {
+  color: var(--ink);
+}
+
+.textAction svg {
+  width: 14px;
+  height: 14px;
+}
+
+.queueCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ───────────────────────────────────────────────────────────────── yesterday */
+
+/* `.yesterday-block h3` — ref.css:270: 1.2cqw (17.3px) / 570 / -.03em, mb .7cqw. */
+.yesterdayBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.yesterdayTitle {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 570;
+  letter-spacing: -0.03em;
+}
+
+/* `.yesterday-cards` — ref.css:272: two fixed columns across 68% of the content width. */
+.yesterdayCards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * Three across, not the reference's two.
+ *
+ * `ref.css` sets `grid-template-columns: 1fr 1fr; width: 68%`, and that is exactly right
+ * for the reference — which draws **two** cards per day. This product draws three
+ * (`api/today.py::_highlights_for`), so the ported grid left a 2 + 1 orphan under a third
+ * of empty row. The number of columns was following the reference's markup rather than our
+ * own data.
+ *
+ * The card width the reference chose is preserved rather than abandoned: 68% over two
+ * columns is 34% each, and 100% over three is 33.3%. Same card, one more of them, no gap.
+ */
+@media (min-width: 768px) {
+  .yesterdayCards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Two columns in the band where three would squeeze the title to a couple of words. The
+ * card is `46px 1fr auto`, so below roughly 1100px a third of the row cannot hold a
+ * Korean headline and the ellipsis starts doing all the work.
+ */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .yesterdayCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* `.yesterday-cards article` — ref.css:273: `3.2cqw 1fr auto`, 66% glass, blur 14. */
+.yesterdayCard {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--surface) 38%, transparent);
+  border-radius: var(--radius-media);
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  backdrop-filter: blur(14px);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow var(--duration-default) var(--ease-standard);
+}
+
+.yesterdayCard:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.yesterdayCard:hover .yesterdayCardTitle {
+  text-decoration: underline;
+}
+
+/* `.mini-cover` — ref.css:274: 3.2 × 2.45cqw (46 × 35px), radius .65cqw (9). */
+.miniCover {
+  width: 46px;
+  height: 35px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--oatmeal) 45%, var(--surface));
+}
+
+.coverTrends {
+  background:
+    radial-gradient(circle at 65% 35%, var(--light-green), transparent 28%),
+    linear-gradient(145deg, var(--inverse), var(--leaf));
+}
+
+.coverStyle {
+  background: linear-gradient(145deg, var(--orchid), var(--oatmeal));
+}
+
+.coverMusic {
+  background: linear-gradient(145deg, var(--sun), var(--light-wood));
+}
+
+/* Places. Distinct from the other three at a glance, and from the same registry — no hex
+   outside the theme tokens (DESIGN.md §20). Decorative: the card prints the board name. */
+.coverPlaces {
+  background: linear-gradient(145deg, var(--sage), var(--cream));
+}
+
+.coverNone {
+  background: linear-gradient(145deg, var(--oatmeal), var(--surface));
+}
+
+.yesterdayCopy {
+  min-width: 0;
+}
+
+/* `.yesterday-cards strong` / `small` — ref.css:275: .62cqw / .5cqw → 13 / 12. */
+.yesterdayCardTitle {
+  display: block;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yesterdayMeta {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ───────────────────────────────────────────────────────── partial failure */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--padding-card-compact);
+  border-radius: var(--radius-utility);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-fg);
+}
+
+.noticeIcon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-block-start: 1px;
+}
+
+/* ──────────────────────────────────────────────────────────────────── motion */
+
+/*
+ * `.motion-item` — ref.css:388: `itemRise 720ms var(--ease-cinematic) both`, delayed by
+ * `80ms + var(--i) * 65ms`. Both numbers already exist as `--delay-heading` and
+ * `--stagger-card`, and both collapse to 0 under either reduced-motion trigger.
+ */
+.motionItem {
+  animation: itemRise var(--duration-shared-element) var(--ease-cinematic) both;
+  animation-delay: calc(var(--delay-heading) + var(--i, 0) * var(--stagger-card));
+}
+
+@keyframes itemRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes queueIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes meterGrow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes progressGrow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/*
+ * Entry motion is removed, not shortened: an element that is already on screen when the
+ * user asked for less motion should simply be there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .motionItem,
+  .queueRow,
+  .savedMeterSegment,
+  .miniProgressFill {
+    animation: none;
+  }
+
+  .yesterdayCard,
+  .overviewCard {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .motionItem,
+:global(:root[data-motion="reduced"]) .queueRow,
+:global(:root[data-motion="reduced"]) .savedMeterSegment,
+:global(:root[data-motion="reduced"]) .miniProgressFill {
+  animation: none;
+}
+
+/*
+ * The day heading is a link to that day, and carries its real size.
+ *
+ * The cards under it are at most three of what could be a hundred and forty-two
+ * (`api/today.py::_highlights_for`), and the reference's bare "Yesterday" gave a person no
+ * way to know that. The count is the disclosure; the link is where the rest actually is.
+ */
+.yesterdayTitleLink {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.yesterdayTitleLink:hover .yesterdayTitleCount,
+.yesterdayTitleLink:focus-visible .yesterdayTitleCount {
+  color: var(--ink);
+}
+
+.yesterdayTitleCount {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.yesterdayMore {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/*
+ * The cover, when the item has no photograph of its own.
+ *
+ * `--cover-tint` is the item's source colour, from the same registry the rail's dots use.
+ * The domain gradient underneath still shows through, so a Style item still reads as one;
+ * the tint separates two Trends cards that would otherwise be identical.
+ */
+.miniCover:has(.miniMark) {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      140deg,
+      color-mix(in srgb, var(--cover-tint) 62%, transparent),
+      color-mix(in srgb, var(--cover-tint) 26%, transparent)
+    ),
+    var(--surface-2);
+}
+
+/* The source mark sits in the tint rather than on it: same ink as the muted body copy, so
+   it identifies without competing with the title beside it. */
+.miniMark {
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--ink) 58%, transparent);
+}
+
+/* A real thumbnail fills the same 46px square the abstract cover occupies. */
+.miniPhoto {
+  object-fit: cover;
+}

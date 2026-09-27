@@ -1,0 +1,281 @@
+/**
+ * Shared collection board — IA §7.3.
+ *
+ * AI, Style and Music share this structure and this interaction language. What they do
+ * *not* share is card anatomy: DESIGN.md §33 is explicit that the boards share
+ * structure, not the inside of a card.
+ */
+
+.page {
+  display: grid;
+  gap: var(--gap-section-title-content);
+}
+
+/*
+ * `.browse-heading` — the reference's heading is one row: eyebrow / title / summary on the
+ * left, tools on the right. Ours has no `Today` / `All time` chips and no board search, so
+ * the right-hand slot is filled with what the board actually knows about itself.
+ */
+.header {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.headingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headingText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* `.eyebrow` — .62cqw / 700 / .13em. The reference's own colour is
+   `color-mix(--muted 82%, white)`, which measures 3.35:1 on `--shell` and fails AA at this
+   size; `--subtle` is the token that carries the same role and passes. */
+.eyebrow {
+  color: var(--subtle);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.eyebrow:lang(ko) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/*
+ * `.browse-heading h1 { font-size: 2.4cqw }` solves to ~53px at the artboard's type rate
+ * and ~35px at its geometry rate. `--type-page-title` (42px) sits between the two and is
+ * the size Today, System and Settings already use; changing the token to chase one screen
+ * would move all four. Recorded as a deliberate difference rather than a gap.
+ */
+.title {
+  margin: 0;
+}
+
+.lead {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.headerTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/*
+ * States the board itself is in — not states of an item. Kept visually quieter than a
+ * status pill so the two are not confused.
+ */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--padding-card-compact);
+  border-radius: var(--radius-utility);
+  background: var(--status-info-bg);
+  color: var(--status-info-fg);
+  max-width: 72ch;
+}
+
+.noticeIcon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-block-start: 1px;
+}
+
+/* ─────────────────────────────────────────────────────────────── boards */
+
+.board {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--grid-gap);
+}
+
+/*
+ * `.browse-board` — the reference grid, verbatim in shape:
+ *
+ *   grid-template-columns: repeat(4, minmax(0, 1fr));
+ *   grid-auto-rows: 8.4cqw;   → 122px
+ *   gap: .8cqw;               → 11.6px, var(--space-3)
+ *
+ * Not masonry and not CSS columns: a fixed row unit with per-item span classes
+ * (`.spanWide/.spanTall/.spanMedium/.spanSmall` in `BrowseCard.module.css`), which is what
+ * gives cards of differing heights while source order — and so reading and tab order —
+ * stays intact (frontend architecture §20).
+ *
+ * One change to the row unit: `minmax(122px, auto)` rather than a flat `122px`. The
+ * reference can fix its rows because its six cards hold one line of seed text each and the
+ * board is `overflow: hidden`; a real Korean caption, a hashtag row and an outbound link
+ * do not fit that promise, and a flat row would clip collected content rather than the
+ * placeholder it was drawn around. The floor keeps the rhythm; the ceiling keeps the text.
+ *
+ * Two columns on mobile rather than one. DESIGN.md:2070 names Style as the exception to
+ * the one-column mobile default ("Style grid는 2 columns 또는 중요 카드 1 column") and
+ * IA_WIREFRAMES.md:854 says the same; at one column the 76 collected Style items are
+ * roughly 59 screens of scrolling, at two, 17.
+ */
+.browseBoard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(122px, auto);
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .browseBoard {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .browseBoard {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Music's record shelf: the same 2/3/4-column rhythm as Trends, but every sleeve is square. */
+.musicBoard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.musicBoard > li {
+  min-width: 0;
+}
+
+/*
+ * Browse > All keeps one shared grid, but its saved categories should not dissolve into
+ * identical white surfaces. These variables cross CSS-module boundaries into each card;
+ * dedicated board routes do not set them and therefore keep their existing appearance.
+ */
+.libraryTrends,
+.libraryStyle,
+.libraryMusic,
+.libraryPlaces,
+.libraryNone {
+  min-width: 0;
+}
+
+.libraryTrends {
+  --library-card-bg: color-mix(in srgb, var(--light-green) 48%, var(--surface));
+  --library-card-accent: var(--sage);
+}
+
+.libraryStyle {
+  --library-card-bg: color-mix(in srgb, var(--orchid) 18%, var(--surface));
+  --library-card-accent: var(--wood);
+}
+
+.libraryMusic {
+  grid-row: span 2;
+  --library-card-bg: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  --library-card-accent: var(--accent-deep);
+  --library-card-overlay: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.libraryPlaces {
+  --library-card-bg: color-mix(in srgb, var(--sky-mid) 38%, var(--surface));
+  --library-card-accent: var(--sun);
+}
+
+.libraryNone {
+  --library-card-bg: color-mix(in srgb, var(--oatmeal) 50%, var(--surface));
+  --library-card-accent: var(--muted);
+}
+
+@media (min-width: 768px) {
+  .musicBoard {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .musicBoard {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Rail beside board — IA §7.3 "CollectionLayout", `ref.css` `.browse-layout`:
+ * `grid-template-columns: 13.7cqw 1fr; gap: 1cqw` — 199px and 14.5px at the geometry rate,
+ * which is the 200px rail and `--space-4` this layout already used.
+ *
+ * The rail is absent below 768px (the FilterSheet replaces it), so the grid collapses to
+ * one column there rather than reserving an empty gutter.
+ */
+.layout {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .layout {
+    /*
+     * One column by default, because the rail is not guaranteed to exist.
+     *
+     * `CollectionRail` now always renders, so the empty case should be unreachable — but
+     * this guard is what the Style board's collapse cost, and it costs nothing to keep. A
+     * board that lands in an `auto` track sized to a grid of `1fr` columns is 2px wide:
+     * 76 cards in the DOM and a blank screen.
+     */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  /* The gutter is reserved only when something is actually going in it. */
+  .layout:has(> nav) {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .layout:has(> nav) {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+}
+
+/*
+ * The mobile filter surface, and only that.
+ *
+ * The reference has no chip row under the heading — its rail carries the filters, and at
+ * ≥768px so does ours. Below 768 the rail is not rendered at all (PAGE_SPECIFICATIONS
+ * §12.2), which is the width where the sheet and the chip row are the only way to see or
+ * undo a filter. Showing all three at once put the same control on screen twice.
+ */
+.controls {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .controls {
+    display: none;
+  }
+}

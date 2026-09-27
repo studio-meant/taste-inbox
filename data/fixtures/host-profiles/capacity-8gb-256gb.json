@@ -1,0 +1,12 @@
+{
+  "id": "fixture-capacity-8gb-256gb",
+  "deviceModel": "AppleSiliconFixture,0",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 8,
+  "availableMemoryGb": 3.1,
+  "totalStorageGb": 256,
+  "freeStorageGb": 88.2,
+  "memoryPressure": "normal",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}

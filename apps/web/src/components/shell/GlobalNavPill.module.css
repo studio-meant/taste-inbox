@@ -1,0 +1,106 @@
+/**
+ * GlobalNavPill — IA_WIREFRAMES §4, DESIGN.md §4 "Navigation states".
+ *
+ * The reference's `.nav-switch`: a fixed-width two-column track tinted with `--inverse`,
+ * with a pale `--surface` slider that translates across it. Metrics are the reference's
+ * `cqw` values against `.frame`, floored where 1cqw would fall below legibility.
+ */
+
+/*
+ * Below the tablet breakpoint the destinations move to MobileBottomNav
+ * (architecture §22). `display: none` rather than visual hiding, so the two navigation
+ * landmarks never both exist in the accessibility tree at once.
+ */
+.pill {
+  /* ref: width 12.2cqw · height 2.25cqw · padding .18cqw */
+  --pill-pad: max(2px, 0.18cqw);
+
+  display: none;
+  position: relative;
+  grid-template-columns: 1fr 1fr;
+  width: max(160px, 12.2cqw);
+  height: max(30px, 2.25cqw);
+  padding: var(--pill-pad);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--inverse) 14%, transparent);
+}
+
+@media (min-width: 768px) {
+  .pill {
+    display: grid;
+  }
+}
+
+.slider {
+  position: absolute;
+  top: var(--pill-pad);
+  left: var(--pill-pad);
+  width: calc(50% - var(--pill-pad));
+  height: calc(100% - (2 * var(--pill-pad)));
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--shadow-color) 50%, transparent);
+  transform: translateX(0);
+  transition:
+    transform 520ms var(--ease-cinematic),
+    background 500ms ease,
+    opacity var(--duration-default) var(--ease-standard);
+}
+
+.pill[data-active="browse"] .slider {
+  transform: translateX(100%);
+}
+
+/*
+ * The 520ms travel is the one piece of scene-scale motion in the bar. The OS preference
+ * is already capped globally; the product's own Reduced switch has to say so here,
+ * because it only shortens animations, not transitions (motion.css).
+ */
+:global(:root[data-motion="reduced"]) .slider {
+  transition-duration: var(--duration-scene-reduced);
+}
+
+/* Off the model entirely (Settings, an error boundary): no position is the truth. */
+.pill[data-active="none"] .slider {
+  opacity: 0;
+}
+
+.item {
+  position: relative;
+  /* Above the slider, which shares the track. */
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ref: gap .25cqw · font .54cqw/620 · no padding, the grid centres it */
+  gap: max(3px, 0.25cqw);
+  border-radius: var(--radius-pill);
+  color: color-mix(in srgb, var(--muted) 82%, white);
+  font-size: max(11px, 0.54cqw);
+  font-weight: 620;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 280ms ease;
+}
+
+.item:hover {
+  color: var(--ink);
+}
+
+/*
+ * `aria-current` carries the state to assistive technology, the weight and the colour
+ * carry it visually. The slider underneath is decoration — remove it and this rule
+ * still says which destination you are on (DESIGN.md §18).
+ */
+.item[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.icon {
+  /* ref: .78cqw (11.2px @1440) */
+  width: max(14px, 0.78cqw);
+  height: max(14px, 0.78cqw);
+  flex: 0 0 auto;
+}

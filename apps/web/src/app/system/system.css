@@ -1,0 +1,299 @@
+/**
+ * System page styling.
+ *
+ * The AppShell owns the outer inset, max width and scroll container, so this file only
+ * describes the page's own sections. Tokens only — no literal colour, no magic number
+ * outside the spacing scale (DESIGN.md §20).
+ */
+
+.system-header,
+.system-section {
+  margin-block-end: var(--gap-section-to-section);
+}
+
+.system-header {
+  display: grid;
+  gap: var(--gap-title-body);
+  max-width: 62ch;
+}
+
+.system-lead {
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.system-section {
+  display: grid;
+  gap: var(--gap-section-title-content);
+}
+
+.system-grid {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin: 0;
+}
+
+.system-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--padding-card-standard);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.system-card dd {
+  margin: 0;
+}
+
+.system-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.system-note {
+  margin: 0;
+  padding: var(--padding-card-compact);
+  background: var(--focus);
+  border-radius: var(--radius-utility);
+  color: var(--ink);
+}
+
+.system-action {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height-primary);
+  padding-inline: var(--control-padding-primary);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--inverse);
+  color: var(--surface);
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------ launchd */
+
+.launchd-jobs {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.launchd-job {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-utility);
+}
+
+.launchd-job-label {
+  color: var(--ink);
+  /* The label is the long part; the cadence keeps its own line on a narrow column. */
+  flex: 1 1 22ch;
+  word-break: break-all;
+}
+
+.launchd-job-cadence {
+  color: var(--muted);
+  flex: none;
+}
+
+.launchd-block {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.launchd-block-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.launchd-block-head h3 {
+  margin: 0;
+}
+
+.launchd-copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Words next to the icon, never the icon alone (DESIGN.md §18). */
+.launchd-copy-state {
+  color: var(--muted);
+}
+
+/*
+ * The commands, verbatim.
+ *
+ * `white-space: pre` and its own `overflow-x`: an absolute plist path is wider than a
+ * narrow column, and the one thing the page body must never do is scroll sideways. It is
+ * focusable in the markup so this box can be scrolled from the keyboard too.
+ */
+.launchd-commands {
+  margin: 0;
+  padding: var(--padding-card-compact);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-utility);
+  color: var(--ink);
+  white-space: pre;
+  overflow-x: auto;
+  /* Tabs are not part of what the service emits; make one behave if it ever is. */
+  tab-size: 2;
+}
+
+/* ------------------------------------------------------------------- themes */
+
+/*
+ * The ramp values, folded away.
+ *
+ * A native `<details>`: it is keyboard-operable and announced as expandable without any
+ * client JavaScript, and it keeps six full-width reference cards from sitting between the
+ * theme choice and the rest of the screen.
+ */
+.system-theme-ramps {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.system-theme-ramps > summary {
+  justify-self: start;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.system-theme-ramps > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.theme-grid {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.theme-card {
+  /* Each card is its own token scope, so it renders in its own theme. */
+  padding: var(--padding-card-standard);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-story);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+
+.theme-card > article {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.theme-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.theme-card h3 {
+  margin: 0;
+}
+
+.theme-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.theme-default-badge,
+.theme-group {
+  flex: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.theme-default-badge {
+  background: var(--forest);
+  color: var(--surface);
+}
+
+.theme-group {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.theme-ramp {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.theme-ramp-step {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+}
+
+.theme-ramp-chip {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-media);
+  border: 1px solid var(--border);
+}
+
+.theme-ramp-label {
+  font-size: 9px;
+  color: var(--subtle);
+}
+
+.theme-note {
+  color: var(--subtle) !important;
+}
+
+/* The way into Settings. Sits under the lead, at the size of a sentence rather than a
+   button, because it is a destination and not an action. */
+.system-settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  min-height: var(--control-height-compact);
+  padding-inline: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.system-settings-link:hover {
+  background: var(--focus);
+  border-color: var(--forest);
+}

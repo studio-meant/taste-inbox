@@ -1,0 +1,36 @@
+/**
+ * Global stylesheet entry.
+ *
+ * Import order is significant and is the reason this file exists:
+ *   1. structural tokens   — radius, space, type, z-index, shell geometry
+ *   2. motion tokens       — durations, easings, both reduced-motion triggers
+ *   3. typography          — utilities that consume the type tokens
+ *   4. globals             — reset and baseline, consumes everything above
+ *
+ * Theme colour tokens are not imported here. They are emitted per request from
+ * `packages/ui/src/theme`, so the registry stays the single source of colour.
+ */
+
+@import "@taste-inbox/ui/styles/tokens.css";
+@import "@taste-inbox/ui/styles/motion.css";
+@import "@taste-inbox/ui/styles/typography.css";
+@import "@taste-inbox/ui/styles/globals.css";
+
+/**
+ * App-level structural tokens.
+ *
+ * `packages/ui` owns the shared vocabulary; this block is for geometry that only the
+ * Next.js shell has an opinion about. Keep it small — anything another surface could
+ * reuse belongs upstream in `tokens.css`.
+ */
+:root {
+  /*
+   * The *inner* clip radius of the framed screen.
+   *
+   * `--radius-shell` (30px) is the outer mat — the reference's `.stage-frame` at
+   * 2.05cqw ≈ 29.5px @1440. Its `.stage-clip` sits one 10–12px inset inside that at
+   * 1.55cqw ≈ 22.3px. Reusing the outer radius for the inner corner is what makes an
+   * inset frame read as a double border instead of as a mat.
+   */
+  --radius-shell-inner: 22px;
+}

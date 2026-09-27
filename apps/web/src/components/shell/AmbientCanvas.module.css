@@ -1,0 +1,195 @@
+/**
+ * AmbientCanvas — the scenic world the workspace sits on.
+ *
+ * Ported from the approved reference (`reference/ref.css` `.scenic-*`). Three layers in
+ * one stacking context inside `.frame`:
+ *
+ *   z0  sky ramp        linear-gradient(--sky-top → --sky-mid → --sky-bottom)
+ *   z1  warm glow       two radials, drifts on the Greeting only
+ *   z2  scenic art      7 hills · water body · 5 surface lines  (SVG)
+ *   z3  vignette        a neutral scrim that seats the frame
+ *
+ * DESIGN.md §19 removed the *outer* ambient canvas on mobile. The scenic now lives
+ * inside the frame — it is the screen's own wallpaper, not a field the frame floats on —
+ * so it renders at every width.
+ */
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-backdrop);
+  overflow: hidden;
+  /* Decorative: it must never take a click meant for the content above it. */
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 44%,
+    var(--sky-bottom) 100%
+  );
+  transition: background 800ms var(--ease-cinematic);
+}
+
+/*
+ * The content-heavy reading state. Not a different set of layers — the same world, a
+ * little further away, so Today/Browse/Focus text wins against it.
+ */
+.quiet {
+  opacity: 0.92;
+  filter: saturate(0.82) brightness(1.045);
+}
+
+.glow {
+  position: absolute;
+  inset: -12%;
+  z-index: 1;
+  background:
+    radial-gradient(
+      circle at 72% 8%,
+      color-mix(in srgb, var(--orchid) 86%, transparent),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 20% 28%,
+      color-mix(in srgb, var(--surface) 28%, transparent),
+      transparent 34%
+    );
+}
+
+.art {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  /* Overrides the `svg { height: auto }` baseline in the UI package's globals. */
+  height: 100%;
+}
+
+/* Back to front. Every fill is a mix of two theme tokens; no literal colour. */
+.hillA {
+  fill: color-mix(in srgb, var(--hill-1) 36%, var(--sky-bottom));
+  opacity: 0.42;
+}
+
+.hillB {
+  fill: color-mix(in srgb, var(--hill-1) 58%, var(--sky-bottom));
+  opacity: 0.52;
+}
+
+.hillC {
+  fill: color-mix(in srgb, var(--hill-1) 48%, var(--hill-2));
+  opacity: 0.6;
+}
+
+.hillD {
+  fill: color-mix(in srgb, var(--hill-1) 26%, var(--hill-2));
+  opacity: 0.7;
+}
+
+.hillE {
+  fill: color-mix(in srgb, var(--hill-2) 62%, var(--hill-3));
+  opacity: 0.78;
+}
+
+.hillF {
+  fill: color-mix(in srgb, var(--hill-2) 34%, var(--hill-3));
+  opacity: 0.85;
+}
+
+.hillG {
+  fill: color-mix(in srgb, var(--hill-3) 88%, var(--forest));
+  opacity: 0.91;
+}
+
+.waterLine {
+  fill: none;
+  stroke: var(--scenic-line);
+  stroke-linecap: round;
+}
+
+.line1 {
+  stroke-width: 2;
+  opacity: 0.45;
+}
+
+.line2 {
+  stroke-width: 2;
+  opacity: 0.32;
+}
+
+.line3 {
+  stroke-width: 2;
+  opacity: 0.28;
+}
+
+.line4 {
+  stroke-width: 1;
+  opacity: 0.24;
+}
+
+.line5 {
+  stroke-width: 1;
+  opacity: 0.18;
+}
+
+/*
+ * A neutral darkening scrim, not a theme colour: it seats the picture inside the frame
+ * at every palette. Literal rgba is deliberate here (DESIGN.md §20 governs *hues*), and
+ * matches the reference byte for byte.
+ */
+.vignette {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(30 28 24 / 2.5%), transparent 35%, rgb(38 32 28 / 6.5%));
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────── continuous drift
+ *
+ * Two documents disagree here. DESIGN.md §14 "Principles" forbids ambient animation
+ * that keeps the screen perpetually alive, and §14 "Adaptive module motion" requires
+ * the scenic background to stay nearly fixed. COMPONENT_MOTION_SPEC.md §3 and
+ * MOTION_SPEC.json specify a 12s glow drift; the reference runs it on every screen.
+ *
+ * Resolution (recorded 2026-08-08 in docs/DECISIONS.md): the loop is OFF by default
+ * and available in exactly two places —
+ *
+ *   1. `.animated` — the ceremonial Greeting, which holds no content to read.
+ *   2. `[data-motion="ambient"]` — an opt-in mode for comparing the two readings.
+ *
+ * `prefers-reduced-motion` overrides both, unconditionally. The water lines are static
+ * in the reference too: it defines a `waterLine` keyframe and never applies it.
+ */
+.animated .glow,
+:global(:root[data-motion="ambient"]) .glow {
+  animation: drift var(--loop-scenic-glow) ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-1%, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 1%, 0) scale(1.05);
+  }
+}
+
+/*
+ * The OS preference is a floor: `data-motion="ambient"` must not reintroduce a loop for
+ * a user who asked the system for less motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    animation: none !important;
+  }
+
+  .backdrop {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .glow {
+  animation: none;
+}

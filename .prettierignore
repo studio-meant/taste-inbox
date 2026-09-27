@@ -1,0 +1,34 @@
+# Handoff reference material — visual/interaction truth, not production code.
+prototype/
+reference/
+MANIFEST.sha256
+
+# Handoff specification documents.
+# These are the source of truth (CLAUDE.md §3) and are kept byte-stable so that
+# MANIFEST.sha256 stays meaningful. Do not reformat them.
+docs/
+CLAUDE.md
+README.md
+START_HERE.md
+CONTENTS.md
+
+# Runtime state — browser profiles, probe reports, caches.
+# Gitignored, and full of third-party files that must never be rewritten.
+var/
+
+# Python services are formatted by ruff, not prettier.
+apps/api/
+services/
+
+# Generated / vendored
+node_modules/
+.next/
+.next-e2e/
+.next-remote/
+.next-remote-e2e/
+dist/
+coverage/
+pnpm-lock.yaml
+uv.lock
+apps/api/.venv/
+apps/desktop/src-tauri/gen/schemas/

@@ -1,0 +1,258 @@
+/**
+ * TasteQueryDock — the reference's `.query-area` / `.query-dock`, ported.
+ *
+ * All geometry is `cqw` against `.frame` (`container-type: inline-size`), floored with
+ * `max(px, cqw)` wherever a literal `cqw` would put text or a hit target below the
+ * product's own minimums. At a 1440px frame 1cqw = 14.4px, which is the size the
+ * reference was drawn at, so the floors are inert there.
+ *
+ * The reference's open/closed width animation and its three suggestion chips are not
+ * ported: there is nothing to open into and no suggestion this product can honour yet.
+ * The chip row's position is reused by the notice, so the silhouette is the same.
+ */
+
+.area {
+  position: absolute;
+  z-index: var(--z-query-dock);
+  left: 0;
+  right: 0;
+  /* ref: bottom 1.25cqw (18px @1440) */
+  bottom: max(12px, 1.25cqw);
+  width: min(44cqw, 72%);
+  margin-inline: auto;
+  /* The frame's own bottom edge stays clickable between the dock and the notice. */
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ the notice */
+
+/*
+ * Sits where the reference puts its suggestion chips, and borrows their shape. It is a
+ * paragraph, not a button: there is nothing to press.
+ */
+.notice {
+  /*
+   * Under the dock, not above it.
+   *
+   * It began as a pill floating where the reference puts its suggestion chips, which made
+   * the one element the reference does *not* have the most prominent thing on the screen —
+   * a balloon roughly the width of the dock, sitting in clear space above it. The sentence
+   * still has to be said, and still has to be the input's accessible description, so it
+   * moves to a caption beneath: same words, same programmatic association, and the dock's
+   * silhouette is the one the reference draws.
+   */
+  margin: max(6px, 0.5cqw) 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: max(4px, 0.35cqw);
+  color: var(--muted);
+  font-size: max(11px, 0.52cqw);
+  font-weight: 500;
+  text-align: center;
+}
+
+.noticeIcon {
+  width: max(12px, 0.9cqw);
+  height: max(12px, 0.9cqw);
+  flex: 0 0 auto;
+  color: var(--accent-deep);
+}
+
+/* -------------------------------------------------------------------- the dock */
+
+.dock {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  /* ref: height 3.55cqw (51.1px @1440) */
+  height: max(46px, 3.55cqw);
+  display: grid;
+  grid-template-columns:
+    max(24px, 2.1cqw) minmax(0, 1fr) auto max(28px, 2.2cqw)
+    max(30px, 2.35cqw);
+  align-items: center;
+  gap: max(6px, 0.55cqw);
+  padding: max(4px, 0.4cqw) max(5px, 0.48cqw) max(4px, 0.4cqw) max(6px, 0.62cqw);
+  border: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--shadow-color) 75%, transparent);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------- the orb */
+
+.orb {
+  position: relative;
+  width: max(24px, 1.85cqw);
+  height: max(24px, 1.85cqw);
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--surface), var(--light-green));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--forest) 12%, transparent),
+    0 5px 14px color-mix(in srgb, var(--shadow-color) 56%, transparent);
+  animation: orbBreathe 3.4s ease-in-out infinite;
+}
+
+/*
+ * Petal geometry is expressed as a percentage of the orb rather than in `cqw`, so the
+ * three blades stay registered to the circle once the orb hits its pixel floor.
+ * Reference values at 1.85cqw: size .72cqw, left .55cqw, top .24cqw,
+ * transform-origin .37cqw .7cqw.
+ */
+.petal {
+  position: absolute;
+  width: 38.9%;
+  height: 38.9%;
+  left: 29.7%;
+  top: 13%;
+  border-radius: 62% 38% 62% 38%;
+  background: var(--accent-deep);
+  transform-origin: 51.4% 97.2%;
+  animation: orbSpin var(--loop-query-orb) linear infinite;
+}
+
+.petal:nth-child(2) {
+  opacity: 0.55;
+  transform: rotate(120deg);
+  animation-delay: -2.3s;
+}
+
+.petal:nth-child(3) {
+  opacity: 0.3;
+  transform: rotate(240deg);
+  animation-delay: -4.6s;
+}
+
+@keyframes orbSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbBreathe {
+  0%,
+  100% {
+    transform: scale(0.96);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/*
+ * Both loops are infinite, so both triggers switch them off outright rather than
+ * shortening them (DESIGN.md §18, CLAUDE.md §6).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .petal {
+    animation: none !important;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .orb,
+:global(:root[data-motion="reduced"]) .petal {
+  animation: none;
+}
+
+/* ------------------------------------------------------------------- the field */
+
+.input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: max(13px, 0.74cqw);
+  /* Readonly, and it says so: no caret, no edit affordance. */
+  cursor: not-allowed;
+  caret-color: transparent;
+}
+
+.input::placeholder {
+  color: color-mix(in srgb, var(--muted) 75%, transparent);
+}
+
+/* The slot the reference gives to `⌘ K`. */
+.chip {
+  padding: max(3px, 0.35cqw) max(4px, 0.5cqw);
+  border-radius: max(4px, 0.45cqw);
+  background: color-mix(in srgb, var(--oatmeal) 38%, var(--surface));
+  color: var(--muted);
+  font-size: max(10px, 0.5cqw);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ the buttons */
+
+.iconButton,
+.send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max(28px, 2.2cqw);
+  height: max(28px, 2.2cqw);
+  padding: 0;
+  overflow: hidden;
+  line-height: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    transform 200ms ease,
+    background 200ms ease,
+    color 200ms ease;
+}
+
+.send {
+  width: max(30px, 2.35cqw);
+  height: max(30px, 2.35cqw);
+  background: var(--inverse);
+  color: var(--surface);
+}
+
+.buttonGlyph {
+  display: block;
+  width: max(14px, 1.08cqw);
+  height: max(14px, 1.08cqw);
+  flex: 0 0 auto;
+}
+
+.iconButton:disabled,
+.send:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ------------------------------------------------------------------- responsive */
+
+/*
+ * Below the tablet breakpoint the frame is edge-to-edge, so the dock takes the content
+ * gutter instead of a percentage of a much narrower container (architecture §22).
+ * MobileBottomNav is a sibling of the frame, so the frame's own bottom edge already
+ * clears it.
+ */
+@media (max-width: 767px) {
+  .area {
+    left: var(--content-padding-mobile);
+    right: var(--content-padding-mobile);
+    width: auto;
+    margin-inline: 0;
+  }
+
+  .notice {
+    /* `.area` is exactly the dock's height, so 100% clears it whatever the copy wraps to. */
+    bottom: calc(100% + 8px);
+  }
+}

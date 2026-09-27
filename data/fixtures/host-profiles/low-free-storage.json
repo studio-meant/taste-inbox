@@ -1,0 +1,12 @@
+{
+  "id": "fixture-low-free-storage",
+  "deviceModel": "AppleSiliconFixture,1",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 16,
+  "availableMemoryGb": 7.2,
+  "totalStorageGb": 512,
+  "freeStorageGb": 18.6,
+  "memoryPressure": "normal",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}

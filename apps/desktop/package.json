@@ -1,0 +1,32 @@
+{
+  "name": "@taste-inbox/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Taste Inbox macOS desktop shell with static React UI and stdio IPC",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420",
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@taste-inbox/shared": "workspace:*",
+    "@taste-inbox/ui": "workspace:*",
+    "lucide-react": "^1.29.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/node": "^22.20.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2",
+    "vitest": "^3.2.4"
+  }
+}

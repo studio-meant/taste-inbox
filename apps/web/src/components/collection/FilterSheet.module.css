@@ -1,0 +1,223 @@
+/**
+ * FilterSheet — PAGE_SPECIFICATIONS.md §12.2, mobile only.
+ *
+ * Replaces the rail below 768px rather than stacking with it, so the two never appear at
+ * once and there is one place to change a filter at any width.
+ */
+
+.wrap {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .wrap {
+    display: none;
+  }
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-compact);
+  padding-inline: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trigger:focus-visible,
+.close:focus-visible,
+.option:focus-visible,
+.reset:focus-visible,
+.apply:focus-visible,
+.scrim:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.badge {
+  min-width: 18px;
+  padding-inline: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--forest);
+  color: var(--shell);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  padding: 0;
+  background: var(--shadow-scrim, rgba(47, 42, 37, 0.42));
+  cursor: pointer;
+}
+
+.sheet {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 41;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: 82vh;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--shell);
+  box-shadow: var(--shadow-raised, 0 -8px 32px rgba(47, 42, 37, 0.18));
+}
+
+.head,
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.head {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.head h2 {
+  margin: 0;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: var(--control-height-compact);
+  height: var(--control-height-compact);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.body {
+  overflow-y: auto;
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  float: none;
+  padding: 0;
+  color: var(--subtle);
+}
+
+.groupCount {
+  min-width: 18px;
+  padding-inline: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--focus);
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/*
+ * Gap wide enough that the 44px `hit-44` overlays on adjacent rows cannot reach each
+ * other. At the 40px control height the overlay overhangs 2px per side, so anything under
+ * 4px of gap makes two targets share pixels — and a tap in the shared band lands on
+ * whichever happens to paint last, which is worse than a small target.
+ */
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /*
+   * 40px painted; the 44px floor (DESIGN.md §18) comes from the `hit-44` overlay applied
+   * in the TSX. What stood here was `var(--control-height)`, which is not a declared
+   * token — the declaration was dropped at computed-value time and the option painted at
+   * 21px: a 19px line box plus the two 1px borders.
+   */
+  min-height: var(--control-height-primary);
+  padding-inline: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  cursor: pointer;
+}
+
+/* Weight and border, not colour alone. */
+.optionOn {
+  border-color: var(--forest);
+  background: var(--focus);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.count {
+  color: var(--subtle);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.foot {
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-block-end: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+.reset,
+.apply {
+  /* Same 40px + `hit-44` pairing as .option, and for the same undeclared-token reason.
+   *
+   * The centring is explicit because `.apply` is a `<Link>` — an `<a>` does not centre its
+   * content the way a native `<button>` does, so raising `min-height` alone left its label
+   * sitting at the top of a 40px box. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height-primary);
+  padding-inline: 18px;
+  border-radius: var(--radius-pill);
+  font-size: var(--type-body-small-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reset {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+}
+
+.apply {
+  flex: 1;
+  margin-inline-start: var(--space-3);
+  border: 1px solid var(--forest);
+  background: var(--forest);
+  color: var(--shell);
+}

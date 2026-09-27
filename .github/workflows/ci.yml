@@ -1,0 +1,172 @@
+name: CI
+
+# Taste Inbox is a local-first, single-user application. CI exists to protect the
+# repository, not to deploy anything.
+#
+# Two rules govern this workflow:
+#
+#   1. It never touches a real social account, browser profile, or credential.
+#      Collector parsers are verified against saved fixtures only (CLAUDE.md §9).
+#   2. It runs the same commands a developer runs locally, so a green run means the
+#      documented bootstrap actually works from a clean checkout.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# No repository secrets are referenced anywhere in this workflow. A job that needs one
+# would be a job that talks to a real account.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Mock mode is the only mode CI runs in.
+  NEXT_PUBLIC_DATA_SOURCE: mock
+
+jobs:
+  web:
+    name: Frontend and shared packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  api:
+    name: Local service
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        working-directory: apps/api
+        run: uv sync --python 3.12
+
+      - name: Lint
+        working-directory: apps/api
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Typecheck
+        working-directory: apps/api
+        run: uv run mypy
+
+      # Host detection is skipped automatically on a non-Apple-Silicon runner; the
+      # resource-policy suite runs everywhere because it uses sanitized fixtures.
+      - name: Test
+        working-directory: apps/api
+        run: uv run pytest
+
+  collectors:
+    name: Browser collectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        working-directory: services/collectors
+        run: uv sync --python 3.12
+
+      - name: Lint
+        working-directory: services/collectors
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Typecheck
+        working-directory: services/collectors
+        run: uv run mypy
+
+      # Unit tests only. Nothing here starts a browser or touches an account —
+      # challenge detection and the surveys are exercised against fakes.
+      - name: Test
+        working-directory: services/collectors
+        run: uv run pytest
+
+  repository:
+    name: Repository invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify handoff package
+        run: bash scripts/verify-handoff.sh
+
+      - name: Verify repository
+        run: bash scripts/verify-repo.sh
+
+  no-live-accounts:
+    name: No live account access
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # A guard against the failure mode this project cares most about: a test or CI
+      # step that quietly starts talking to a real account.
+      - name: Reject live collector usage in tests and CI
+        run: |
+          set -euo pipefail
+          # Browser automation belongs in services/collectors and nowhere else: the
+          # frontend must never drive a browser, and the API process is separated from
+          # collection by docs/SECURITY_BOUNDARIES.md.
+          # --exclude keeps this step from matching the patterns it is written with.
+          if grep -rInE 'playwright|puppeteer|selenium' \
+            --include='*.ts' --include='*.tsx' --include='*.py' --include='*.yml' \
+            --exclude=ci.yml --exclude-dir=node_modules apps packages .github 2>/dev/null; then
+            echo "Browser automation must live in services/collectors only." >&2
+            exit 1
+          fi
+          # Scope stays apps/ and packages/: the check above already requires browser
+          # automation to live in services/collectors, so that is the sanctioned home for
+          # these hosts and widening the scan here would fight it.
+          #
+          # Sanitized fixtures are enumerated in .github/allowed-fixture-urls.txt rather
+          # than guessed at. The previous filter excluded any line containing "example",
+          # which is not a safety property — and it failed on every push regardless.
+          if grep -rInE 'https?://(www\.)?(instagram|threads|linkedin)\.com' \
+            --include='*.ts' --include='*.tsx' --include='*.py' \
+            --exclude-dir=node_modules apps packages 2>/dev/null \
+            | grep -vFf <(grep -v '^#' .github/allowed-fixture-urls.txt | grep -v '^$'); then
+            echo "A real social URL appears outside sanitized fixtures." >&2
+            echo "If it is a fixture, add its id to .github/allowed-fixture-urls.txt." >&2
+            exit 1
+          fi
+          echo "No live account access."

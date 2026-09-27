@@ -1,0 +1,284 @@
+/**
+ * Greeting — ref.css:144, 178-198 and 361.
+ *
+ * The `cqw` floors are the same device the Splash module explains at length: the
+ * reference's stage is always ~1540px wide, ours is the window, so every value that
+ * resolves to type carries a floor that lands on the reference's own number at 1540 and
+ * stops shrinking below it. Values that resolve to *display* type carry a cap instead —
+ * `min(var(--type-hero-size), 11cqw)` is 60px on a desktop frame and 43px on a phone,
+ * where a flat 60px would not fit the line.
+ */
+
+.greeting {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: #fffdf8;
+}
+
+/*
+ * `.greeting-scenic .scenic-art` — ref.css:144. The one line that separates the ceremonial
+ * scenic from the four quiet ones, and the only rule in this port that reaches into
+ * another component's markup. It targets the `<svg>` element rather than a class because
+ * `AmbientCanvas.module.css` hashes its class names and is not this change's file.
+ */
+.scenic {
+  position: absolute;
+  z-index: var(--z-backdrop);
+  inset: 0;
+}
+
+.scenic svg {
+  transform: translateY(0) scaleY(1.02);
+  transform-origin: 50% 50%;
+}
+
+/*
+ * Centred by the box, not by `translateX(-50%)`.
+ *
+ * The reference centres this row with a transform *and* puts `.motion-item` on it, and
+ * `itemRise` ends `transform: none` under `animation-fill-mode: both` — so the reference's
+ * own wordmark snaps to the left edge the moment its entrance finishes. Laying it out with
+ * `inset-inline: 0` and `justify-content: center` leaves the transform channel free for
+ * the animation that wants it.
+ */
+.brand {
+  position: absolute;
+  z-index: 2;
+  top: max(20px, 2.6cqw);
+  inset-inline: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: max(6px, 0.52cqw);
+  font-size: max(13px, 0.88cqw);
+  font-weight: 600;
+  white-space: nowrap;
+  text-shadow: 0 2px 14px rgb(34 30 26 / 18%);
+}
+
+/* ref.css:181 — the mark is brightened so it reads against the hills. */
+.brand > span:first-child {
+  filter: brightness(1.35);
+}
+
+.center {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: 58%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .center {
+    width: 86%;
+  }
+}
+
+/*
+ * The date, in Korean. DESIGN.md §8 keeps eyebrows Latin and un-spaced when they are not:
+ * the same `:lang(ko)` guard `BrowseCard.module.css:178` established. 9.5px at the
+ * reference's rate is below the product's 11px label floor, so it ports by rank onto
+ * `--type-label-*` exactly as `Today.module.css:57` does.
+ */
+.eyebrow {
+  margin: 0;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgb(255 253 248 / 62%);
+}
+
+.eyebrow:lang(ko) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/*
+ * 3.7cqw is 57px at the reference's stage width and `--type-hero-size` is 60px. The
+ * precedent (design-qa.md, `.browse-heading h1` 53px against a 42px token) is to take the
+ * token and record the 3px, not to move one screen off the type scale. Weight and tracking
+ * are the token's for the same reason; `line-height` is not — the token's 62px is 1.03 and
+ * a display line this size wants the reference's .98.
+ */
+.headline {
+  margin: max(6px, 0.7cqw) 0 max(4px, 0.5cqw);
+  font-size: min(var(--type-hero-size), 11cqw);
+  line-height: 0.98;
+  font-weight: var(--type-hero-weight);
+  letter-spacing: var(--type-hero-tracking);
+  text-shadow: 0 4px 26px rgb(40 32 26 / 18%);
+  text-wrap: balance;
+}
+
+.subline {
+  margin: 0;
+  font-size: max(15px, 1.17cqw);
+  line-height: 1.5;
+  color: rgb(255 253 248 / 80%);
+}
+
+.keyRow {
+  margin-top: max(20px, 2.3cqw);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: max(6px, 0.45cqw);
+}
+
+.key {
+  min-width: max(34px, 3.1cqw);
+  height: max(30px, 2.55cqw);
+  display: grid;
+  place-items: center;
+  padding: 0 max(8px, 0.9cqw);
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: max(9px, 0.82cqw);
+  background: rgb(38 34 31 / 28%);
+  color: #fffdf8;
+  box-shadow: inset 0 1px rgb(255 255 255 / 9%);
+  font-family: inherit;
+  font-size: max(12px, 0.8cqw);
+  backdrop-filter: blur(10px);
+}
+
+.begin {
+  margin-left: max(4px, 0.4cqw);
+  padding: max(6px, 0.4cqw) max(10px, 0.7cqw);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgb(255 253 248 / 82%);
+  font: inherit;
+  font-size: max(13px, 0.68cqw);
+  cursor: pointer;
+  transition:
+    color var(--duration-default) var(--ease-standard),
+    background-color var(--duration-default) var(--ease-standard);
+}
+
+.begin:hover {
+  color: #fffdf8;
+  background: rgb(255 255 255 / 10%);
+}
+
+.begin:focus-visible {
+  outline: 2px solid rgb(255 253 248 / 82%);
+  outline-offset: 2px;
+}
+
+.cue {
+  position: absolute;
+  z-index: 2;
+  left: max(16px, 2.5cqw);
+  bottom: max(16px, 3.1cqw);
+  font-size: max(12px, 0.7cqw);
+  font-weight: 550;
+}
+
+.cueLink {
+  display: inline-flex;
+  align-items: center;
+  gap: max(6px, 0.65cqw);
+  padding: max(6px, 0.4cqw) max(10px, 0.7cqw);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  text-decoration: none;
+  text-shadow: 0 2px 14px rgb(34 30 26 / 24%);
+  transition: background-color var(--duration-default) var(--ease-standard);
+}
+
+.cueLink:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.cueLink:focus-visible {
+  outline: 2px solid rgb(255 253 248 / 82%);
+  outline-offset: 2px;
+}
+
+/* The reference's `.down-arrow` nudge, turned sideways to match where this one points. */
+.cueArrow {
+  animation: nudgeRight 1.8s ease-in-out infinite;
+}
+
+.status {
+  position: absolute;
+  z-index: 2;
+  right: max(16px, 2.6cqw);
+  bottom: max(16px, 2.5cqw);
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: max(6px, 0.45cqw);
+  width: auto;
+}
+
+/*
+ * The reference puts these two in opposite bottom corners of a stage that is never narrow.
+ * Ours is the window, and below ~520px the two would sit on top of each other, so the cue
+ * moves up a row rather than being dropped — it is the escape hatch out of the ceremony.
+ */
+@media (max-width: 520px) {
+  .cue {
+    bottom: calc(max(16px, 2.5cqw) + 40px);
+  }
+}
+
+@keyframes nudgeRight {
+  0%,
+  100% {
+    transform: translateX(-1px);
+  }
+
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+/*
+ * `.motion-item` — ref.css:127. Duplicated from `Today.module.css:981` rather than
+ * extracted, which is the repo's established pattern for this rule
+ * (`BrowseCard.module.css:395`, `MusicItemCard.module.css:35`). Both numbers are tokens
+ * that already collapse to 0 under either reduced-motion trigger.
+ */
+.motionItem {
+  animation: itemRise var(--duration-shared-element) var(--ease-cinematic) both;
+  animation-delay: calc(var(--delay-heading) + var(--i, 0) * var(--stagger-card));
+}
+
+@keyframes itemRise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Removed, not shortened. `motion.css` already caps duration and iteration count, which
+ * settles `itemRise`; it does not settle `nudgeRight`, where one 150ms iteration is still
+ * a thing sliding across the screen.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .cueArrow,
+  .motionItem {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion="reduced"]) .cueArrow,
+:global(:root[data-motion="reduced"]) .motionItem {
+  animation: none;
+}

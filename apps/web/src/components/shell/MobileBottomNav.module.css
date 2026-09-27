@@ -1,0 +1,69 @@
+/**
+ * MobileBottomNav — IA §4 Mobile.
+ *
+ *   ├───────────────────────────────┤
+ *   │ Today       Browse       System│
+ *   └───────────────────────────────┘
+ *
+ * Below the tablet breakpoint only; desktop uses the centre pill plus the status entry.
+ */
+
+.nav {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-rail);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  background: var(--glass-strong);
+  border-top: 1px solid var(--border);
+  /* Home indicator and notch (DESIGN.md §11.22). */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (min-width: 768px) {
+  .nav {
+    display: none;
+  }
+}
+
+.item {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding-block: 9px 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  /* Comfortable target height even before the safe-area inset. */
+  min-height: 52px;
+}
+
+.item[aria-current="page"] {
+  color: var(--ink);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Active state is a shape, not only a colour: a small bar above the icon. */
+.item[aria-current="page"] .icon {
+  position: relative;
+}
+
+.item[aria-current="page"]::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--forest);
+}
+
+.item:not([aria-current="page"])::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+}

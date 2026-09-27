@@ -1,0 +1,68 @@
+/**
+ * EmptyState and ErrorState — DESIGN.md §15.
+ *
+ * Neither is an illustration with a shrug. Both name what happened, why, and the one
+ * thing the user can do next.
+ */
+
+.state {
+  display: grid;
+  gap: var(--gap-title-body);
+  justify-items: start;
+  padding: var(--padding-card-large);
+  text-align: start;
+}
+
+.centered {
+  justify-items: center;
+  text-align: center;
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  color: var(--subtle);
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+}
+
+.body {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+
+.detail {
+  margin-block-start: var(--space-2);
+  max-width: 60ch;
+}
+
+.detail summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.detailBody {
+  margin-block-start: var(--space-2);
+  padding: var(--padding-card-compact);
+  border-radius: var(--radius-utility);
+  background: var(--surface-2);
+  color: var(--muted);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.errorIcon {
+  color: var(--status-danger-fg);
+}

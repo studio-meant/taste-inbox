@@ -1,0 +1,97 @@
+/**
+ * Motion tokens.
+ *
+ * Source of truth: docs/MOTION_SPEC.json (machine-readable values) and
+ * docs/COMPONENT_MOTION_SPEC.md §3. `packages/ui/tests/motion.test.ts` asserts these
+ * literals still match the JSON, so the two cannot drift.
+ *
+ * Motion libraries are imported by four components only (frontend architecture §21).
+ * These tokens cover everything else.
+ */
+
+:root {
+  --ease-cinematic: cubic-bezier(0.22, 0.72, 0.18, 1);
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /*
+   * Interaction timings — DESIGN.md §14 "Timing". These govern hover, colour and
+   * surface changes. The scene-scale values below are for screen transitions only;
+   * using one where the other belongs is how a 26px chip ends up crossfading for
+   * 700ms.
+   */
+  --duration-fast: 120ms;
+  --duration-default: 180ms;
+  --duration-slow: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Scene level */
+  --duration-scene-forward: 760ms;
+  --duration-scene-back: 700ms;
+  --duration-scene-reduced: 150ms;
+  --duration-shared-element: 720ms;
+
+  /* Component level */
+  --delay-heading: 80ms;
+  --stagger-card: 65ms;
+  --stagger-queue-row: 100ms;
+  --stagger-query-chip: 75ms;
+  --duration-progress-draw: 1100ms;
+
+  /* Ambient loops */
+  --loop-query-orb: 7s;
+  --loop-status-orbit: 5.5s;
+  --loop-scenic-glow: 12s;
+  --loop-water-line: 7s;
+  --stage-tilt-max: 1.2deg;
+}
+
+/**
+ * Reduced motion.
+ *
+ * Two independent triggers, because the product exposes its own Cinematic/Reduced
+ * switch in addition to the OS preference (DESIGN.md §18, CLAUDE.md §6).
+ * Removed: scale, parallax, shared layout movement, background drift.
+ * Kept: instant state, short opacity transition, focus indicator.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-scene-forward: var(--duration-scene-reduced);
+    --duration-scene-back: var(--duration-scene-reduced);
+    --duration-shared-element: var(--duration-scene-reduced);
+    --duration-progress-draw: var(--duration-scene-reduced);
+    --delay-heading: 0ms;
+    --stagger-card: 0ms;
+    --stagger-queue-row: 0ms;
+    --stagger-query-chip: 0ms;
+    --stage-tilt-max: 0deg;
+  }
+}
+
+:root[data-motion="reduced"] {
+  --duration-scene-forward: var(--duration-scene-reduced);
+  --duration-scene-back: var(--duration-scene-reduced);
+  --duration-shared-element: var(--duration-scene-reduced);
+  --duration-progress-draw: var(--duration-scene-reduced);
+  --delay-heading: 0ms;
+  --stagger-card: 0ms;
+  --stagger-queue-row: 0ms;
+  --stagger-query-chip: 0ms;
+  --stage-tilt-max: 0deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--duration-scene-reduced) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--duration-scene-reduced) !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-iteration-count: 1 !important;
+}

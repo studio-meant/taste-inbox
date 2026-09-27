@@ -1,0 +1,34 @@
+{
+  "hostProfileId": "fixture-memory-pressure-critical",
+  "resolvedAt": "2026-08-08T07:00:00Z",
+  "memory": {
+    "unifiedMemoryGb": 16.0,
+    "reservedForSystemGb": 4.0,
+    "usableMemoryGb": 12.0,
+    "autoPrepareLimitGb": 1.44,
+    "manualReviewLimitGb": 10.8
+  },
+  "storage": {
+    "totalStorageGb": 512.0,
+    "freeStorageGb": 96.0,
+    "reservedFreeGb": 51.2,
+    "cacheBudgetGb": 44.8,
+    "cacheShares": {
+      "modelGb": 24.64,
+      "containerGb": 13.44,
+      "mediaGb": 6.72
+    },
+    "belowReserve": false
+  },
+  "concurrency": {
+    "browserCollectors": 1,
+    "environmentBuilds": 0,
+    "allowLocalModelWhileBuilding": false
+  },
+  "gates": {
+    "acceptNewHeavyJobs": false,
+    "stopRunningHeavyJobs": true,
+    "reason": "memory pressure is critical; running heavy jobs must stop"
+  },
+  "appliedTightenings": []
+}

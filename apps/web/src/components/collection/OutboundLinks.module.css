@@ -1,0 +1,71 @@
+.wrap {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.heading {
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: var(--control-height-compact);
+  padding-block: 6px;
+  padding-inline: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.link:hover {
+  background: var(--focus);
+  border-color: var(--forest);
+}
+
+/* Long shop names wrap inside their pill; neither the label nor the profile marker clips. */
+.host {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.link > svg {
+  flex: none;
+}
+
+/* A commenter's link is not the author's claim, and the chip says so in words. */
+.origin {
+  flex: none;
+  padding-inline: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 600;
+}

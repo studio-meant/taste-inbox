@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-label="placeholder">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#DCE8C6"/><stop offset="1" stop-color="#718967"/>
+  </linearGradient></defs>
+  <rect width="1080" height="1920" fill="url(#g)"/>
+  <circle cx="540" cy="820" r="150" fill="#FFFDF8" opacity="0.55"/>
+  <text x="540" y="1120" text-anchor="middle" font-family="system-ui, sans-serif" font-size="56" fill="#2F2A25">mock reel</text>
+</svg>

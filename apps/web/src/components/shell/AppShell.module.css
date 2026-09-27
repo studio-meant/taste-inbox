@@ -1,0 +1,174 @@
+/**
+ * AppShell — DESIGN.md §4 "Desktop app shell" and §11.1.
+ *
+ *   Viewport · body wash
+ *   ┌───────────────────────────────────────────────┐
+ *   │ .shell — the translucent mat, casts the shadow│
+ *   │  ╭─────────────────────────────────────────╮  │
+ *   │  │ .frame — the clipped screen              │  │
+ *   │  │   AmbientCanvas (absolute, z0)           │  │
+ *   │  │   ContextBar                             │  │
+ *   │  │   .viewport → main                       │  │
+ *   │  │   dock (absolute, bottom centre)         │  │
+ *   │  ╰─────────────────────────────────────────╯  │
+ *   └───────────────────────────────────────────────┘
+ *
+ * `.shell` is the reference's `.stage-frame` and `.frame` is its `.stage-clip`. The two
+ * radii differ on purpose: 30px outer mat, 22px inner clip, which is what makes the
+ * 10–12px inset read as a mat rather than as a double border.
+ *
+ * The reference's `--tilt-x/--tilt-y` are deliberately not ported: they exist because
+ * the reference is a device mockup on a `perspective: 1400px` lab wall. Our app *is*
+ * the screen.
+ */
+
+.shell {
+  position: relative;
+  z-index: var(--z-content);
+  /*
+   * `height`, not `min-height`. The mat is the screen, and a screen does not get taller
+   * because there is more to show — the content scrolls inside it.
+   *
+   * `min-height` let the whole stage grow to fit: on the Music board it reached 23,391px,
+   * `.frame` and `.viewport` grew with it, and `.viewport` — the one element with
+   * `overflow-y: auto` — ended up exactly as tall as its own content and so never became a
+   * scroll container at all. `overscroll-behavior: contain` below then did its job on a
+   * scroller with nothing to scroll: it swallowed the wheel instead of letting it chain out
+   * to the document, which *could* have scrolled. The result was 22,491px of Music sitting
+   * below the fold with no gesture able to reach it, on every screen with content.
+   *
+   * `dvh` rather than `vh` so a mobile URL bar sliding away does not leave a gap; the
+   * global `box-sizing: border-box` is what keeps the mat's inset padding inside this
+   * height rather than adding to it.
+   */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* Mobile is edge-to-edge (DESIGN.md §4). */
+  padding: 0;
+}
+
+.remoteNotice {
+  position: relative;
+  z-index: var(--z-content);
+  flex: 0 0 auto;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  line-height: 1.5;
+}
+
+/* DESIGN.md §19: the tablet band drops to a 6–8px inset. */
+@media (min-width: 768px) {
+  .shell {
+    padding: var(--shell-inset-tablet);
+    border-radius: var(--radius-shell);
+    /*
+     * The mat. Translucent, so the body wash still reads through it — the reference's
+     * `color-mix(in srgb, var(--surface) 76%, transparent)`.
+     */
+    background: color-mix(in srgb, var(--surface) 76%, transparent);
+  }
+}
+
+@media (min-width: 1280px) {
+  .shell {
+    padding: var(--shell-inset-desktop);
+  }
+}
+
+@media (min-width: 1600px) {
+  .shell {
+    padding: var(--shell-inset-wide);
+  }
+}
+
+/* "desktop에서만 얕은 shell shadow 사용" (DESIGN.md §11.1); desktop starts at 1280px
+   in the §6 breakpoint table. The mat casts it, not the clipped screen. */
+@media (min-width: 1280px) {
+  .shell {
+    box-shadow: var(--shadow-shell);
+  }
+}
+
+.frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /*
+   * Opaque. The scenic backdrop now lives inside the frame, so a translucent screen
+   * would double-expose the body wash underneath its own sky.
+   */
+  background: var(--shell);
+  border-radius: 0;
+  overflow: clip;
+  /*
+   * Three properties the scenic backdrop, the query dock and the absolute chrome all
+   * depend on:
+   *   position   — the containing block for every absolutely positioned layer
+   *   isolation  — one stacking context, so z-index tokens mean what they say
+   *   container  — the `cqw` unit the whole reference is measured in
+   */
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+}
+
+@media (min-width: 768px) {
+  .frame {
+    /* The *inner* clip radius. `--radius-shell` (30px) belongs to the mat above. */
+    border-radius: var(--radius-shell-inner);
+  }
+}
+
+.viewport {
+  position: relative;
+  /* Above the backdrop's z0 layers; below the context bar and the dock. */
+  z-index: var(--z-content);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.content {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-8) var(--content-padding-mobile) var(--space-20);
+}
+
+@media (min-width: 768px) {
+  .content {
+    padding-inline: var(--content-padding-desktop);
+  }
+}
+
+@media (min-width: 1600px) {
+  .content {
+    padding-inline: var(--content-padding-wide);
+  }
+}
+
+/*
+ * Clearance for what floats over the bottom of the frame.
+ *
+ * Below the tablet breakpoint that is MobileBottomNav (IA §4 Mobile) plus the dock;
+ * above it the bottom bar is gone but the dock still floats, so the reservation stays
+ * and only its height changes. Both selectors are listed together so the two-class
+ * `.withBottomNav .content` rule cannot silently win and re-park the last row of a
+ * board underneath the dock.
+ */
+.withBottomNav .content {
+  padding-bottom: calc(var(--space-20) + 64px);
+}
+
+@media (min-width: 768px) {
+  .content,
+  .withBottomNav .content {
+    padding-bottom: calc(var(--space-20) + max(64px, 4.8cqw));
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$comment": "Canonical theme identity. Source of truth: docs/THEME_SYSTEM.md. Consumed by packages/ui (values) and apps/api (config validation) so the two cannot drift.",
+  "defaultThemeId": "meadow-cream",
+  "storageKey": "taste-inbox-component-theme-v4",
+  "themeIds": [
+    "meadow-cream",
+    "moss-cream",
+    "spring-sage",
+    "bright-forest",
+    "ivory-sage",
+    "oatwood-cream"
+  ]
+}

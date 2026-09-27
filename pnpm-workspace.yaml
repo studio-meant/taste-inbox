@@ -1,0 +1,7 @@
+# apps/api is a Python (uv) project and has no package.json, so the glob still excludes it.
+packages:
+  - apps/*
+  - packages/*
+# Explicit allowlist for postinstall scripts. Nothing runs unless listed here.
+allowBuilds:
+  esbuild: true

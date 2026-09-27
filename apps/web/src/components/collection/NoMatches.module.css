@@ -1,0 +1,63 @@
+/**
+ * No-match state — PAGE_SPECIFICATIONS §8.1.
+ *
+ * Sits inside the board area rather than replacing the page, so the filters stay on
+ * screen and visible: the way out of this state is the control that caused it.
+ */
+
+.wrap {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-8);
+  text-align: center;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  color: var(--subtle);
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+}
+
+.body {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--muted);
+}
+
+.body code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.9em;
+  padding: 1px 5px;
+  border-radius: var(--radius-utility);
+  background: var(--surface-2);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height-compact);
+  padding-inline: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action:hover {
+  border-color: var(--forest);
+  background: var(--focus);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

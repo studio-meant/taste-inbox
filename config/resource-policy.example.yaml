@@ -1,0 +1,68 @@
+host:
+  detection: auto
+  supported_os: macos
+  architecture: arm64
+
+  # Normally populated by the runtime HostProfile detector.
+  # Use only for tests or explicit operator overrides.
+  manual_override:
+    device: null
+    chip: null
+    unified_memory_gb: null
+    total_storage_gb: null
+    free_storage_gb: null
+    memory_pressure: null
+
+resource_policy:
+  mode: adaptive
+  derive_from:
+    - unified_memory_gb
+    - total_storage_gb
+    - free_storage_gb
+    - memory_pressure
+
+  memory:
+    # usable_memory = total unified memory - max(min_gb, total * fraction_of_total)
+    reserve_for_os_and_services:
+      min_gb: 4
+      fraction_of_total: 0.25
+
+    # Effective limits are calculated against usable memory at runtime.
+    auto_prepare:
+      fraction_of_usable_memory: 0.70
+      max_fraction_of_current_available: 0.80
+    manual_review:
+      fraction_of_usable_memory: 0.90
+
+    pause_new_heavy_jobs_at_pressure: warning
+    stop_heavy_jobs_at_pressure: critical
+
+  storage:
+    # Keep both a fixed safety floor and a proportional reserve.
+    reserve_free:
+      min_gb: 40
+      fraction_of_total: 0.10
+
+    cache_budget:
+      fraction_of_total: 0.20
+      max_fraction_of_current_free: 0.50
+      shares:
+        model: 0.55
+        container: 0.30
+        media: 0.15
+
+  concurrency:
+    # Sequential browser collection is retained for account/platform stability.
+    concurrent_browser_collectors: 1
+    concurrent_environment_builds: auto
+    allow_local_model_while_building: auto
+
+  # Optional operator values may only tighten the computed policy.
+  # They must never raise limits beyond the adaptive safe capacity.
+  tightening_overrides:
+    auto_prepare_memory_limit_gb: null
+    manual_review_memory_limit_gb: null
+    min_free_disk_gb: null
+    total_cache_limit_gb: null
+    concurrent_environment_builds: null
+    allow_local_model_while_building: null

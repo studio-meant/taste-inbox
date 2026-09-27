@@ -1,0 +1,12 @@
+{
+  "id": "fixture-capacity-16gb-512gb",
+  "deviceModel": "AppleSiliconFixture,1",
+  "chip": "Apple Silicon (fixture)",
+  "architecture": "arm64",
+  "unifiedMemoryGb": 16,
+  "availableMemoryGb": 9.6,
+  "totalStorageGb": 512,
+  "freeStorageGb": 210.4,
+  "memoryPressure": "normal",
+  "detectedAt": "2026-08-08T06:00:00Z"
+}
