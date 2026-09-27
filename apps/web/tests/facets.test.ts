@@ -116,4 +116,31 @@ describe("when the board has more than one kind of thing on it", () => {
 
     expect(aiFilterGroups(items).map((group) => group.key)).toEqual(["source"]);
   });
+
+  it("offers 종류 again once one source yields several kinds (2026-09-28)", () => {
+    /*
+     * Hugging Face likes are models, datasets and Spaces, and the papers they cite come
+     * from the same source. Kind is no longer a function of source, so it earns its own
+     * group — counted, like every facet here.
+     */
+    const hf = { ...SOURCE, platform: "huggingface" as const };
+    const items = [
+      ...Array.from({ length: 4 }, () =>
+        ai({ kind: "repo", source: { ...SOURCE, platform: "github" } }),
+      ),
+      ai({ kind: "dataset", source: hf }),
+      ai({ kind: "dataset", source: hf }),
+      ai({ kind: "space", source: hf }),
+      ai({ kind: "paper", source: hf }),
+    ];
+
+    const groups = aiFilterGroups(items);
+    expect(groups.map((group) => group.key)).toEqual(["kind", "source"]);
+    expect(groups[0]?.options).toEqual([
+      { value: "repo", label: "저장소", count: 4 },
+      { value: "dataset", label: "데이터셋", count: 2 },
+      { value: "space", label: "Space", count: 1 },
+      { value: "paper", label: "논문", count: 1 },
+    ]);
+  });
 });

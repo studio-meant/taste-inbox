@@ -29,8 +29,21 @@ import { OutboundLinkSchema } from "./links";
  * being a project — an Instagram save, a Threads repost. Kept now that nothing is
  * runnable, because it still separates "someone's repository" from "someone's post about
  * a repository", which is the difference between the two links on the card.
+ *
+ * `dataset` and `space` since 2026-09-28: a Hugging Face like is a model, a dataset or a
+ * Space (`repo.type`), and the Trends board is where they land. Folding them into `model`
+ * would lose the distinction the kind filter exists for.
  */
-export const AIItemKindSchema = z.enum(["repo", "model", "paper", "demo", "tool", "post"]);
+export const AIItemKindSchema = z.enum([
+  "repo",
+  "model",
+  "dataset",
+  "space",
+  "paper",
+  "demo",
+  "tool",
+  "post",
+]);
 
 export const AIItemCardModelSchema = z.object({
   id: z.string().min(1),

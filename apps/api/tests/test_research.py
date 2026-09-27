@@ -136,6 +136,9 @@ def test_the_recorded_report_is_actionable() -> None:
     )
 
     assert suggestion.actionable is True
+    # Three options, the first of them Docker — which the sandbox does not have.
+    assert suggestion.headline == "리포트가 제시한 방법 3가지 중 샌드박스에서 되는 것부터 시도하기"
+    assert proposal.SANDBOX_FACTS in suggestion.plan.plan_text
     assert any(command.startswith("docker run") for command in suggestion.plan.commands_seen)
     assert "github.com" in suggestion.plan.required_hosts
     # Hosts a report names are not a request to open them. These four were refused live.
@@ -282,9 +285,14 @@ def test_an_empty_report_is_a_failure_not_a_suggestion(
         ("http://aiq.example.com", True),
         ("ftp://localhost:8010", True),
         ("https://aiq.example.com", False),
+        ("", True),
     ],
 )
-def test_a_non_local_backend_must_be_https(url: str, refused: bool) -> None:
+def test_a_non_local_backend_must_be_https(
+    url: str, refused: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # No fallback address: an unset variable is a refusal, not `localhost:8000`.
+    monkeypatch.delenv("AIQ_SERVER_URL", raising=False)
     if refused:
         with pytest.raises(aiq_client.AiqUnavailable):
             aiq_client.resolve_server(url)

@@ -19,7 +19,7 @@ import styles from "./AIItemCard.module.css";
  */
 const OPEN_SOURCE_LABEL: Readonly<Record<SourcePlatform, string>> = {
   github: "저장소 열기",
-  huggingface: "모델 페이지 열기",
+  huggingface: "Hugging Face에서 열기",
   arxiv: "논문 보기",
   threads: "원본 게시물 보기",
   linkedin: "원본 게시물 보기",
@@ -37,6 +37,8 @@ const OPEN_SOURCE_LABEL: Readonly<Record<SourcePlatform, string>> = {
 const KIND_LABEL: Readonly<Record<AIItemKind, string>> = {
   repo: "저장소",
   model: "모델",
+  dataset: "데이터셋",
+  space: "Space",
   paper: "논문",
   demo: "데모",
   tool: "도구",

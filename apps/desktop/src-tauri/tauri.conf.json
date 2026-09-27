@@ -28,17 +28,13 @@
       "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://www.instagram.com",
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$APPDATA/**"
-        ]
+        "scope": ["$APPDATA/**"]
       }
     }
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "app"
-    ],
+    "targets": ["app"],
     "category": "Productivity",
     "shortDescription": "남긴 관심 신호를 다음 행동으로 연결하는 로컬 워크스페이스",
     "macOS": {

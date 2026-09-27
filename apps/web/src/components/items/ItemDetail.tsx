@@ -1,6 +1,7 @@
 import type { EvidenceRef, ItemDetailModel } from "@taste-inbox/shared";
 import {
   ArrowLeft,
+  Crosshair,
   Check,
   CircleCheck,
   ExternalLink,
@@ -126,6 +127,14 @@ export function ItemDetail({
               <ExternalLink size={15} strokeWidth={1.75} aria-hidden="true" />
               <span className="visually-hidden">(새 탭에서 열림)</span>
             </a>
+            {/* The deeper screen for one item: its research, the step it can take, and a
+                sandboxed run (PAGE_SPECIFICATIONS §6.1). Entered from here rather than from
+                the navigation, which this change does not redesign. */}
+            <Link className={styles.focusLink} href={`/focus/${item.id}`}>
+              <Crosshair size={15} strokeWidth={1.75} aria-hidden="true" />
+              <span>Focus Canvas 열기</span>
+              <span className={styles.focusHint}>조사 · 안전한 실행</span>
+            </Link>
           </header>
 
           <section className={styles.contentSection} aria-labelledby="item-body-title">

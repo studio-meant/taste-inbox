@@ -1,6 +1,6 @@
 import { TodayPayloadSchema, type TodayPayload } from "@taste-inbox/shared";
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DailyConnectionsPanel } from "@/components/today/DailyConnectionsPanel";
 import { PartialFailureNotice } from "@/components/today/PartialFailureNotice";
 import { PreviousDaySection } from "@/components/today/PreviousDaySection";
@@ -9,6 +9,13 @@ import { TodayHeader, formatUpdatedTime, latestRunAt } from "@/components/today/
 import { WorkingQueuePanel } from "@/components/today/WorkingQueuePanel";
 import { MockRepository } from "@/lib/mock/repository";
 import { SOURCE_LABEL } from "@/components/today/SourceDots";
+
+const router = vi.hoisted(() => ({ refresh: vi.fn() }));
+
+// `RefreshWhileRunning` asks the app router to re-read the route while a row is moving.
+vi.mock("next/navigation", () => ({
+  useRouter: () => router,
+}));
 
 const repository = new MockRepository();
 
@@ -609,5 +616,66 @@ describe("SavedItemsSummaryCard split", () => {
     );
     expect(screen.getByText("AI 4")).toBeInTheDocument();
     expect(screen.getByText("기타 6")).toBeInTheDocument();
+  });
+});
+
+describe("WorkingQueuePanel — research and trial rows", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    router.refresh.mockReset();
+  });
+
+  const row = (kind: TodayPayload["workingQueue"][number]["kind"], nextStep: string) => ({
+    id: `queue-${kind}`,
+    kind,
+    target: "debpalash/VoiceStudio",
+    nextStep,
+    href: "/focus/abc",
+    progress: kind.endsWith("_running") ? 0.33 : null,
+  });
+
+  it("names every new kind in Korean words, never by colour alone", () => {
+    render(
+      <WorkingQueuePanel
+        items={[
+          row("research_running", "NVIDIA AI-Q에 조사를 맡긴다"),
+          row("research_ready", "조사 결과 읽기"),
+          row("approval_required", "안전하게 실행할지 결정하기"),
+          row("trial_running", "OpenShell 안에서 에이전트를 실행한다"),
+          row("trial_ready", "결과 보기"),
+          row("trial_blocked", "에이전트가 끝내지 못했습니다 (stop=aborted)"),
+        ]}
+      />,
+    );
+
+    for (const label of [
+      "조사 중",
+      "제안 준비됨",
+      "승인 대기",
+      "샌드박스 실행 중",
+      "실행 완료",
+      "차단됨 · 확인 필요",
+    ]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    for (const link of screen.getAllByRole("link", { name: /debpalash\/VoiceStudio/ })) {
+      expect(link).toHaveAttribute("href", "/focus/abc");
+    }
+  });
+
+  it("re-reads the route while a job is moving, and not otherwise", () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<WorkingQueuePanel items={[row("trial_running", "실행 중")]} />);
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    unmount();
+
+    render(<WorkingQueuePanel items={[row("trial_ready", "결과 보기")]} />);
+    act(() => {
+      vi.advanceTimersByTime(12000);
+    });
+    expect(router.refresh).toHaveBeenCalledTimes(1);
   });
 });

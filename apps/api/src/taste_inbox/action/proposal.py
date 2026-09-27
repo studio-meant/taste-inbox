@@ -47,6 +47,22 @@ _STEP_HEADING = re.compile(
 
 _NEXT_HEADING = re.compile(r"^#{1,6}\s+\S", re.MULTILINE)
 
+#: `**Option A — Docker …**`, `Option 2: …` — a report offering alternatives.
+_OPTION = re.compile(r"^\W{0,4}option\s+[a-z0-9]\b", re.IGNORECASE | re.MULTILINE)
+
+#: What the sandbox is, stated to the agent up front. Each line was observed rather than
+#: assumed: the OpenShell image has no Docker daemon (a report's `docker run` path fails
+#: there), `Sandbox GPU: disabled` in `nemoclaw status`, and the policy binary lists name
+#: git, python3, pip/uv, node and npm. Saying so costs one paragraph; discovering it costs
+#: tool calls and model time — the first Golden Path run spent fifty calls and then timed
+#: out on the model.
+SANDBOX_FACTS = (
+    "About this environment: a Linux shell inside an OpenShell sandbox. Available: git, "
+    "python3 with pip and uv, node and npm. Not available: Docker, a display or GUI, a GPU, "
+    "sudo. If the first option below needs one of those, take the next option that does "
+    "not — usually running from source — and say which one you took and why."
+)
+
 _FENCE = re.compile(r"```[a-zA-Z0-9_+-]*\n(.*?)```", re.DOTALL)
 
 _HOST = re.compile(r"https?://([A-Za-z0-9.\-]+\.[A-Za-z]{2,})")
@@ -178,16 +194,25 @@ def build(
         if host not in allowed:
             allowed.insert(0, host)
 
-    headline = (
-        _first_sentence(section) if section else f"{subject_title}에 대한 조사 결과를 확인하세요"
-    )
+    options = len(_OPTION.findall(section)) if section else 0
+    if section is None:
+        headline = f"{subject_title}에 대한 조사 결과를 확인하세요"
+    elif options >= 2:
+        # Quoting the first option would promise it — and the first is often the one the
+        # sandbox cannot do (`docker run`, a desktop installer). The agent picks.
+        headline = f"리포트가 제시한 방법 {options}가지 중 샌드박스에서 되는 것부터 시도하기"
+    else:
+        headline = _first_sentence(section)
 
     plan_text = (
         f"Work on {subject_title} ({subject_url}).\n\n"
         f"The research below proposes the smallest verifiable first step. Follow its "
         f"intent rather than its exact wording: if a command is wrong or a file has moved, "
         f"find the real entry point and say what you changed.\n\n"
+        f"{SANDBOX_FACTS}\n\n"
         f"{plan_body}\n\n"
+        f"Stop as soon as the success condition is met; do not download model weights or "
+        f"build more than the check needs.\n\n"
         f"Work only inside the current directory. Do not attempt to reach any host that is "
         f"not required by the steps above; if a request is blocked, report it rather than "
         f"working around it."
@@ -216,4 +241,11 @@ def build(
     )
 
 
-__all__ = ["ALLOWED_TRIAL_HOSTS", "SuggestedAction", "TrialPlan", "build", "hosts_in"]
+__all__ = [
+    "ALLOWED_TRIAL_HOSTS",
+    "SANDBOX_FACTS",
+    "SuggestedAction",
+    "TrialPlan",
+    "build",
+    "hosts_in",
+]

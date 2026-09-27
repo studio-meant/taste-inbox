@@ -93,6 +93,12 @@
     ],
     "grounded": true
   },
+  "outbound": {
+    "serverUrl": "http://localhost:8010",
+    "local": true,
+    "query": "Subject: debpalash/VoiceStudio (repo, github)\nURL: https://github.com/debpalash/VoiceStudio\nIts own topics: local-first, mlx, cuda, text-to-speech, mcp\nWhat this person keeps saving, by how many saved items carry each topic: ai-agents (2), mcp (2), reinforcement-learning (2)\nRelated things they already saved: jamiepine/voicebox (shares mlx, cuda, text-to-speech); anthropics/claude-code (shares mcp); modelcontextprotocol/servers (shares mcp)\nRecent saving shape (last 30 days, 6 items): dataset 1, paper 1, repo 3, space 1\n\nAnswer these, with citations and source URLs for every claim:\n1. What is this, and what does it let someone do *today*? Judge it against the wider ecosystem, not only against its own README.\n2. How does it connect to the interests listed below? Name the connection concretely; say so plainly if there is none.\n3. What is the smallest verifiable first step to try it? State the exact commands and the condition that would prove it worked.\n\nDo not recommend anything you cannot cite. If a fact is unavailable, say it is unavailable rather than estimating it.",
+    "error": null
+  },
   "bundle": null,
   "research": null,
   "suggestion": null,

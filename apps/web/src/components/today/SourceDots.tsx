@@ -38,7 +38,7 @@ const SOURCE_GLYPH: Readonly<Record<SourcePlatform, string>> = {
 
 const SOURCE_DOT_CLASS: Readonly<Record<SourcePlatform, string | undefined>> = {
   github: undefined,
-  huggingface: styles.sourceDotWeb,
+  huggingface: styles.sourceDotHuggingface,
   arxiv: undefined,
   threads: styles.sourceDotThreads,
   linkedin: styles.sourceDotLinkedin,

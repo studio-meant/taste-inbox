@@ -35,7 +35,7 @@ stage you are about to perform; do not improvise across a boundary.
 
 **An observation and a conclusion never look the same.** Taste Inbox's own design document
 says inference must appear beside the evidence it came from; every rule below is that rule
-applied to one stage. When a stage cannot answer, it returns *why* it cannot — never an
+applied to one stage. When a stage cannot answer, it returns _why_ it cannot — never an
 empty answer that reads as "nothing found".
 
 ## Stage 1 — SavedItem → TasteContext
@@ -97,13 +97,13 @@ number this product deleted once already.
 A paper with no repository is the case that needs stage 3 most. Search in this order and
 **label the result by which step found it**:
 
-| # | Source | Label |
-| --- | --- | --- |
-| 1 | `papers/{id}.githubRepo`, `githubRepoAddedBy` names a person | `Official repo · author-linked` |
-| 2 | same field, `githubRepoAddedBy: "auto"` | `Official repo` |
-| 3 | `projectPage` leads to code | `Project page` |
-| 4 | a `github.com` link in the paper text | `Likely repo · 0.xx · found in paper` |
-| 5 | **AI-Q research** | `Likely repo · 0.xx · found by Taste Agent` + citation |
+| #   | Source                                                       | Label                                                  |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------ |
+| 1   | `papers/{id}.githubRepo`, `githubRepoAddedBy` names a person | `Official repo · author-linked`                        |
+| 2   | same field, `githubRepoAddedBy: "auto"`                      | `Official repo`                                        |
+| 3   | `projectPage` leads to code                                  | `Project page`                                         |
+| 4   | a `github.com` link in the paper text                        | `Likely repo · 0.xx · found in paper`                  |
+| 5   | **AI-Q research**                                            | `Likely repo · 0.xx · found by Taste Agent` + citation |
 
 1–2 and 4–5 must never be drawn identically. When several candidates survive, show them
 all; the user picks, and only the picked one reaches the sandbox.
@@ -113,7 +113,7 @@ all; the user picks, and only the picked one reaches the sandbox.
 - **A trial runs only on a plan the user approved.** That is the condition under which
   running collected code was re-allowed at all (`docs/DECISIONS.md`, 2026-09-28).
 - Check the boundary first. A sandbox that is not `Ready` is a refusal, not a retry. A
-  contended host lock means *busy*, which is a wait, not a missing boundary.
+  contended host lock means _busy_, which is a wait, not a missing boundary.
 - Call the runtime only from `sandbox/`. `scripts/verify-repo.sh` fails the build otherwise.
 - The call shape is the measured one, not the documented one — see
   `docs/FEASIBILITY.md`. `openclaw agent exec`, `--cwd`, `--state-dir` do not exist in the
@@ -124,15 +124,15 @@ all; the user picks, and only the picked one reaches the sandbox.
 
 `references/evidence.md` has the mapping. One rule decides the column:
 
-| Who said it | `provenance` |
-| --- | --- |
+| Who said it                                   | `provenance`  |
+| --------------------------------------------- | ------------- |
 | The Hub stated it (a paper's repo, its demos) | `huggingface` |
-| AI-Q research found it | `aiq` |
-| The sandbox observed it while running | `sandbox` |
-| **The network policy refused it** | `policy` |
+| AI-Q research found it                        | `aiq`         |
+| The sandbox observed it while running         | `sandbox`     |
+| **The network policy refused it**             | `policy`      |
 
 A claim with no `source_url` is not evidence. And a `policy` row is not a log line — it is
-a finding: *the repository you starred tried to reach this host while installing*. Nothing
+a finding: _the repository you starred tried to reach this host while installing_. Nothing
 but the sandbox could have observed it, and the screen shows it.
 
 ## When a stage cannot proceed
@@ -143,11 +143,11 @@ quietly and never report a mock as a success.
 
 ## References
 
-| Topic | File |
-| --- | --- |
-| TasteContext schema and how it is built | `references/taste-context.md` |
-| What a brief may contain, and may not | `references/research-brief.md` |
-| TrialPlan schema and egress rules | `references/trial-plan.md` |
-| Mapping results onto the evidence table | `references/evidence.md` |
-| Read-only context CLI | `scripts/taste_context.py` |
-| What the runtime actually accepts | `../../docs/FEASIBILITY.md` |
+| Topic                                   | File                           |
+| --------------------------------------- | ------------------------------ |
+| TasteContext schema and how it is built | `references/taste-context.md`  |
+| What a brief may contain, and may not   | `references/research-brief.md` |
+| TrialPlan schema and egress rules       | `references/trial-plan.md`     |
+| Mapping results onto the evidence table | `references/evidence.md`       |
+| Read-only context CLI                   | `scripts/taste_context.py`     |
+| What the runtime actually accepts       | `../../docs/FEASIBILITY.md`    |

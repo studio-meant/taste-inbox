@@ -4,7 +4,7 @@ import type { SourcePlatform } from "@taste-inbox/shared";
  * The mark of the account an item came from.
  *
  * Drawn here rather than imported: `lucide-react` 1.29 dropped its brand icons, and the
- * only survivor of that set in the package is `at-sign`. These are the four platforms this
+ * only survivor of that set in the package is `at-sign`. These are the platforms this
  * product actually collects from, and nothing else is drawn — a mark for a source that has
  * never produced an item would be decoration.
  *
@@ -38,17 +38,24 @@ export function SourceMark({
       aria-hidden="true"
       focusable="false"
     >
-      <path d={path} />
+      <path d={path} fillRule={EVEN_ODD.has(platform) ? "evenodd" : undefined} />
     </svg>
   );
 }
 
 /**
- * Only the four that collect. `huggingface`, `arxiv` and `web` are in `SourcePlatform`
- * because the schema allows them, not because anything has arrived from one — the caller
- * falls back to the plain tinted cover for those rather than showing an invented mark.
+ * Only the platforms that collect. `arxiv` and `web` are in `SourcePlatform` because the
+ * schema allows them, not because anything has arrived from one — the caller falls back to
+ * the plain tinted cover for those rather than showing an invented mark.
+ *
+ * `huggingface` joined on 2026-09-28, when its likes started arriving. Its mark is a plain
+ * smiling face drawn here — a circle with the eyes and mouth cut out — rather than a copy of
+ * the brand's artwork: it has to be recognisable at 18px beside the words "Hugging Face",
+ * not to reproduce a logo.
  */
 const MARKS: Partial<Record<SourcePlatform, string>> = {
+  huggingface:
+    "M12 1a11 11 0 1 0 0 22 11 11 0 1 0 0-22ZM8.4 7.6a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 1 0 0-3.4Zm7.2 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 1 0 0-3.4ZM6.6 13.2h10.8a5.4 5.4 0 0 1-10.8 0Z",
   github:
     "M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2 0-.4-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 5 18 5.3 18 5.3c.6 1.6.2 2.8.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3",
   linkedin:
@@ -58,3 +65,6 @@ const MARKS: Partial<Record<SourcePlatform, string>> = {
   threads:
     "M17.1 11.13c-.1-.05-.21-.1-.32-.14-.19-3.42-2.09-5.37-5.29-5.39h-.04c-1.91 0-3.5.8-4.48 2.26l1.76 1.2c.73-1.09 1.88-1.32 2.72-1.32h.03c1.05 0 1.85.31 2.36.9.37.42.62 1.01.75 1.75a13.85 13.85 0 0 0-3.02-.14c-3.03.17-4.98 1.94-4.85 4.4.07 1.22.68 2.27 1.75 2.96.9.58 2.06.87 3.26.8 1.59-.09 2.84-.69 3.73-1.79.66-.83 1.09-1.92 1.28-3.27.76.45 1.32 1.04 1.63 1.75.53 1.2.56 3.18-1.09 4.8-1.44 1.41-3.17 2.02-5.8 2.04-2.9-.02-5.1-.94-6.54-2.72C3.6 17.5 2.91 15.09 2.88 12c.03-3.09.72-5.5 2.06-7.16 1.43-1.78 3.63-2.7 6.54-2.72 2.93.02 5.17 .95 6.66 2.75.73.89 1.28 2 1.65 3.29l2.04-.57c-.45-1.59-1.15-2.96-2.1-4.1C17.86 1.13 15.2.02 11.5 0h-.01C7.9.02 5.15 1.2 3.3 3.5 1.66 5.56.81 8.41.78 11.99v.02c.03 3.58.88 6.43 2.52 8.48 1.85 2.3 4.6 3.49 8.19 3.51h.01c3.41-.02 5.65-.84 7.5-2.65 2.42-2.37 2.35-5.34 1.55-7.16-.57-1.31-1.66-2.37-3.15-3.07Zm-4.99 5.06c-1.33.07-2.72-.51-2.78-1.77-.05-.93.66-1.97 2.86-2.1.25-.01.5-.02.74-.02.8 0 1.55.08 2.23.23-.25 3.17-1.85 3.65-3.05 3.71Z",
 };
+
+/** Marks drawn as a shape with holes, which only the even-odd rule cuts out. */
+const EVEN_ODD: ReadonlySet<SourcePlatform> = new Set(["huggingface"]);

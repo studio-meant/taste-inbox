@@ -164,6 +164,39 @@
   transform: translateY(-1px);
 }
 
+/* Secondary to the original link: an outline, not a fill. */
+.focusLink {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--space-2);
+  width: min(100%, 360px);
+  min-height: var(--control-height-compact);
+  padding: 8px 14px;
+  border: 1px dashed color-mix(in srgb, var(--detail-accent) 70%, var(--border));
+  border-radius: var(--radius-utility);
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.focusLink:hover {
+  border-style: solid;
+  background: color-mix(in srgb, var(--detail-accent) 16%, var(--surface));
+}
+
+.focusLink:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.focusHint {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .contentSection {
   display: grid;
   gap: var(--space-3);

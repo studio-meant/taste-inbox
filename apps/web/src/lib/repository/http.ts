@@ -1,6 +1,7 @@
 import {
   AIItemCardModelSchema,
   EffectiveResourcePolicySchema,
+  FocusPayloadSchema,
   HostProfileSchema,
   ItemBoardPatchRequestSchema,
   ItemDetailModelSchema,
@@ -12,9 +13,12 @@ import {
   SettingsPatchRequestSchema,
   TodayPayloadSchema,
   MusicItemCardModelSchema,
+  ResearchStartResponseSchema,
   StyleItemCardModelSchema,
+  TrialStartResponseSchema,
   type AIItemCardModel,
   type EffectiveResourcePolicy,
+  type FocusPayload,
   type HostProfile,
   type ItemBoard,
   type JobModel,
@@ -23,12 +27,14 @@ import {
   type ItemDetailModel,
   type ManualItemCreateRequest,
   type ManualItemCreateResponse,
+  type ResearchStartResponse,
   type SettingsDocument,
   type SettingsPatchRequest,
   type SourcePlatform,
   type SourceSettingPatchRequest,
   type StyleItemCardModel,
   type TodayPayload,
+  type TrialStartResponse,
 } from "@taste-inbox/shared";
 import { z } from "zod";
 import type {
@@ -455,6 +461,40 @@ export class HttpRepository implements TasteInboxRepository {
     }
     const rows: readonly unknown[] = raw.jobs;
     return rows.map((job) => HttpRepository.parsed(JobModelSchema, job, "작업"));
+  }
+
+  async getFocus(itemId: string): Promise<FocusPayload | null> {
+    // A 404 is an ordinary answer, as in `getItem`: a queue row or a bookmark can name an
+    // item that is no longer collected.
+    try {
+      return HttpRepository.parsed(
+        FocusPayloadSchema,
+        await this.get<unknown>(`/api/focus/${encodeURIComponent(itemId)}`),
+        "Focus Canvas",
+      );
+    } catch (error) {
+      if (error instanceof ApiDataError && error.code === "item_not_found") return null;
+      throw error;
+    }
+  }
+
+  async startResearch(itemId: string): Promise<ResearchStartResponse> {
+    return HttpRepository.parsed(
+      ResearchStartResponseSchema,
+      await this.post<unknown>("/api/research", { itemId }),
+      "조사 요청",
+    );
+  }
+
+  async startTrial(
+    itemId: string,
+    approval: { readonly approved: true },
+  ): Promise<TrialStartResponse> {
+    return HttpRepository.parsed(
+      TrialStartResponseSchema,
+      await this.post<unknown>("/api/trials", { itemId, approved: approval.approved }),
+      "실행 요청",
+    );
   }
 
   async getLaunchdPlan(): Promise<LaunchdPlan> {

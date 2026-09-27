@@ -424,7 +424,12 @@ def research_start(
     """
 
     from ..research import runner as research_runner
-    from ..research.aiq_client import AiqUnavailable, describe_target, resolve_server
+    from ..research.aiq_client import (
+        AiqUnavailable,
+        describe_target,
+        ensure_backend,
+        resolve_server,
+    )
     from . import background
 
     payload = body or {}
@@ -439,6 +444,7 @@ def research_start(
     try:
         server_url = resolve_server()
         target = describe_target(server_url)
+        ensure_backend(server_url)
     except AiqUnavailable as error:
         # Reachability is the user's to fix (start the backend, set AIQ_SERVER_URL), so it
         # is recoverable and the message carries the backend's own words.

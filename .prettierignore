@@ -16,6 +16,13 @@ CONTENTS.md
 # Gitignored, and full of third-party files that must never be rewritten.
 var/
 
+# Recorded NVIDIA runtime output, and the goldens `apps/api` writes from the real
+# endpoints. Byte-exact on purpose: a reformatted AI-Q report is no longer the report, and a
+# reformatted golden stops matching what the service regenerates.
+data/fixtures/research/
+data/fixtures/sandbox/
+data/fixtures/focus/
+
 # Python services are formatted by ruff, not prettier.
 apps/api/
 services/

@@ -177,6 +177,21 @@ export const FocusJobSchema = z.object({
   ),
 });
 
+/**
+ * What a research run would send, and where — shown *before* anything is sent.
+ *
+ * `CLAUDE.md` §3: the screen says what leaves the machine and to where, rather than
+ * claiming nothing does. `query` is the exact brief (it is deterministic); `error` is why
+ * the run would refuse — an unset `AIQ_SERVER_URL`, or a non-local one that is not https.
+ */
+export const OutboundSchema = z.object({
+  serverUrl: z.string().nullable(),
+  /** True when the backend is on this machine. Null when there is no usable URL. */
+  local: z.boolean().nullable(),
+  query: z.string().nullable(),
+  error: z.string().nullable(),
+});
+
 export const FocusPayloadSchema = z.object({
   item: z.object({
     id: z.string().min(1),
@@ -191,6 +206,7 @@ export const FocusPayloadSchema = z.object({
     firstSeenAt: IsoDateTimeSchema,
   }),
   context: TasteContextSchema.nullable(),
+  outbound: OutboundSchema,
   bundle: PaperBundleSchema.nullable(),
   research: ResearchReportSchema.nullable(),
   suggestion: SuggestedActionSchema.nullable(),
@@ -211,4 +227,5 @@ export type SuggestedAction = z.infer<typeof SuggestedActionSchema>;
 export type SandboxBoundary = z.infer<typeof SandboxBoundarySchema>;
 export type PolicyEndpoints = z.infer<typeof PolicyEndpointsSchema>;
 export type FocusJob = z.infer<typeof FocusJobSchema>;
+export type Outbound = z.infer<typeof OutboundSchema>;
 export type FocusPayload = z.infer<typeof FocusPayloadSchema>;

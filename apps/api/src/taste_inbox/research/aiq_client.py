@@ -36,7 +36,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-DEFAULT_SERVER_URL = "http://localhost:8000"
+#: No default backend. The skill's examples use `localhost:8000`, and on the machine this
+#: was built on that port belongs to an unrelated local service — an unset variable would
+#: have sent the brief there. The skill requires the target to be stated before a query is
+#: sent; an explicit `AIQ_SERVER_URL` is how it is stated.
+ENV_VAR = "AIQ_SERVER_URL"
 
 #: Where `npx skills add` / the documented user-level install puts the skill.
 DEFAULT_SKILL_DIR = Path.home() / ".claude" / "skills" / "aiq-research"
@@ -74,10 +78,16 @@ def resolve_server(url: str | None = None) -> str:
 
     A remote endpoint may log prompts and metadata, so the skill requires it to be trusted
     before anything is sent. Being local-first, this product's default is a backend on this
-    machine; anything else has to be https and deliberately configured.
+    machine; anything else has to be https and deliberately configured. There is no
+    fallback address: an unset variable is a refusal, not a guess.
     """
 
-    resolved = (url or os.environ.get("AIQ_SERVER_URL") or DEFAULT_SERVER_URL).strip()
+    resolved = (url or os.environ.get(ENV_VAR) or "").strip()
+    if not resolved:
+        raise AiqUnavailable(
+            "AIQ_SERVER_URL이 설정되지 않았습니다. 조사를 보낼 AI-Q 백엔드 주소를 명시해 주세요 "
+            "(예: http://127.0.0.1:8010)."
+        )
     parts = urlsplit(resolved)
     if parts.scheme not in ("http", "https") or not parts.hostname:
         raise AiqUnavailable(f"AIQ_SERVER_URL is not a usable http(s) url: {resolved!r}")
@@ -174,6 +184,23 @@ def health(*, server_url: str | None = None, skill_dir: Path | None = None) -> d
     return _last_json_object(_run(["health"], server_url=resolved, skill_dir=skill_dir, timeout=30))
 
 
+def ensure_backend(server_url: str, *, skill_dir: Path | None = None) -> None:
+    """Refuse unless the target answers as a healthy AI-Q backend.
+
+    Resolving the URL proves only that it is well-formed and local. Something else can be
+    listening there — on the machine this was built on, AI-Q's own Dask dashboard took the
+    port this product's API defaults to. The skill says to check health before any query,
+    and this is where a brief is kept from going to whatever happens to answer.
+    """
+
+    try:
+        state = health(server_url=server_url, skill_dir=skill_dir)
+    except AiqUnavailable as error:
+        raise AiqUnavailable(f"{server_url} 에서 AI-Q가 응답하지 않습니다: {error}") from error
+    if str(state.get("status") or "").lower() != "healthy":
+        raise AiqUnavailable(f"{server_url} 의 AI-Q 상태가 healthy가 아닙니다: {state}")
+
+
 def agents(*, server_url: str | None = None, skill_dir: Path | None = None) -> list[str]:
     payload = _last_json_object(
         _run(["agents"], server_url=resolve_server(server_url), skill_dir=skill_dir, timeout=30)
@@ -223,13 +250,14 @@ def research(
 
 
 __all__ = [
-    "DEFAULT_SERVER_URL",
     "DEFAULT_SKILL_DIR",
     "DEFAULT_TIMEOUT_SECONDS",
+    "ENV_VAR",
     "AiqReport",
     "AiqUnavailable",
     "agents",
     "describe_target",
+    "ensure_backend",
     "health",
     "research",
     "resolve_server",

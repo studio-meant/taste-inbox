@@ -5,17 +5,17 @@ What the user's saved history says about one item. Built from rows, never from a
 
 ## Shape
 
-| Field | Meaning |
-| --- | --- |
-| `itemId` `title` `kind` `platform` `canonicalUrl` | the subject |
-| `itemTerms` | the subject's own normalised tags |
-| `recurringTerms` | `[{term, itemCount}]` — what recurs across the recent library |
-| `sharedTerms` | the intersection: why this is not arriving into an empty room |
-| `neighbours` | `[{itemId, title, kind, platform, canonicalUrl, sharedTerms, actionAt}]` |
-| `recentKinds` `recentTotal` | the shape of the last 30 days |
-| `stated` | facts the source declared (a paper's repo, its demos) |
-| `evidenceItemIds` | every row this was built from |
-| `grounded` | false when there is no connection to claim |
+| Field                                             | Meaning                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `itemId` `title` `kind` `platform` `canonicalUrl` | the subject                                                              |
+| `itemTerms`                                       | the subject's own normalised tags                                        |
+| `recurringTerms`                                  | `[{term, itemCount}]` — what recurs across the recent library            |
+| `sharedTerms`                                     | the intersection: why this is not arriving into an empty room            |
+| `neighbours`                                      | `[{itemId, title, kind, platform, canonicalUrl, sharedTerms, actionAt}]` |
+| `recentKinds` `recentTotal`                       | the shape of the last 30 days                                            |
+| `stated`                                          | facts the source declared (a paper's repo, its demos)                    |
+| `evidenceItemIds`                                 | every row this was built from                                            |
+| `grounded`                                        | false when there is no connection to claim                               |
 
 ## Rules
 

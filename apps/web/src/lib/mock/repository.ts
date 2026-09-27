@@ -1,6 +1,7 @@
 import {
   AIItemCardModelSchema,
   EffectiveResourcePolicySchema,
+  FocusPayloadSchema,
   HostProfileSchema,
   JobModelSchema,
   ItemDetailModelSchema,
@@ -10,6 +11,7 @@ import {
   TodayPayloadSchema,
   type AIItemCardModel,
   type EffectiveResourcePolicy,
+  type FocusPayload,
   type HostProfile,
   type ItemBoard,
   type JobModel,
@@ -18,11 +20,13 @@ import {
   type ManualItemCreateResponse,
   type LaunchdPlan,
   type MusicItemCardModel,
+  type ResearchStartResponse,
   type SettingsDocument,
   type SettingsPatchRequest,
   type SourcePlatform,
   type StyleItemCardModel,
   type TodayPayload,
+  type TrialStartResponse,
 } from "@taste-inbox/shared";
 import hostProfileFixture from "../../../../../data/fixtures/host-profiles/capacity-16gb-512gb.json";
 import resourcePolicyFixture from "../../../../../data/fixtures/resource-policy/expected/capacity-16gb-512gb.json";
@@ -124,6 +128,10 @@ interface Fixture<T> {
   /** `seed` is the committed demo fixture; `collected` is the user's own captures. */
   readonly origin: Page<unknown>["origin"];
 }
+
+/** Said wherever mock mode is asked for something only the NVIDIA runtime can answer. */
+const MOCK_RUNTIME_MESSAGE =
+  "목업 데이터 모드에서는 AI-Q와 샌드박스를 부르지 않아요. `pnpm dev`로 실제 서비스를 띄우면 동작합니다.";
 
 export class MockRepository implements TasteInboxRepository {
   /** Fixed instant so server and client renders agree and snapshots stay stable. */
@@ -458,6 +466,57 @@ export class MockRepository implements TasteInboxRepository {
 
   listJobs(): Promise<readonly JobModel[]> {
     return Promise.resolve(MOCK_JOBS.map((job) => JobModelSchema.parse(job)));
+  }
+
+  /**
+   * The canvas for a fixture item, with nothing researched and nothing run.
+   *
+   * Not a demo of a finished run: attaching a recorded AI-Q report to a fixture item would
+   * put a report about one repository under another's title, which is the kind of
+   * plausible filler the canvas exists to refuse. The boundary says why it is unknown here.
+   * The fully populated states are exercised by the component tests, against the goldens
+   * the service itself produced (`data/fixtures/focus/`).
+   */
+  async getFocus(itemId: string): Promise<FocusPayload | null> {
+    const item = await this.getItem(itemId);
+    if (item === null) return null;
+    return FocusPayloadSchema.parse({
+      item: {
+        id: item.id,
+        kind: item.kind,
+        platform: item.source.platform,
+        title: item.title,
+        summary: item.body === "" ? null : item.body,
+        canonicalUrl: item.source.originalUrl,
+        author: item.source.author ?? null,
+        actionAt: null,
+        firstSeenAt: item.firstSeenAt,
+      },
+      context: null,
+      outbound: { serverUrl: null, local: null, query: null, error: MOCK_RUNTIME_MESSAGE },
+      bundle: null,
+      research: null,
+      suggestion: null,
+      trial: null,
+      jobs: { research: null, trial: null },
+      boundary: {
+        sandbox: "taste-inbox",
+        ready: false,
+        busy: false,
+        policies: [],
+        missingPresets: [],
+        endpoints: [],
+        reason: MOCK_RUNTIME_MESSAGE,
+      },
+    });
+  }
+
+  startResearch(): Promise<ResearchStartResponse> {
+    return Promise.reject(new ApiDataError("mock_mode", MOCK_RUNTIME_MESSAGE, false));
+  }
+
+  startTrial(): Promise<TrialStartResponse> {
+    return Promise.reject(new ApiDataError("mock_mode", MOCK_RUNTIME_MESSAGE, false));
   }
 
   getLaunchdPlan(): Promise<LaunchdPlan> {

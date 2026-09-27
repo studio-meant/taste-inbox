@@ -60,6 +60,7 @@ def client(factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> I
     monkeypatch.setattr(background, "_spawn", inline)
     monkeypatch.setattr(background, "_slots", {})
     monkeypatch.setenv("AIQ_SERVER_URL", "http://localhost:8010")
+    monkeypatch.setattr(aiq_client, "health", lambda **_: {"status": "healthy"})
     focus.forget_boundary()
     app.dependency_overrides[get_session] = session_override
     try:
@@ -205,6 +206,38 @@ def test_research_refuses_a_non_local_http_backend(
     assert response.json()["error"]["code"] == "aiq_unavailable"
     with factory() as session:
         assert session.scalars(select(Job)).all() == []  # nothing was queued
+
+
+def test_research_needs_an_explicit_backend(
+    client: TestClient, factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("AIQ_SERVER_URL")
+
+    response = client.post("/api/research", json={"itemId": _voicestudio(factory)})
+
+    assert response.status_code == 503
+    assert "AIQ_SERVER_URL" in response.json()["error"]["message"]
+
+
+def test_research_is_not_sent_to_something_that_is_not_ai_q(
+    client: TestClient, factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Something else answering on the port — a dashboard, another project's API."""
+
+    def not_aiq(**_: Any) -> dict[str, Any]:
+        raise aiq_client.AiqUnavailable("aiq-research failed: HTTP 404")
+
+    sent: list[str] = []
+    monkeypatch.setattr(aiq_client, "health", not_aiq)
+    monkeypatch.setattr(aiq_client, "research", lambda query, **_: sent.append(query))
+
+    response = client.post("/api/research", json={"itemId": _voicestudio(factory)})
+
+    assert response.status_code == 503
+    assert "AI-Q가 응답하지 않습니다" in response.json()["error"]["message"]
+    assert sent == []
+    with factory() as session:
+        assert session.scalars(select(Job)).all() == []
 
 
 def test_research_while_another_runs_is_refused(

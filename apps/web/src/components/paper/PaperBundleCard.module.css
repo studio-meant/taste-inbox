@@ -1,0 +1,117 @@
+.card {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--orchid) 36%, var(--border));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--orchid) 10%, var(--surface));
+}
+
+.title {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.4em;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body-size);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.missing {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+}
+
+.repo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-body-small-size);
+  font-weight: 650;
+}
+
+.repo a,
+.branchItems a,
+.project {
+  color: var(--ink);
+  text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* Filled for the author's own link. */
+.official {
+  background: var(--status-ready-bg);
+  color: var(--status-ready-fg);
+}
+
+/* Outlined and dashed for a match: a different shape, not only a different colour. */
+.matched {
+  border: 1px dashed var(--status-warning-fg);
+  background: transparent;
+  color: var(--status-warning-fg);
+}
+
+.branches {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.branchLabel {
+  display: block;
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.branchItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--type-body-small-size);
+}
+
+.more {
+  color: var(--muted);
+}
+
+.project {
+  justify-self: start;
+  font-size: var(--type-body-small-size);
+}
+
+.repo a:focus-visible,
+.branchItems a:focus-visible,
+.project:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

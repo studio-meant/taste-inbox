@@ -32,7 +32,9 @@ port_busy() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
 
 for port in "$API_PORT" "$WEB_PORT"; do
   if port_busy "$port"; then
-    die "port ${port} is already in use. Stop what is on it, or set TASTE_INBOX_API_PORT / TASTE_INBOX_WEB_PORT."
+    # 8787 is also the default of Dask's dashboard, which a local AI-Q backend starts.
+    die "port ${port} is already in use. Stop what is on it, or set TASTE_INBOX_API_PORT / TASTE_INBOX_WEB_PORT.
+    (A local AI-Q backend opens Dask's dashboard on 8787 — TASTE_INBOX_API_PORT=8790 pnpm dev)"
   fi
 done
 
@@ -72,6 +74,15 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
+# The two NVIDIA settings the API needs, read from `.env` by name — and only those two.
+# Both are addresses, not secrets; the keys in the same file belong to the AI-Q process and
+# are never handed to this one. Without the first, research refuses to send rather than
+# guessing a port (`research/aiq_client.py`).
+env_value() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true; }
+AIQ_SERVER_URL="${AIQ_SERVER_URL:-$(env_value AIQ_SERVER_URL)}"
+NEMOCLAW_SANDBOX_NAME="${NEMOCLAW_SANDBOX_NAME:-$(env_value NEMOCLAW_SANDBOX_NAME)}"
+[[ -n "$AIQ_SERVER_URL" ]] || say "AIQ_SERVER_URL is not set — research will refuse until it is."
+
 say "api  → ${API_URL}   (${DB_PATH##*/})"
 (
   cd "$ROOT/apps/api"
@@ -81,6 +92,8 @@ say "api  → ${API_URL}   (${DB_PATH##*/})"
   # invisible until something disagreed. Watches `src` only — without `--reload-dir` it
   # also watches `.venv`, and restarts on every `uv run`.
   DATABASE_URL="sqlite:///${DB_PATH}" \
+  AIQ_SERVER_URL="$AIQ_SERVER_URL" \
+  NEMOCLAW_SANDBOX_NAME="$NEMOCLAW_SANDBOX_NAME" \
     exec uv run uvicorn taste_inbox.api.app:app --host 127.0.0.1 --port "$API_PORT" \
     --reload --reload-dir src
 ) &

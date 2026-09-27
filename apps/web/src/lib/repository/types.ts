@@ -1,6 +1,7 @@
 import type {
   AIItemCardModel,
   EffectiveResourcePolicy,
+  FocusPayload,
   HostProfile,
   ItemBoard,
   ItemDetailModel,
@@ -9,11 +10,13 @@ import type {
   JobModel,
   LaunchdPlan,
   MusicItemCardModel,
+  ResearchStartResponse,
   SettingsDocument,
   SettingsPatchRequest,
   SourcePlatform,
   StyleItemCardModel,
   TodayPayload,
+  TrialStartResponse,
 } from "@taste-inbox/shared";
 
 /**
@@ -237,6 +240,31 @@ export interface TasteInboxRepository {
   setItemBoard(id: string, board: ItemBoard): Promise<ItemDetailModel>;
 
   listJobs(): Promise<readonly JobModel[]>;
+
+  /**
+   * `GET /api/focus/{itemId}` — everything the Focus Canvas draws, in one response.
+   *
+   * Null when there is no such item, like `getItem`. Every section inside may be null,
+   * and that is a state the canvas draws rather than a failure.
+   */
+  getFocus(itemId: string): Promise<FocusPayload | null>;
+
+  /**
+   * `POST /api/research` — ask NVIDIA AI-Q about one item. Answers with a queued job.
+   *
+   * Refusals — no `AIQ_SERVER_URL`, a backend that is not AI-Q, another research already
+   * running — arrive as an `ApiDataError` with the service's Korean message, never as a
+   * job that fails later.
+   */
+  startResearch(itemId: string): Promise<ResearchStartResponse>;
+
+  /**
+   * `POST /api/trials` — run the item's plan inside the OpenShell sandbox.
+   *
+   * `approval` is typed as the literal `true` so no call site can reach this without
+   * stating it; the service refuses anything else as well (docs/DECISIONS.md, 2026-09-28).
+   */
+  startTrial(itemId: string, approval: { readonly approved: true }): Promise<TrialStartResponse>;
 
   /**
    * `GET /api/collection/launchd` — the generated schedule jobs and the commands that load

@@ -1,11 +1,16 @@
 import type { QueueItem, QueueItemKind, TodayPayload } from "@taste-inbox/shared";
 import {
   ArrowRight,
+  Box,
   Check,
   CircleAlert,
+  FileText,
   Key,
   Loader,
   Eye,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
   Tag,
   type LucideIcon,
 } from "lucide-react";
@@ -14,6 +19,7 @@ import { CardSurface, EmptyState } from "@/components/primitives";
 import styles from "./Today.module.css";
 import { cx } from "@/lib/cx";
 import { toUrlObject } from "@/lib/filters/board-filters";
+import { RefreshWhileRunning } from "@/components/shell/RefreshWhileRunning";
 
 /**
  * Working Queue — PAGE_SPECIFICATIONS §5.2, laid out as the reference's `WorkingCard`
@@ -38,11 +44,14 @@ import { toUrlObject } from "@/lib/filters/board-filters";
  * The reference's own three rows are dead features (repo sandbox, price matching), so
  * only the row *shape* is ported; the rows are whatever the queue actually holds.
  *
- * The allowed row kinds are exactly the six PAGE_SPECIFICATIONS lists; a seventh would
- * need a document change.
+ * The allowed row kinds are exactly the twelve PAGE_SPECIFICATIONS §5.2 lists — the six it
+ * started with and the six research/trial kinds added on 2026-09-28 after the document was
+ * changed first. A thirteenth needs a document change too. The record below is total over
+ * the enum on purpose: the day the schema gained `trial_blocked` and this table did not,
+ * Today died reading `.icon` of undefined, and the type checker is what now refuses that.
  */
 
-type QueueTone = "neutral" | "ready" | "active";
+type QueueTone = "neutral" | "ready" | "active" | "attention";
 
 interface QueueKindPresentation {
   readonly label: string;
@@ -57,12 +66,27 @@ const QUEUE_KIND: Readonly<Record<QueueItemKind, QueueKindPresentation>> = {
   review_required: { label: "승인 필요", tone: "neutral", icon: Eye },
   price_checking: { label: "가격 확인 중", tone: "active", icon: Tag },
   collector_auth: { label: "로그인 필요", tone: "neutral", icon: CircleAlert },
+  research_running: { label: "조사 중", tone: "active", icon: Search },
+  research_ready: { label: "제안 준비됨", tone: "ready", icon: FileText },
+  approval_required: { label: "승인 대기", tone: "neutral", icon: ShieldCheck },
+  trial_running: { label: "샌드박스 실행 중", tone: "active", icon: Box },
+  trial_ready: { label: "실행 완료", tone: "ready", icon: Check },
+  trial_blocked: { label: "차단됨 · 확인 필요", tone: "attention", icon: ShieldAlert },
 };
+
+/** Rows whose state is still moving, so the card keeps itself current while they exist. */
+const MOVING: ReadonlySet<QueueItemKind> = new Set([
+  "environment_preparing",
+  "price_checking",
+  "research_running",
+  "trial_running",
+]);
 
 const TONE_CLASS: Readonly<Record<QueueTone, string | undefined>> = {
   neutral: undefined,
   ready: styles.queueCheckReady,
   active: styles.queueCheckActive,
+  attention: styles.queueCheckAttention,
 };
 
 /**
@@ -125,6 +149,8 @@ export function WorkingQueuePanel({
           <i />
         </span>
       </div>
+
+      {items.some((item) => MOVING.has(item.kind)) ? <RefreshWhileRunning /> : null}
 
       {items.length === 0 ? (
         <div className={styles.emptyBody}>

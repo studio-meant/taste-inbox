@@ -20,9 +20,7 @@ from taste_inbox.sandbox import nemoclaw, policy, transcript, trial
 
 from .library import item_id, library, recorded_report, recorded_status
 
-READY_STATUS = recorded_status("status-docker-down.txt").replace(
-    "Failure layer: docker_unreachable — Docker daemon is not reachable.\n", ""
-)
+READY_STATUS = recorded_status("status-ready.txt")
 
 
 def envelope(
@@ -68,8 +66,12 @@ def test_a_failure_layer_overrides_a_cached_ready_phase() -> None:
 
 
 def test_ready_when_no_layer_is_failing() -> None:
+    """Recorded with Docker up. It still carries a retried inference 503 — a warning about
+    the model route, not about the boundary, and it must not read as not-ready."""
+
     state = nemoclaw.parse_status("taste-inbox", READY_STATUS)
 
+    assert "HTTP 503" in READY_STATUS
     assert state["ready"] is True
     assert state["reason"] is None
     assert state["raw"] == ""
@@ -346,3 +348,30 @@ def test_a_queued_job_is_continued_not_duplicated(
         assert outcome.job_id == queued.id
         assert len(session.scalars(select(Job)).all()) == 1
         assert len(session.scalars(select(JobStep)).all()) == len(trial.STEPS)
+
+
+def test_docker_cli_is_found_without_a_login_shell(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`~/.zprofile` puts Docker on PATH for login shells only."""
+
+    bin_dir = tmp_path / "docker-bin"
+    bin_dir.mkdir()
+    (bin_dir / "docker").write_text("#!/bin/sh\n", "utf-8")
+    (bin_dir / "docker").chmod(0o755)
+    monkeypatch.setattr(nemoclaw, "_DOCKER_CLI_DIRS", (bin_dir,))
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+
+    assert nemoclaw._environment()["PATH"].split(":")[-1] == str(bin_dir)
+
+
+def test_a_docker_already_on_path_is_left_alone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mine = tmp_path / "mine"
+    mine.mkdir()
+    (mine / "docker").write_text("#!/bin/sh\n", "utf-8")
+    (mine / "docker").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{mine}:/usr/bin")
+
+    assert nemoclaw._environment()["PATH"] == f"{mine}:/usr/bin"

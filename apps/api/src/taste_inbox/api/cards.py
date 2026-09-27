@@ -69,6 +69,11 @@ BOARD_COLLECTIONS: dict[str, str] = {
 #: no routed platform.
 PLATFORM_BOARDS: dict[str, str] = {
     "github": "trends",
+    # Hugging Face likes (models, datasets, Spaces) and the papers they cite. Missing until
+    # 2026-09-28, and its absence was silent: seven collected items sat on no board at all —
+    # not Trends, not None — because None holds decisions and pending Instagram Likes, not
+    # an unrouted platform. Collected and invisible is the worst of both.
+    "huggingface": "trends",
     "threads": "trends",
     "linkedin": "trends",
 }

@@ -63,15 +63,39 @@ export function sourceFilterGroups(items: readonly HasSource[]): readonly Filter
 
 export function aiFilterGroups(items: readonly AIItemCardModel[]): readonly FilterGroup[] {
   /*
-   * No `종류` group. It offered 저장소 and 게시물, and neither is a fact the source does not
-   * already carry: every 저장소 on this board came from GitHub and every 게시물 came from
-   * Instagram, Threads or LinkedIn. Two controls, one distinction — and the one that reads
-   * as `kind` is the derived one, since `kind` is assigned *from* the platform at ingest.
+   * `종류` is back (2026-09-28). It was removed while every 저장소 came from GitHub and every
+   * 게시물 from a social platform — kind was then derived from source, two controls for one
+   * distinction. Hugging Face broke that: one source now yields models, datasets, Spaces
+   * and the papers they cite, so "which kind" is a question the source filter cannot answer.
    *
-   * If a second platform ever yields repositories — Hugging Face models are the obvious
-   * candidate — the two stop agreeing and this earns its place back.
+   * Counted like every facet here, and offered only while some one source holds more than
+   * one kind — on a board of GitHub stars and Instagram posts it disappears again.
    */
-  return sourceFilterGroups(items);
+  const kind = tally(items, (item) => item.kind);
+  const kindsBySource = new Map<string, Set<string>>();
+  for (const item of items) {
+    const kinds = kindsBySource.get(item.source.platform) ?? new Set<string>();
+    kinds.add(item.kind);
+    kindsBySource.set(item.source.platform, kinds);
+  }
+  // Offered only once some source yields more than one kind. While kind is a function of
+  // source, the two groups would be one distinction drawn twice.
+  const kindIsItsOwnAxis = [...kindsBySource.values()].some((kinds) => kinds.size > 1);
+  const kindGroups: FilterGroup[] =
+    kindIsItsOwnAxis && isUseful(kind, items.length)
+      ? [
+          {
+            key: "kind",
+            legend: "종류",
+            options: [...kind].map(([value, count]) => ({
+              value,
+              label: KIND_LABEL[value] ?? value,
+              count,
+            })),
+          },
+        ]
+      : [];
+  return [...kindGroups, ...sourceFilterGroups(items)];
 }
 
 export function styleFilterGroups(items: readonly StyleItemCardModel[]): readonly FilterGroup[] {
@@ -79,6 +103,17 @@ export function styleFilterGroups(items: readonly StyleItemCardModel[]): readonl
   // on every collected item, so the group would have one option and narrow nothing.
   return sourceFilterGroups(items);
 }
+
+const KIND_LABEL: Readonly<Record<string, string>> = {
+  repo: "저장소",
+  model: "모델",
+  dataset: "데이터셋",
+  space: "Space",
+  paper: "논문",
+  demo: "데모",
+  tool: "도구",
+  post: "게시물",
+};
 
 const PLATFORM_LABEL: Readonly<Record<string, string>> = {
   github: "GitHub",

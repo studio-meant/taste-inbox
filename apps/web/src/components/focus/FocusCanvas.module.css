@@ -1,0 +1,664 @@
+/*
+ * Focus Canvas. The same sheet vocabulary as the item page (`ItemDetail.module.css`):
+ * cream surfaces on the scenic backdrop, one accent, caption-size eyebrows. Every colour
+ * is a theme token, so all six themes draw it.
+ */
+
+.page {
+  --focus-accent: var(--sage);
+  display: grid;
+  gap: var(--space-4);
+  width: min(100%, 1240px);
+  margin-inline: auto;
+  padding-block: var(--space-4) var(--space-10);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  min-height: var(--control-height-compact);
+  padding-inline: var(--space-2);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-height-compact);
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.toolbarLabel {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ───────────────────────────────────────────────────────────── hero */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  padding: clamp(var(--space-5), 3vw, var(--space-8));
+  border: 1px solid color-mix(in srgb, var(--focus-accent) 30%, var(--border));
+  border-radius: var(--radius-story);
+  background: color-mix(in srgb, var(--surface) 96%, var(--focus-accent));
+  box-shadow: var(--shadow-float);
+}
+
+.heroCopy {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.heroState {
+  align-self: start;
+}
+
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 650;
+}
+
+.kindChip {
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--focus-accent) 46%, var(--surface));
+  color: var(--ink);
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  max-width: 32ch;
+  font-size: clamp(26px, 3.2vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.summary {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--muted);
+  font-size: var(--type-body-size);
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.original {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  min-height: var(--control-height-compact);
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--focus-accent) 54%, var(--border));
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--focus-accent) 22%, var(--surface));
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.original:hover {
+  background: color-mix(in srgb, var(--focus-accent) 34%, var(--surface));
+}
+
+/* ──────────────────────────────────────────────────────────── layout */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.column {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.lower {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .grid,
+  .lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────── panels */
+
+.panel {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
+.actionPanel {
+  border-color: color-mix(in srgb, var(--focus-accent) 45%, var(--border));
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.panelTitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-card-title-size);
+  line-height: var(--type-card-title-line);
+  letter-spacing: var(--type-card-title-tracking);
+  font-weight: 700;
+}
+
+.label {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.lead,
+.headline {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body-size);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.headline {
+  font-weight: 650;
+}
+
+.empty {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-body-small-size);
+  line-height: 1.6;
+}
+
+.footnote {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.refusal {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-utility);
+  background: var(--status-danger-bg);
+  color: var(--status-danger-fg);
+  font-size: var(--type-body-small-size);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.why {
+  display: block;
+  margin-top: 2px;
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+}
+
+/* ─────────────────────────────────────────────────────── why / context */
+
+.termBlock {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.terms li {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--light-green) 55%, var(--surface));
+  color: var(--accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.neighbours {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.neighbours li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-2);
+  font-size: var(--type-body-small-size);
+}
+
+.neighbours a {
+  color: var(--ink);
+  font-weight: 600;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.shared {
+  color: var(--subtle);
+  font-size: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────── research */
+
+.report {
+  max-height: 32rem;
+  overflow: auto;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.report a {
+  color: var(--accent-deep);
+  text-underline-offset: 2px;
+}
+
+.disclosure {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.disclosure > summary {
+  width: fit-content;
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.disclosure > summary:hover {
+  color: var(--ink);
+}
+
+.pre {
+  margin: 0;
+  max-height: 20rem;
+  overflow: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--inverse) 6%, var(--surface));
+  color: var(--ink);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ─────────────────────────────────────────────────── steps / job state */
+
+.steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  gap: var(--space-2);
+  font-size: var(--type-body-small-size);
+  line-height: 1.5;
+}
+
+.stepState {
+  color: var(--subtle);
+  font-weight: 650;
+}
+
+.step[data-state="done"] .stepState {
+  color: var(--status-ready-fg);
+}
+
+.step[data-state="running"] .stepState {
+  color: var(--status-info-fg);
+}
+
+.step[data-state="failed"] .stepState {
+  color: var(--status-danger-fg);
+}
+
+.stepMessage {
+  display: block;
+  color: var(--status-danger-fg);
+  font-size: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────── action */
+
+.terms2 {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.terms2 > div {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr);
+  gap: var(--space-2);
+  font-size: var(--type-body-small-size);
+  line-height: 1.5;
+}
+
+.terms2 dt {
+  color: var(--subtle);
+  font-weight: 650;
+}
+
+.terms2 dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.actionRow {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.boundaryLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--type-caption-size, 12px);
+}
+
+.approval {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--focus-accent) 60%, var(--border));
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--focus-accent) 14%, var(--surface));
+}
+
+.approval:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.approvalTitle {
+  margin: 0;
+  font-size: var(--type-body-size);
+  font-weight: 700;
+}
+
+.approvalTerms {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.1em;
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.approvalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ──────────────────────────────────────────────────────────── results */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.facts > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
+}
+
+.facts dt {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* ─────────────────────────────────────────────────────────── lower row */
+
+.trail {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: trail;
+}
+
+.trail li {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: var(--space-2);
+  counter-increment: trail;
+}
+
+.trail li::before {
+  content: counter(trail);
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trail li[data-reached="true"]::before {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--light-green) 70%, var(--surface));
+  color: var(--accent-deep);
+}
+
+.trailLabel {
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  font-weight: 650;
+}
+
+.trailDetail {
+  color: var(--subtle);
+  font-size: 12px;
+}
+
+.ledgerBlock {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.blocked {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blocked li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 6px;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-utility);
+  background: var(--status-danger-bg);
+  color: var(--status-danger-fg);
+  font-size: var(--type-body-small-size);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.blocked li .why {
+  grid-column: 2;
+  font-weight: 500;
+}
+
+.hostList {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-small-size);
+  overflow-wrap: anywhere;
+}
+
+.policies {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.policies li {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.policyName {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.binaries {
+  color: var(--subtle);
+}
+
+.files {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.files li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  overflow-wrap: anywhere;
+}
+
+.back:focus-visible,
+.original:focus-visible,
+.neighbours a:focus-visible,
+.report a:focus-visible,
+.disclosure > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

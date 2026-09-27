@@ -4,13 +4,13 @@ What the sandbox agent is asked to do — `apps/api/src/taste_inbox/action/propo
 
 ## Shape
 
-| Field | Meaning |
-| --- | --- |
-| `planText` | the instruction handed to the agent. **Prose.** |
-| `successCriteria` | stated before the run, so the result is a comparison |
-| `requiredHosts` | hosts the plan needs, filtered to what a trial may have |
-| `refusedHosts` | hosts the report named that are **not** opened |
-| `commandsSeen` | fenced blocks, for display — not for execution |
+| Field             | Meaning                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `planText`        | the instruction handed to the agent. **Prose.**         |
+| `successCriteria` | stated before the run, so the result is a comparison    |
+| `requiredHosts`   | hosts the plan needs, filtered to what a trial may have |
+| `refusedHosts`    | hosts the report named that are **not** opened          |
+| `commandsSeen`    | fenced blocks, for display — not for execution          |
 
 ## Why the plan stays prose
 
@@ -22,6 +22,13 @@ Extracting a rigid script throws away the capability that makes `Try safely` mor
 Measured: a report proposed `docker run …` as its fastest path. There is no Docker inside
 the sandbox. An agent works around that by falling back to the source install; a script
 would simply have failed.
+
+It should not have to discover that, though. `planText` opens with `SANDBOX_FACTS` — what
+the sandbox has (git, python3 + pip/uv, node + npm) and what it does not (Docker, a display,
+a GPU, sudo) — and ends with "stop once the success condition is met". The first Golden Path
+run found the missing Docker by trying, spent fifty tool calls, and timed out on the model.
+When a report offers several options, the headline does not quote the first one; it says
+the agent will take the first that the sandbox can do.
 
 ## The report is untrusted input
 

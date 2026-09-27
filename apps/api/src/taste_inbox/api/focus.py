@@ -16,6 +16,7 @@ from __future__ import annotations
 import threading
 import time
 from typing import Any
+from urllib.parse import urlsplit
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -142,6 +143,31 @@ def _bundle(session: Session, item_id: str) -> dict[str, Any] | None:
     }
 
 
+def _outbound(context: Any) -> dict[str, Any]:
+    """What a research run *would* send, and where — before anything is sent.
+
+    `CLAUDE.md` §3: the screen says what leaves and to where, rather than claiming nothing
+    does. The brief is deterministic, so this is exactly the text the run will send; and
+    the destination is resolved the same way the run resolves it, so an unset or refused
+    `AIQ_SERVER_URL` is shown here as the reason the button will refuse.
+    """
+
+    from ..research import aiq_client, brief
+
+    query = brief.build(context).query if context is not None else None
+    try:
+        server_url = aiq_client.resolve_server()
+    except aiq_client.AiqUnavailable as error:
+        return {"serverUrl": None, "local": None, "query": query, "error": str(error)}
+    host = urlsplit(server_url).hostname
+    return {
+        "serverUrl": server_url,
+        "local": host in ("localhost", "127.0.0.1", "::1"),
+        "query": query,
+        "error": None,
+    }
+
+
 def payload(session: Session, item_id: str) -> dict[str, Any] | None:
     """The whole screen, or None when there is no such item."""
 
@@ -183,6 +209,7 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
             "firstSeenAt": item.first_seen_at,
         },
         "context": context.as_dict() if context else None,
+        "outbound": _outbound(context),
         "bundle": _bundle(session, item_id),
         "research": research,
         "suggestion": suggestion,

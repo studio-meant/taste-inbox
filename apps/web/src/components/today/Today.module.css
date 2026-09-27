@@ -336,6 +336,12 @@
   background: var(--leaf);
 }
 
+/* The same hue the day-strip cover uses for Hugging Face (`COVER_TINT`), deepened so the
+   glyph in `--surface` keeps its contrast. */
+.sourceDotHuggingface {
+  background: color-mix(in srgb, var(--orchid) 55%, var(--ink));
+}
+
 /* `.source-dots > span` — ref.css:237: the trailing "+3". */
 .sourceDotsMore {
   margin-left: 6px;
@@ -730,6 +736,12 @@ a.insightRow:hover .insightTitle {
 .queueCheckActive {
   background: color-mix(in srgb, var(--sun) 38%, var(--surface));
   color: var(--status-warning-fg);
+}
+
+/* A trial that did not finish. The label says so in words; this is the second channel. */
+.queueCheckAttention {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-fg);
 }
 
 /* `.queue-copy` — ref.css:269: gap .18cqw, strong .68cqw, small .52cqw → 14 / 12. */

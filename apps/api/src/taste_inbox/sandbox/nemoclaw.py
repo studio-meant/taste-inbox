@@ -41,6 +41,7 @@ import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -91,6 +92,36 @@ class SandboxRun:
         return self.exit_code == 0
 
 
+#: Where Docker Desktop puts its CLI on a Mac. `nemoclaw` shells out to `docker`, and the
+#: installer adds `~/.docker/bin` to PATH in `~/.zprofile` — which only a *login* shell
+#: reads. An API started by `scripts/dev.sh`, launchd or an IDE never sees it, and
+#: `nemoclaw status` then reports `docker_unreachable` with Docker running fine: measured on
+#: 2026-09-28, the same sandbox read Ready the moment the CLI was on PATH.
+_DOCKER_CLI_DIRS = (
+    Path.home() / ".docker" / "bin",
+    Path("/Applications/Docker.app/Contents/Resources/bin"),
+    Path("/usr/local/bin"),
+    Path("/opt/homebrew/bin"),
+)
+
+
+def _environment() -> dict[str, str]:
+    """This process's environment, with Docker's CLI reachable if it is installed.
+
+    Appended, never prepended: a `docker` the person put on PATH themselves still wins.
+    """
+
+    environment = dict(os.environ)
+    if shutil.which("docker", path=environment.get("PATH")) is not None:
+        return environment
+    extra = [str(path) for path in _DOCKER_CLI_DIRS if (path / "docker").exists()]
+    if extra:
+        environment["PATH"] = os.pathsep.join([environment.get("PATH", ""), *extra]).strip(
+            os.pathsep
+        )
+    return environment
+
+
 def _cli() -> str:
     found = shutil.which("nemoclaw")
     if not found:
@@ -124,6 +155,7 @@ def _exec(
             text=True,
             timeout=timeout + 30,
             check=False,
+            env=_environment(),
         )
     except subprocess.TimeoutExpired as error:
         raise SandboxUnavailable(f"sandbox exec timed out after {timeout:.0f}s") from error
@@ -137,7 +169,12 @@ def status(*, sandbox: str | None = None, timeout: float = 90) -> dict[str, Any]
     name = sandbox_name(sandbox)
     try:
         completed = subprocess.run(  # noqa: S603
-            [_cli(), name, "status"], capture_output=True, text=True, timeout=timeout, check=False
+            [_cli(), name, "status"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env=_environment(),
         )
     except subprocess.TimeoutExpired as error:
         raise SandboxUnavailable(f"`nemoclaw {name} status` timed out") from error
