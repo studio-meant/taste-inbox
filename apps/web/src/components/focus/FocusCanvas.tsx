@@ -79,7 +79,7 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
   const { item } = payload;
 
   return (
-    <article className={styles.page} data-focus-canvas>
+    <article className={styles.page} data-focus-canvas data-dense-screen>
       {state.moving ? <RefreshWhileRunning /> : null}
 
       <div className={styles.toolbar}>
@@ -128,16 +128,26 @@ export function FocusCanvas({ payload }: { readonly payload: FocusPayload }) {
       {payload.bundle === null ? null : <PaperBundleCard bundle={payload.bundle} />}
 
       <div className={styles.grid}>
-        <div className={styles.column}>
+        <div className={cx(styles.column, styles.columnFill)}>
           <WhyThisMatters payload={payload} />
           <ResearchPanel payload={payload} />
         </div>
         <div className={styles.column}>
           <QuestionPanel payload={payload} />
           <ActionPanel payload={payload} />
-          <TrialPanel payload={payload} />
         </div>
       </div>
+
+      {/*
+        Full width, below both columns.
+
+        It used to sit at the bottom of the right column, where it is by far the tallest
+        panel on the screen — a transcript, a sandbox log and six facts — so the right
+        column ran a page past the left and left the left half of the screen empty. It is
+        also the panel this product exists for, and a stdout excerpt in a 400px column is
+        the worst place to read one.
+      */}
+      <TrialPanel payload={payload} />
 
       <div className={styles.lower}>
         <EvidenceTrail payload={payload} />
@@ -396,8 +406,6 @@ function QuestionPanel({ payload }: { readonly payload: FocusPayload }) {
       title="무엇을 확인하고 싶으세요?"
       aside={<JobPill job={job} />}
     >
-      <p className={styles.lead}>무엇을 확인할지는 사람이, 어떻게 확인할지는 Agent가 정해요.</p>
-
       {planning && job !== null ? <JobSteps job={job} /> : null}
       {!planning && job?.state === "failed" ? (
         <p className={styles.refusal} role="status">

@@ -196,7 +196,7 @@ export default async function LibraryPage({
   const collected = [ai, style, music, places, none].every((board) => board.origin === "collected");
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-dense-screen>
       <ScrollRestore />
       <BoardHeader
         title="Inbox"

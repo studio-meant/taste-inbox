@@ -105,7 +105,15 @@
 
 .summary {
   margin: 0;
-  max-width: 70ch;
+  /*
+   * No `max-width: 70ch`.
+   *
+   * A readability cap is right in a column of prose and wrong here: the hero is ~1100px
+   * and 70ch is ~600, so a two-line description broke mid-phrase with half the card empty
+   * beside it. The hero's own grid column is the bound, and `pretty` keeps the last line
+   * from being a single orphaned word.
+   */
+  text-wrap: pretty;
   color: var(--muted);
   font-size: var(--type-body-size);
   line-height: 1.6;
@@ -139,13 +147,57 @@
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: var(--space-4);
-  align-items: start;
+  /*
+   * `stretch`, not `start`.
+   *
+   * Two columns of panels are never the same height, and with `start` the shorter one
+   * simply stopped — leaving several hundred pixels of landscape beside a column that
+   * kept going. Stretching lets the short column fill the row, and `.columnFill` below
+   * decides which of its panels takes the slack.
+   */
+  align-items: stretch;
 }
 
 .column {
   display: grid;
   gap: var(--space-4);
   min-width: 0;
+  /* Panels keep their own height; the column does not spread them apart. */
+  align-content: start;
+}
+
+/*
+ * The column whose last panel absorbs whatever height the other column has more of.
+ *
+ * The research report is the right panel for it: it is a long document behind a scrollbar,
+ * so every pixel it gains is a line of the report the reader did not have to scroll for.
+ * The panels above it stay exactly as tall as their contents.
+ */
+.columnFill {
+  align-content: stretch;
+  /* Everything above the last panel keeps its own height; the last one takes the rest. */
+  grid-template-rows: repeat(auto-fit, max-content);
+}
+
+.columnFill > :last-child {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.columnFill > :last-child .report {
+  flex: 1 1 auto;
+  /*
+   * A floor and a ceiling, and the ceiling is the load-bearing one.
+   *
+   * `max-height: none` here looked right and was wrong: the report is a few thousand
+   * pixels of text, so without a cap the column's intrinsic height became the whole
+   * document and dragged the other column to 2,500px with it. The cap is what keeps the
+   * column's natural height near the other one's; the flex is what spends whatever
+   * difference is left on more visible lines of the report.
+   */
+  min-height: 24rem;
+  max-height: 48rem;
 }
 
 .lower {
@@ -159,6 +211,17 @@
   .grid,
   .lower {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* One column: there is no other column to match, so the report takes its own height. */
+  .columnFill {
+    align-content: start;
+  }
+
+  .columnFill > :last-child .report {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 32rem;
   }
 
   .hero {

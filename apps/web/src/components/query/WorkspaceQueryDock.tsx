@@ -1,33 +1,16 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-import { findActiveDestination } from "@/lib/navigation/routes";
-import { TasteQueryDock } from "./TasteQueryDock";
-
 /**
- * Mounts the Taste Query Dock on workspace routes only.
+ * Nothing. Kept as the mount point, mounting nothing.
  *
- * System and Settings share the same `AppShell` but are not places to ask questions of
- * the library — the System layout says so in its own comment. A route outside the
- * navigation model (an error boundary, a not-found) gets no dock either: the safe default
- * is nothing.
+ * The floating dock used to sit on Today and the Inbox saying `질문 입력은 아직 열리지
+ * 않았어요` — an input that takes nothing, over the cards, on the two screens where the
+ * user's next move is to pick an item. It was honest and it was in the way, and since
+ * 2026-09-28 it is also confusing: the Lab has a composer that *does* take a question, so
+ * a second one saying questions are closed contradicts it two clicks away.
  *
- * **The Lab is the exception, and it is the interesting one.** `/focus/[itemId]` renders
- * the same dock itself, live, as `What do you want to know?` (`LabQueryDock`) — in the
- * panel between the research it is asked about and the plan it produces. Mounting the
- * floating read-only one here as well would put two composers on one screen, one of which
- * says questions are not open while the other takes them.
- *
- * A Client Component for one reason: it reads the current route.
+ * There is still no query path over the library. When there is, this is where it mounts —
+ * `TasteQueryDock` is intact and `LabQueryDock` is built on its stylesheet, so turning it
+ * back on is a return statement rather than a rebuild.
  */
 export function WorkspaceQueryDock() {
-  const pathname = usePathname();
-  const destination = findActiveDestination(pathname);
-
-  if (pathname.startsWith("/focus/")) return null;
-  if (destination?.id !== "today" && destination?.id !== "browse") {
-    return null;
-  }
-
-  return <TasteQueryDock />;
+  return null;
 }

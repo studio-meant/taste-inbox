@@ -188,23 +188,42 @@ export function BrowseCard({
 }: BrowseCardProps) {
   const headingId = `browse-${id}`;
   const firstSeen = new Date(source.firstSeenAt);
-  // A card with no picture has no media block, and the badge is the card's only route back
-  // to the platform — so it moves into the eyebrow row rather than disappearing with it.
   const hasMedia = size !== "small" && media !== undefined && media !== null;
 
   /*
-   * Where it came from *and* how to get back to it, in one control. The reference draws
-   * this as a static chip; the product already had the permalink, so the chip is the link.
-   * The hidden half of the name keeps the visible text a prefix of the accessible name
-   * (WCAG 2.5.3) rather than replacing it.
+   * The top-right slot is the card's **action** where there is one (2026-09-28).
+   *
+   * It held the source badge — `Hugging Face 업보트`, linking out to the platform — which
+   * is where the eye lands first on a card with no picture, and which is a label rather
+   * than something to do. The Inbox exists to get one item into the Lab, so on a board
+   * that passes `labHref` the slot is `Open in Lab`, and the board moves the badge into
+   * the link list instead, at the top, where every other "somewhere else this points"
+   * already lives (`OutboundLinks`).
+   *
+   * Without a `labHref` the badge stays exactly where it was. Today's summary cards and
+   * any board that does not offer the Lab keep the only route back to the platform they
+   * have ever had.
    */
-  const badge = (
-    <SourceBadge
-      source={source}
-      openLabel={openLabel}
-      className={hasMedia ? styles.badgeFloating : styles.badgeInline}
-    />
-  );
+  const corner =
+    labHref === undefined ? (
+      <SourceBadge
+        source={source}
+        openLabel={openLabel}
+        className={hasMedia ? styles.badgeFloating : styles.badgeInline}
+      />
+    ) : (
+      <Link
+        className={cx(styles.lab, hasMedia ? styles.labFloating : styles.labInline)}
+        href={toUrlObject(labHref)}
+      >
+        <FlaskConical size={13} strokeWidth={1.9} aria-hidden="true" />
+        <span lang="en">Open in Lab</span>
+        <span className="visually-hidden">{` — ${title}`}</span>
+        <span className={styles.labArrow} aria-hidden="true">
+          →
+        </span>
+      </Link>
+    );
 
   return (
     <article
@@ -215,7 +234,7 @@ export function BrowseCard({
       {hasMedia ? (
         <div className={styles.media}>
           <div className={styles.mediaFill}>{media}</div>
-          {badge}
+          {corner}
         </div>
       ) : null}
 
@@ -224,7 +243,7 @@ export function BrowseCard({
             in this product, and a menu button that opens nothing is worse than none. */}
         <p className={styles.typeRow}>
           <span>{eyebrow}</span>
-          {hasMedia ? null : badge}
+          {hasMedia ? null : corner}
         </p>
 
         <h3
@@ -261,27 +280,6 @@ export function BrowseCard({
         */}
         {board === undefined ? null : (
           <BoardPicker itemId={id} board={board} itemTitle={title} compact />
-        )}
-
-        {/*
-          The card's next action, in the slot the board picker used to own alone.
-
-          `Open in Lab`, and not `Send to Lab` or `Explore in Lab`: one phrase across the
-          landing page, the card, the breadcrumb and the Lab's own toolbar
-          (docs/next_step §3). It is above the footer for the same reason the picker is —
-          `.foot` is `display: none` on a `small` card, which is exactly the card a repo
-          with no picture gets, and the one action the Inbox exists to offer must not
-          vanish on the plainest rows.
-        */}
-        {labHref === undefined ? null : (
-          <Link className={styles.lab} href={toUrlObject(labHref)}>
-            <FlaskConical size={13} strokeWidth={1.9} aria-hidden="true" />
-            <span lang="en">Open in Lab</span>
-            <span className="visually-hidden">{` — ${title}`}</span>
-            <span className={styles.labArrow} aria-hidden="true">
-              →
-            </span>
-          </Link>
         )}
 
         <div className={styles.foot}>

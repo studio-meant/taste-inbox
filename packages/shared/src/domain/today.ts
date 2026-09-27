@@ -32,6 +32,14 @@ export const QueueItemKindSchema = z.enum([
   "collector_auth",
   "research_running",
   "research_ready",
+  /**
+   * AI-Q is turning the user's question into a goal, criteria and a plan (2026-09-28).
+   *
+   * Its own kind because the queue had no way to say it: with research finished and a
+   * suggestion on file, a planning pass in flight fell through to `approval_required` —
+   * the row said "decide whether to run this" about a plan that was still being written.
+   */
+  "plan_running",
   "approval_required",
   "trial_running",
   "trial_ready",

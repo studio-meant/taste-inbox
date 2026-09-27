@@ -68,6 +68,7 @@ const QUEUE_KIND: Readonly<Record<QueueItemKind, QueueKindPresentation>> = {
   collector_auth: { label: "로그인 필요", tone: "neutral", icon: CircleAlert },
   research_running: { label: "조사 중", tone: "active", icon: Search },
   research_ready: { label: "제안 준비됨", tone: "ready", icon: FileText },
+  plan_running: { label: "검증 설계 중", tone: "active", icon: Search },
   approval_required: { label: "승인 대기", tone: "neutral", icon: ShieldCheck },
   trial_running: { label: "샌드박스 실행 중", tone: "active", icon: Box },
   trial_ready: { label: "실행 완료", tone: "ready", icon: Check },
@@ -79,6 +80,7 @@ const MOVING: ReadonlySet<QueueItemKind> = new Set([
   "environment_preparing",
   "price_checking",
   "research_running",
+  "plan_running",
   "trial_running",
 ]);
 

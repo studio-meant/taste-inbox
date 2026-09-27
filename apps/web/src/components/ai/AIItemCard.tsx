@@ -109,10 +109,19 @@ export function AIItemCard({
     >
       {/* The repository or paper the post is about. On this board most items are
           Threads and LinkedIn reposts whose subject lives on another domain. */}
-      {item.links.length === 0 ? null : (
+      {/*
+        Where else this item points — and, on a board that took the corner slot for
+        `Open in Lab`, the platform permalink leading the list. It is the same link the
+        badge was; it has simply stopped being the loudest thing on the card.
+      */}
+      {labHref === undefined && item.links.length === 0 ? null : (
         <BrowseCardExtras>
           <div className={styles.links}>
-            <OutboundLinks links={item.links} />
+            <OutboundLinks
+              links={item.links}
+              source={labHref === undefined ? undefined : item.source}
+              showHeading={false}
+            />
           </div>
         </BrowseCardExtras>
       )}

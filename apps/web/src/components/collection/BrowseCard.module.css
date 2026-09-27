@@ -369,7 +369,7 @@
 /* ───────────────────────────────────────────────────────────── open in lab */
 
 /*
- * The card's next action, sitting where the classification dropdown used to.
+ * The card's action, in the corner slot the source badge used to hold.
  *
  * `z-index` above the stretched title link: the whole card is clickable through that
  * anchor, and without this the Lab link would be covered by the thing it sits inside.
@@ -380,8 +380,6 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  align-self: flex-start;
-  margin-block-start: var(--space-2);
   padding: 4px 10px 4px 8px;
   border: 1px solid color-mix(in srgb, var(--forest) 22%, transparent);
   border-radius: var(--radius-pill);
@@ -417,4 +415,16 @@
   .lab:hover .labArrow {
     transform: none;
   }
+}
+
+/* The two positions the corner slot takes, matching `.badgeFloating` / `.badgeInline`. */
+.labFloating {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  max-width: calc(100% - var(--space-4));
+}
+
+.labInline {
+  margin-inline-start: auto;
 }

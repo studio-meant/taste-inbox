@@ -172,3 +172,23 @@
     padding-bottom: calc(var(--space-20) + max(64px, 4.8cqw));
   }
 }
+
+/* ────────────────────────────────────────────────────── dense screens, quieter sky */
+
+/*
+ * The Inbox and the Lab turn the landscape down a further step.
+ *
+ * The scenic backdrop is the product's identity and stays everywhere (docs/next_step UI
+ * §3.1 and §6.1 both say so). But Today is three cards over open sky, while the Inbox is
+ * a grid of white cards and the Lab is eight panels of dense text — and there the hills
+ * behind them read as another layer of information rather than as a background.
+ *
+ * Done with `:has()` rather than a prop so the shell keeps knowing nothing about which
+ * screen it is holding: a page that is dense says so by marking its own root, and the
+ * frame answers. A browser without `:has()` simply gets the standard `quiet` backdrop,
+ * which is what every screen had until now.
+ */
+.frame:has([data-dense-screen]) [class*="backdrop"] {
+  opacity: 0.74;
+  filter: saturate(0.6) brightness(1.08);
+}

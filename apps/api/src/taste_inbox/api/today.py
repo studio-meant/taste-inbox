@@ -195,10 +195,11 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
 _QUEUE_ORDER = {
     "trial_running": 0,
     "research_running": 1,
-    "trial_blocked": 2,
-    "approval_required": 3,
-    "trial_ready": 4,
-    "research_ready": 5,
+    "plan_running": 2,
+    "trial_blocked": 3,
+    "approval_required": 4,
+    "trial_ready": 5,
+    "research_ready": 6,
 }
 
 #: At most this many rows. The card is a glance, and the Focus Canvas holds the rest.
@@ -230,14 +231,14 @@ def _working_queue(session: Session) -> list[dict[str, Any]]:
     rows for what is happening, the evidence for what the last finished run found.
     """
 
-    from ..action import proposal
     from ..research import runner as research_runner
     from ..sandbox import trial as trial_runner
+    from .focus import current_suggestion
 
     latest: dict[tuple[str, str], Job] = {}
     for job in session.scalars(
         select(Job)
-        .where(Job.type.in_(("research", "trial")), Job.target_id.is_not(None))
+        .where(Job.type.in_(("research", "plan", "trial")), Job.target_id.is_not(None))
         .order_by(Job.created_at, Job.id)
     ):
         latest[(str(job.target_id), job.type)] = job
@@ -248,6 +249,7 @@ def _working_queue(session: Session) -> list[dict[str, Any]]:
         if item is None:
             continue
         research_job = latest.get((item_id, "research"))
+        plan_job = latest.get((item_id, "plan"))
         trial_job = latest.get((item_id, "trial"))
         row: dict[str, Any] = {
             "id": f"queue-{item_id}",
@@ -267,6 +269,12 @@ def _working_queue(session: Session) -> list[dict[str, Any]]:
                 "kind": "research_running",
                 "nextStep": research_job.current_step or "조사 대기 중",
                 "progress": _progress(session, research_job),
+            }
+        elif plan_job is not None and plan_job.state in _ACTIVE:
+            row |= {
+                "kind": "plan_running",
+                "nextStep": plan_job.current_step or "검증 설계 대기 중",
+                "progress": _progress(session, plan_job),
             }
         elif trial_job is not None and (
             research_job is None or trial_job.created_at >= research_job.created_at
@@ -289,13 +297,11 @@ def _working_queue(session: Session) -> list[dict[str, Any]]:
                 # on and nothing sandboxed. The Focus Canvas says why; the queue does not
                 # invent a kind for it.
                 continue
-            suggestion = proposal.build(
-                subject_id=item_id,
-                subject_title=_title_of(item),
-                subject_url=item.canonical_url,
-                report=research["report"],
-            )
-            if suggestion.actionable:
+            # The same composer the Lab draws and `POST /api/trials` runs, so a row that
+            # says "decide whether to run this" is about the plan the user would approve —
+            # the question's, when they asked one.
+            suggestion, _asked = current_suggestion(session, item)
+            if suggestion is not None and suggestion.actionable:
                 row |= {"kind": "approval_required", "nextStep": "안전하게 실행할지 결정하기"}
             else:
                 row |= {"kind": "research_ready", "nextStep": "조사 결과 읽기"}

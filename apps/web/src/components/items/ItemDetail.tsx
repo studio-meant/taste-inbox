@@ -16,6 +16,7 @@ import { OutboundLinks } from "@/components/collection/OutboundLinks";
 import { sourceBadgeText } from "@/components/collection/source-vocabulary";
 import { cx } from "@/lib/cx";
 import { toUrlObject } from "@/lib/filters/board-filters";
+import { boardsAreAnAxis } from "@/lib/navigation/edition";
 import { instagramEmbedUrl } from "@/lib/instagram/embed";
 import { BOARD_BACK_LABEL, BOARD_HREF, BOARD_LABEL } from "@/lib/navigation/boards";
 import { ItemGallery } from "./ItemGallery";
@@ -62,6 +63,9 @@ export function ItemDetail({
   readonly item: ItemDetailModel;
   readonly backHref?: string;
 }) {
+  // Whether boards are a distinction this build can make. Read once, used twice below.
+  const boards = boardsAreAnAxis();
+  const back = backHref ?? "/library";
   const author = item.author;
   const handle = author?.handle ?? item.source.author;
   const attribution =
@@ -79,16 +83,35 @@ export function ItemDetail({
   return (
     <article className={styles.page} data-board={item.board ?? "unfiled"} data-item-detail>
       <div className={styles.toolbar}>
-        {item.board === null ? (
-          <span />
+        {/*
+          Back to where the reader came from, named after where that is.
+
+          On a build whose boards cannot separate anything the board *name* is not the
+          answer — `Trends로 돌아가기` on an item the user reached from the Inbox names a
+          board they never chose and that holds everything. So the label follows the same
+          rule the rail and the cards follow: boards are a destination where they are an
+          axis, and the Inbox is the destination where they are not
+          (`lib/navigation/edition.ts`).
+        */}
+        {boards ? (
+          item.board === null ? (
+            <span />
+          ) : (
+            <Link
+              className={styles.back}
+              href={toUrlObject(backHref ?? BOARD_HREF[item.board])}
+              scroll={false}
+            >
+              <ArrowLeft size={15} strokeWidth={1.75} aria-hidden="true" />
+              {BOARD_BACK_LABEL[item.board]}
+            </Link>
+          )
         ) : (
-          <Link
-            className={styles.back}
-            href={toUrlObject(backHref ?? BOARD_HREF[item.board])}
-            scroll={false}
-          >
+          <Link className={styles.back} href={toUrlObject(back)} scroll={false}>
             <ArrowLeft size={15} strokeWidth={1.75} aria-hidden="true" />
-            {BOARD_BACK_LABEL[item.board]}
+            {/* Named after where it actually goes. `Inbox` over a link to `/trends` would
+                be the same mislabel in the other direction. */}
+            {back.startsWith("/library") ? "Inbox" : "돌아가기"}
           </Link>
         )}
         <span className={styles.toolbarSource}>{sourceBadgeText(item.source)}</span>
@@ -108,11 +131,14 @@ export function ItemDetail({
         <div className={styles.story}>
           <header className={styles.head}>
             <div className={styles.kicker}>
-              {item.board === null ? null : (
+              {/* The board chip says which of five boards this is on. Where three of the
+                  five cannot fill, it says nothing a reader can use — the kind and the
+                  signal below carry the whole meaning. */}
+              {boards && item.board !== null ? (
                 <span className={styles.boardChip} lang="en">
                   {BOARD_LABEL[item.board]}
                 </span>
-              )}
+              ) : null}
               <span>{sourceBadgeText(item.source)}</span>
             </div>
             <h1 className={cx(styles.title, "type-page-title")}>{item.title}</h1>

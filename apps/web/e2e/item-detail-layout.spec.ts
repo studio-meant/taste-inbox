@@ -67,7 +67,9 @@ test("detail back link restores both board type and source filters", async ({ pa
   await itemLink.click();
   await expect(page.locator("[data-item-detail]")).toBeVisible();
 
-  await page.getByRole("link", { name: /Trends로 돌아가기/ }).click();
+  // The board name is gone from the user-facing copy in this edition; the link still
+  // restores the exact filtered board it came from.
+  await page.getByRole("link", { name: /돌아가기/ }).click();
   await expect(page).toHaveURL(/\/trends\?kind=repo&source=github$/u);
 });
 

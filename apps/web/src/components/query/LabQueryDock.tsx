@@ -132,9 +132,12 @@ export function LabQueryDock({
           }}
         />
 
-        {/* The slot the reference gives to `⌘ K`. There is still no shortcut; there is a
-            state worth saying instead. */}
-        <span className={styles.chip}>{busy ? "설계 중" : "질문"}</span>
+        {/*
+          The slot the reference gives to `⌘ K`. There is no shortcut, and `질문` sitting
+          beside a send button was the button's own job said twice. It carries the one
+          state the button cannot show, and is empty otherwise.
+        */}
+        {busy ? <span className={styles.chip}>설계 중</span> : <span aria-hidden="true" />}
 
         <span aria-hidden="true" />
         <button

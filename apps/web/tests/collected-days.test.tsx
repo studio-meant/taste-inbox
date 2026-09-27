@@ -279,9 +279,14 @@ describe("the calendar in the rail", () => {
 });
 
 describe("the rail's day block", () => {
-  it("says the one day as a count when every item landed on it", () => {
-    // The live seed board is exactly this: one backfill, one timestamp. A calendar whose
-    // single live day answers with the board already on screen is not a control.
+  it("draws the calendar even when every item landed on one day", () => {
+    /*
+     * It used to collapse to a static row here, on the reasoning that a calendar over one
+     * day answers every click with the board already on screen. True, and the wrong trade
+     * (2026-09-28): the row read as a stray line of text while the calendar shows which
+     * day it was and where it sits in the month. The day is still a real control — it
+     * filters, and clicking it again clears.
+     */
     render(
       <CollectionRail
         pathname="/style"
@@ -293,9 +298,7 @@ describe("the rail's day block", () => {
       />,
     );
 
-    expect(screen.getByText("8월 8일 (토)")).toBeInTheDocument();
-    expect(screen.getByText("142개")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /8월 8일/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /8월 8일/ })).toBeInTheDocument();
   });
 
   it("becomes a calendar as soon as a second day exists", () => {

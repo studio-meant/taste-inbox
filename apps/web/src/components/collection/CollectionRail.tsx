@@ -1,11 +1,10 @@
 import type { SourcePlatform } from "@taste-inbox/shared";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
 import { boardsAreAnAxis, visibleBrowseModes } from "@/lib/navigation/edition";
 import { cx } from "@/lib/cx";
 import { toUrlObject, type RawSearchParams } from "@/lib/filters/board-filters";
-import { canNarrowByDay, formatDayShort, type CollectedDay } from "@/lib/filters/collected-days";
+import type { CollectedDay } from "@/lib/filters/collected-days";
 import type { BoardCounts } from "@/lib/repository/types";
 import { CollectionCalendar } from "./CollectionCalendar";
 import { ContextualRail } from "./ContextualRail";
@@ -119,10 +118,19 @@ export function CollectionRail({
   const sourcesAreFilters = groups.some((group) => group.key === "source");
   const showSourceCounts = !sourcesAreFilters && sources.length > 0;
   const showFacets = groups.length > 0;
-  // The same split, one block down: a calendar over a single day answers every click with
-  // the board that is already on screen, so that day is stated rather than offered.
-  const dayIsFilter = canNarrowByDay(days);
-  const onlyDay = dayIsFilter ? undefined : days[0];
+  /*
+   * 수집한 날 is always the calendar (2026-09-28).
+   *
+   * It used to collapse to a single static row when the board held only one day, on the
+   * reasoning that a calendar over one day answers every click with the board already on
+   * screen. True, and the wrong trade: the row read as a stray line of text, while the
+   * calendar shows *which* day and where it sits in the month — which is the point of the
+   * block whether or not it can narrow anything. The one day is still clickable and still
+   * clears on a second click, so nothing is promised that is not delivered.
+   *
+   * `days` is empty only on a board with nothing on it, and then the block is skipped.
+   */
+  const showCalendar = days.length > 0;
 
   /*
    * `Browse by type` is a board list, and a board list is only a filter where the boards
@@ -216,35 +224,12 @@ export function CollectionRail({
         </>
       ) : null}
 
-      {dayIsFilter ? (
+      {showCalendar ? (
         <>
           <hr className={styles.divider} />
           <CollectionCalendar pathname={pathname} params={params} days={days} />
         </>
       ) : null}
-
-      {onlyDay === undefined ? null : (
-        <>
-          <hr className={styles.divider} />
-          {/* Hidden collapsed for the same reason the source counts are: a lone calendar
-              glyph in a 68px column says nothing, and this row has no tooltip to fall
-              back on because it is not a control. */}
-          <section className={cx(styles.section, styles.wideOnly)}>
-            <h2 className={styles.label}>수집한 날</h2>
-            <ul className={styles.list}>
-              <li>
-                <span className={cx(styles.row, styles.rowStatic)}>
-                  <span className={styles.glyph} aria-hidden="true">
-                    <CalendarDays className={styles.actionIcon} strokeWidth={1.75} />
-                  </span>
-                  <span className={styles.text}>{formatDayShort(onlyDay.day)}</span>
-                  <span className={styles.count}>{onlyDay.count.toLocaleString("ko-KR")}개</span>
-                </span>
-              </li>
-            </ul>
-          </section>
-        </>
-      )}
 
       {actions.length === 0 ? null : (
         <>

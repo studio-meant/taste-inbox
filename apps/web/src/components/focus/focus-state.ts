@@ -24,10 +24,19 @@ export function isActive(job: FocusJob | null): boolean {
 }
 
 export function canvasState(payload: FocusPayload): CanvasState {
-  const { research: researchJob, trial: trialJob } = payload.jobs;
+  const { research: researchJob, plan: planJob, trial: trialJob } = payload.jobs;
 
   if (isActive(trialJob)) return { label: "샌드박스 실행 중", tone: "info", moving: true };
   if (isActive(researchJob)) return { label: "조사 중", tone: "info", moving: true };
+  /*
+   * A planning pass in flight (2026-09-28).
+   *
+   * Without this the hero read `승인 대기` while AI-Q was still writing the plan — the
+   * screen inviting approval of something nobody had finished designing. Same words as
+   * the Lab Queue's `plan_running` row, because they are the same state seen from two
+   * screens (`components/today/WorkingQueuePanel.tsx`).
+   */
+  if (isActive(planJob)) return { label: "검증 설계 중", tone: "info", moving: true };
 
   if (trialJob !== null && (researchJob === null || trialJob.createdAt >= researchJob.createdAt)) {
     return trialJob.state === "succeeded"

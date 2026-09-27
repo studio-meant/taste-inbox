@@ -339,32 +339,21 @@ describe("TasteQueryDock", () => {
 });
 
 describe("WorkspaceQueryDock", () => {
-  it.each(["/today", "/library", "/style", "/items/garden-lens"])(
-    "mounts on the workspace route %s",
+  it.each(["/today", "/library", "/style", "/items/garden-lens", "/focus/datasette", "/system"])(
+    "mounts nothing on %s",
     (path) => {
+      /*
+       * The floating dock is off everywhere (2026-09-28). It said `질문 입력은 아직 열리지
+       * 않았어요` over the cards on the two screens where the next move is to pick an item,
+       * and the Lab now has a composer that does take a question two clicks away — so the
+       * read-only one contradicted it. `TasteQueryDock` is intact for when there is a
+       * query path over the library.
+       */
       pathname.current = path;
-      render(<WorkspaceQueryDock />);
-      expect(screen.getByLabelText("Taste Query 질문 입력")).toBeInTheDocument();
+      const { container } = render(<WorkspaceQueryDock />);
+      expect(container).toBeEmptyDOMElement();
     },
   );
-
-  it.each(["/system", "/settings", "/nope"])("stays out of %s", (path) => {
-    pathname.current = path;
-    const { container } = render(<WorkspaceQueryDock />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("leaves the Lab to its own live composer", () => {
-    /*
-     * `/focus/[itemId]` renders the same dock itself, as `What do you want to know?`, in
-     * the panel between the research it is asked about and the plan it produces. Mounting
-     * the floating read-only one as well would put two composers on one screen — one
-     * saying questions are not open while the other takes them.
-     */
-    pathname.current = "/focus/datasette";
-    const { container } = render(<WorkspaceQueryDock />);
-    expect(container).toBeEmptyDOMElement();
-  });
 });
 
 /* ────────────────────────────────────────────────────────────────── the frame */
@@ -390,14 +379,10 @@ describe("AppShell", () => {
     expect(within(frame).getByRole("main")).toHaveTextContent("content");
   });
 
-  it("mounts the query dock by default on a workspace route", () => {
+  it("mounts no dock by default", () => {
+    // `WorkspaceQueryDock` is still the default slot; it simply renders nothing while
+    // there is no query path over the library.
     render(<AppShell>content</AppShell>);
-    expect(screen.getByLabelText("Taste Query 질문 입력")).toBeInTheDocument();
-  });
-
-  it("mounts no dock on System", () => {
-    pathname.current = "/system";
-    render(<AppShell ambient="quiet">content</AppShell>);
     expect(screen.queryByLabelText("Taste Query 질문 입력")).toBeNull();
   });
 

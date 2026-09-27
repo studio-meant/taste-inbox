@@ -7,7 +7,7 @@ test("Browse omits the explanatory banner requested for removal", async ({ page 
 
 test("Today fills Saved Items only with real recent previews", async ({ page }) => {
   await page.goto("/today", { waitUntil: "networkidle" });
-  const saved = page.getByRole("region", { name: "Saved Items" });
+  const saved = page.getByRole("region", { name: "New signals" });
   await expect(saved.locator("img")).toHaveCount(3);
   await expect(saved.locator("img").nth(0)).toHaveAttribute("alt", /.+/);
   await expect(saved.locator("img").nth(1)).toHaveAttribute("alt", /.+/);
@@ -147,6 +147,45 @@ for (const width of [390, 900, 1280, 1586]) {
   }
 }
 
+test("the Inbox card's upper right is Open in Lab, and the source link is in the body", async ({
+  page,
+}) => {
+  /*
+   * The corner slot changed hands (2026-09-28). It held the source badge — a label
+   * pointing off the product — and the Inbox's whole job is to get one item into the Lab,
+   * so the corner is the action and the platform permalink leads the card's link list.
+   */
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/library", { waitUntil: "networkidle" });
+
+  /*
+   * A card that offers the Lab *and* carries the link list — the two halves of the swap.
+   * `/library` also holds Music sleeves (no Lab link) and Style carousels (whose body
+   * list is the author's shops, not the item's own links), so neither locator alone lands
+   * on the card this test is about.
+   */
+  const card = page
+    .locator('article:has(a[href^="/focus/"]):has(ul[aria-label="바로가기"])')
+    .first();
+  await expect(card).toBeVisible();
+  const lab = card.getByRole("link", { name: /Open in Lab/ }).first();
+  const position = await lab.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    const box = node.closest("article")?.getBoundingClientRect();
+    if (!box) throw new Error("the Lab link is not inside a card");
+    return { right: box.right - rect.right, top: rect.top - box.top };
+  });
+  expect(position.right).toBeGreaterThanOrEqual(8);
+  expect(position.right).toBeLessThanOrEqual(16);
+  expect(position.top).toBeLessThan(80);
+  await expect(lab).toHaveAttribute("href", /^\/focus\//u);
+
+  // The source is still one click away, in the list of everywhere else this item points.
+  const source = card.getByRole("list", { name: "바로가기" }).getByRole("link").first();
+  await expect(source).toHaveAttribute("href", /^https?:\/\//u);
+  await expect(source).toHaveAttribute("target", "_blank");
+});
+
 test("source pills open originals from the upper right, without opening item details", async ({
   page,
   context,
@@ -156,8 +195,9 @@ test("source pills open originals from the upper right, without opening item det
   await context.route(/^https:\/\/(www\.)?(instagram\.com|threads\.com|github\.com)\//, (route) =>
     route.fulfill({ body: "Original post fixture", contentType: "text/html" }),
   );
-  await page.goto("/library", { waitUntil: "networkidle" });
-  for (const name of ["Instagram 좋아요", "Instagram 저장", "Threads 리포스트", "GitHub 스타"]) {
+  // `/style` keeps the badge in the corner: it offers no Lab, so nothing displaced it.
+  await page.goto("/style", { waitUntil: "networkidle" });
+  for (const name of ["Instagram 좋아요", "Instagram 저장"]) {
     const link = page
       .locator("article")
       .getByRole("link", { name: new RegExp(name) })
@@ -186,7 +226,7 @@ test("source pills open originals from the upper right, without opening item det
     const popup = await popupPromise;
     await expect(popup).toHaveURL(original);
     await popup.close();
-    await expect(page).toHaveURL(/\/library$/);
+    await expect(page).toHaveURL(/\/style$/);
   }
   const shopCard = page.locator("article:has(#browse-cropped-shell-jacket)");
   await shopCard.scrollIntoViewIfNeeded();
@@ -196,5 +236,5 @@ test("source pills open originals from the upper right, without opening item det
     .click();
   // The card carries where it was opened from, so the detail page's back link returns to
   // this board (`safeBoardReturnHref`). The pattern used to end at the id and failed on it.
-  await expect(page).toHaveURL(/\/items\/cropped-shell-jacket\?from=%2Flibrary$/);
+  await expect(page).toHaveURL(/\/items\/cropped-shell-jacket\?from=%2Fstyle$/);
 });
