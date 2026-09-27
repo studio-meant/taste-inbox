@@ -25,6 +25,11 @@ export const TrialResultSchema = z.object({
   observedAt: IsoDateTimeSchema.nullable(),
   /** What the agent said it did. Truncated at the API boundary, never rewritten. */
   transcript: z.string().nullable(),
+  /**
+   * The end of what a run that did not succeed printed, colour codes removed. The reason a
+   * CLI stopped is usually only there — without it a failure is an exit code and nothing.
+   */
+  errorOutput: z.string().nullable(),
   blocked: z.array(z.string()),
   /** File names the run left in its working directory — evidence something ran. */
   artifacts: z.array(z.string()),

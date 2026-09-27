@@ -15,6 +15,7 @@ next to the research that recommended it. Nothing but the sandbox could have obs
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -32,6 +33,13 @@ RESULT_EVIDENCE = "trial.result"
 TRANSCRIPT_EVIDENCE = "trial.transcript"
 BLOCKED_EVIDENCE = "trial.blocked_endpoint"
 ARTIFACT_EVIDENCE = "trial.artifact"
+ERROR_EVIDENCE = "trial.error_output"
+
+#: How much of a failed run's own output is kept. The tail, because that is where a CLI
+#: prints why it stopped.
+ERROR_TAIL_CHARS = 4000
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 STEPS = (
     "샌드박스 경계를 확인한다",
@@ -46,6 +54,18 @@ _UNFINISHED_STOPS = frozenset({"aborted", "error", "timeout", "cancelled"})
 
 def _now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def error_tail(stdout: str, stderr: str) -> str:
+    """The end of what a failed run printed, colour codes removed.
+
+    Stored because the first failure of the second Golden Path run was an exit code and
+    nothing else: the envelope was absent, the transcript empty, and the reason existed only
+    in a stream nobody kept.
+    """
+
+    combined = "\n".join(part for part in (stderr.strip(), stdout.strip()) if part)
+    return _ANSI.sub("", combined)[-ERROR_TAIL_CHARS:]
 
 
 def outcome_state(exit_code: int, parsed: transcript.TrialTranscript) -> tuple[str, str | None]:
@@ -247,7 +267,13 @@ def run(
         _clear(
             session,
             plan.subject_id,
-            (RESULT_EVIDENCE, TRANSCRIPT_EVIDENCE, BLOCKED_EVIDENCE, ARTIFACT_EVIDENCE),
+            (
+                RESULT_EVIDENCE,
+                TRANSCRIPT_EVIDENCE,
+                BLOCKED_EVIDENCE,
+                ARTIFACT_EVIDENCE,
+                ERROR_EVIDENCE,
+            ),
         )
 
         observed = _now()
@@ -278,6 +304,20 @@ def run(
                     observed_at=observed,
                 )
             )
+        if state != "succeeded":
+            tail = error_tail(run_result.stdout, run_result.stderr)
+            if tail:
+                session.add(
+                    Evidence(
+                        item_id=plan.subject_id,
+                        type=ERROR_EVIDENCE,
+                        label="샌드박스가 남긴 출력 (끝부분)",
+                        value=tail,
+                        provenance="sandbox",
+                        source_url=None,
+                        observed_at=observed,
+                    )
+                )
         for decision in parsed.blocked:
             session.add(
                 Evidence(
@@ -364,7 +404,13 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
         .where(Evidence.item_id == item_id)
         .where(
             Evidence.type.in_(
-                (RESULT_EVIDENCE, TRANSCRIPT_EVIDENCE, BLOCKED_EVIDENCE, ARTIFACT_EVIDENCE)
+                (
+                    RESULT_EVIDENCE,
+                    TRANSCRIPT_EVIDENCE,
+                    BLOCKED_EVIDENCE,
+                    ARTIFACT_EVIDENCE,
+                    ERROR_EVIDENCE,
+                )
             )
         )
         .order_by(Evidence.id)
@@ -377,6 +423,7 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
         "facts": result_facts(result.value) if result else {},
         "observedAt": result.observed_at if result else None,
         "transcript": next((row.value for row in rows if row.type == TRANSCRIPT_EVIDENCE), None),
+        "errorOutput": next((row.value for row in rows if row.type == ERROR_EVIDENCE), None),
         "blocked": [row.value for row in rows if row.type == BLOCKED_EVIDENCE],
         "artifacts": [row.value for row in rows if row.type == ARTIFACT_EVIDENCE],
     }
@@ -385,10 +432,12 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
 __all__ = [
     "ARTIFACT_EVIDENCE",
     "BLOCKED_EVIDENCE",
+    "ERROR_EVIDENCE",
     "RESULT_EVIDENCE",
     "STEPS",
     "TRANSCRIPT_EVIDENCE",
     "TrialOutcome",
+    "error_tail",
     "latest",
     "new_job_id",
     "open_job",

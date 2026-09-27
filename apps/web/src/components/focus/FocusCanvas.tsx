@@ -442,6 +442,12 @@ function TrialPanel({ payload }: { readonly payload: FocusPayload }) {
               <ReportText text={trial.transcript} className={styles.report} />
             </details>
           )}
+          {trial.errorOutput === null ? null : (
+            <details className={styles.disclosure} open>
+              <summary>샌드박스가 남긴 출력 (끝부분)</summary>
+              <pre className={styles.pre}>{trial.errorOutput}</pre>
+            </details>
+          )}
           {trial.observedAt === null ? null : (
             <p className={styles.footnote}>
               기록: <time dateTime={trial.observedAt}>{formatDateTime(trial.observedAt)}</time>

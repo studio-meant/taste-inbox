@@ -2,7 +2,7 @@ import type { SourcePlatform } from "@taste-inbox/shared";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
-import { BROWSE_MODES } from "@/lib/navigation/browse-modes";
+import { visibleBrowseModes } from "@/lib/navigation/edition";
 import { cx } from "@/lib/cx";
 import { toUrlObject, type RawSearchParams } from "@/lib/filters/board-filters";
 import { canNarrowByDay, formatDayShort, type CollectedDay } from "@/lib/filters/collected-days";
@@ -131,7 +131,7 @@ export function CollectionRail({
           Browse by type
         </h2>
         <ul className={styles.list}>
-          {BROWSE_MODES.map((mode) => {
+          {visibleBrowseModes().map((mode) => {
             const count = byMode[mode.id] ?? 0;
             const active = pathname === mode.href || pathname.startsWith(`${mode.href}/`);
             const name = `${mode.label} ${String(count)}개`;

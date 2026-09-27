@@ -126,6 +126,14 @@
         "confidence": null
       },
       {
+        "type": "trial.error_output",
+        "label": "샌드박스가 남긴 출력 (끝부분)",
+        "value": "curl: (56) CONNECT tunnel failed https://voicestudio.sh/install.sh response 403\n(node:1) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental\n{\"ok\": false, \"result\": {\"final\": \"LLM request timed out.\", \"toolSummary\": {\"calls\": 50, \"tools\": [\"exec\", \"process\"], \"failures\": 1}, \"completion\": {\"stopReason\": \"aborted\"}, \"model\": \"nvidia/nemotron-3-super-120b-a12b\"}}",
+        "sourceUrl": null,
+        "provenance": "sandbox",
+        "confidence": null
+      },
+      {
         "type": "trial.blocked_endpoint",
         "label": "정책이 막은 연결 시도",
         "value": "voicestudio.sh",
@@ -201,6 +209,7 @@
     },
     "observedAt": "2026-09-28T00:00:00Z",
     "transcript": "LLM request timed out.",
+    "errorOutput": "curl: (56) CONNECT tunnel failed https://voicestudio.sh/install.sh response 403\n(node:1) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental\n{\"ok\": false, \"result\": {\"final\": \"LLM request timed out.\", \"toolSummary\": {\"calls\": 50, \"tools\": [\"exec\", \"process\"], \"failures\": 1}, \"completion\": {\"stopReason\": \"aborted\"}, \"model\": \"nvidia/nemotron-3-super-120b-a12b\"}}",
     "blocked": [
       "voicestudio.sh"
     ],
