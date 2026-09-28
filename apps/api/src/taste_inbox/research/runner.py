@@ -231,7 +231,7 @@ def run(
             session,
             item_id=item_id,
             kind=BRIEF_EVIDENCE,
-            label="이 기계를 떠난 조사 질문",
+            label="보낸 조사 질문 원문",
             value=research_brief.query,
             source_url=None,
         )

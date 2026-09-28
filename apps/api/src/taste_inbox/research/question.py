@@ -321,7 +321,7 @@ def run(
             session,
             item_id=item_id,
             kind=PLAN_BRIEF_EVIDENCE,
-            label="이 기계를 떠난 검증 설계 요청",
+            label="보낸 검증 설계 요청 원문",
             value=query,
             source_url=None,
         )
