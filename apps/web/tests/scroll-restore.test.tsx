@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ScrollRestore } from "@/components/collection/ScrollRestore";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/music",
+  usePathname: () => "/library",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -47,7 +47,7 @@ describe("ScrollRestore", () => {
   }
 
   it("restores after Next and the board have both painted", () => {
-    sessionStorage.setItem("taste-inbox:scroll:/music", "640");
+    sessionStorage.setItem("taste-inbox:scroll:/library", "640");
 
     render(<ScrollRestore />);
     paint();
@@ -74,10 +74,10 @@ describe("ScrollRestore", () => {
     Object.defineProperty(window, "scrollY", { value: 512, writable: true, configurable: true });
 
     fireEvent.click(document.querySelector('a[href="/items/track-1"]')!);
-    expect(sessionStorage.getItem("taste-inbox:scroll:/music")).toBe("512");
+    expect(sessionStorage.getItem("taste-inbox:scroll:/library")).toBe("512");
 
     Object.defineProperty(window, "scrollY", { value: 0, writable: true, configurable: true });
     unmount();
-    expect(sessionStorage.getItem("taste-inbox:scroll:/music")).toBe("512");
+    expect(sessionStorage.getItem("taste-inbox:scroll:/library")).toBe("512");
   });
 });

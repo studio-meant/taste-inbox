@@ -320,18 +320,6 @@
   margin-left: 0;
 }
 
-.sourceDotInstagram {
-  background: linear-gradient(135deg, var(--wood), var(--orchid));
-}
-
-.sourceDotThreads {
-  background: var(--ink);
-}
-
-.sourceDotLinkedin {
-  background: var(--forest);
-}
-
 .sourceDotWeb {
   background: var(--leaf);
 }
@@ -597,42 +585,6 @@ a.insightRow:hover .insightTitle {
 .savedMeterSegment:nth-child(3) {
   background: var(--wood);
   animation-delay: 300ms;
-}
-
-/*
- * Up to three actual thumbnails from the day this card counts. Empty slots stay empty:
- * an abstract tile beside "6 new" looked like a specific saved item and became stale
- * decoration on a card whose job is to summarise live data.
- */
-.savedTiles {
-  display: grid;
-  flex: none;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-  height: 75px;
-  margin-top: 14px;
-}
-
-.savedTiles[data-count="1"] {
-  grid-template-columns: 1fr;
-}
-
-.savedTiles[data-count="2"] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.tile {
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--oatmeal) 45%, var(--surface));
-}
-
-.tile img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 /* `.saved-sources` — ref.css:262: dots left, "View all" right, .55cqw → 12px. */
@@ -921,24 +873,6 @@ a.insightRow:hover .insightTitle {
     linear-gradient(145deg, var(--inverse), var(--leaf));
 }
 
-.coverStyle {
-  background: linear-gradient(145deg, var(--orchid), var(--oatmeal));
-}
-
-.coverMusic {
-  background: linear-gradient(145deg, var(--sun), var(--light-wood));
-}
-
-/* Places. Distinct from the other three at a glance, and from the same registry — no hex
-   outside the theme tokens (DESIGN.md §20). Decorative: the card prints the board name. */
-.coverPlaces {
-  background: linear-gradient(145deg, var(--sage), var(--cream));
-}
-
-.coverNone {
-  background: linear-gradient(145deg, var(--oatmeal), var(--surface));
-}
-
 .yesterdayCopy {
   min-width: 0;
 }
@@ -1103,9 +1037,8 @@ a.insightRow:hover .insightTitle {
 /*
  * The cover, when the item has no photograph of its own.
  *
- * `--cover-tint` is the item's source colour, from the same registry the rail's dots use.
- * The domain gradient underneath still shows through, so a Style item still reads as one;
- * the tint separates two Trends cards that would otherwise be identical.
+ * `--cover-tint` is the item's source colour, from the same registry the rail's dots use,
+ * so two cards that would otherwise be identical read as two sources.
  */
 .miniCover:has(.miniMark) {
   display: grid;
@@ -1125,9 +1058,4 @@ a.insightRow:hover .insightTitle {
   display: grid;
   place-items: center;
   color: color-mix(in srgb, var(--ink) 58%, transparent);
-}
-
-/* A real thumbnail fills the same 46px square the abstract cover occupies. */
-.miniPhoto {
-  object-fit: cover;
 }

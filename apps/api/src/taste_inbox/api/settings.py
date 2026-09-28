@@ -1,48 +1,35 @@
 """Every configured value, and which of the three layers it came from.
 
 This is the only endpoint whose subject is the configuration itself rather than what the
-configuration produced, and it exists to answer one question the product could not answer
-at all: **where did this number come from?** `config/app.example.yaml` carries 17 fields
-and exactly four of them have a reader — `app.timezone`, `collection.interval_hours`,
-`collection.stagger_minutes`, `collection.allow_manual_refresh`. The other thirteen
-validate on load and are then consumed by nobody. A screen that renders all seventeen as
-identical switches would be thirteen-seventeenths a lie, so every value here arrives
-wrapped: `origin` names the layer, `effect` says when a change would start being true, and
-`editable` decides whether the UI may draw a control at all. (`app.ceremonial_entry` is a
-fifth field with a reader and is not among those 17: it lives as a schema default and is
-written from here, never by hand.)
+configuration produced, and it exists to answer one question: **where did this number come
+from?** Every value arrives wrapped: `origin` names the layer, `effect` says when a change
+would start being true, and `editable` decides whether the UI may draw a control at all.
 
 **Three layers, resolved in this order.** A row in the `settings` table wins; otherwise
 whatever the effective YAML says; otherwise the field default in `config/schema.py`.
 Telling the last two apart needs the *raw* mapping and not the validated document: an
 `AppDocument` cannot distinguish "the file said 4" from "the file was silent and the
-default is 4", and that difference is the whole question this screen answers. Of the
-thirteen keys, two report `default` on a fresh checkout — `privacy.debugRetentionDays`,
-which the shipped example omits along with `media_dir` and `browser_profile_dir`, and
-`general.ceremonialEntry`, which it omits on purpose: that value's home is this screen, and
-a line in the example would make every fresh checkout report somebody's file edit for a
-choice nobody has made yet.
+default is 4", and that difference is the whole question this screen answers.
+`general.ceremonialEntry` reports `default` on a fresh checkout on purpose: that value's
+home is this screen, and a line in the example would make every fresh checkout report
+somebody's file edit for a choice nobody has made yet.
 
 **`origin: "file"` is not "somebody changed this".** There is no `config/app.yaml` on a
-fresh checkout — `.gitignore` ignores `config/*.yaml` — so `config/loader.py:109-121` falls
-through to the committed `app.example.yaml` and eleven of the thirteen keys report `file`
-today. That is the shipped value living in a file rather than in a field default, and the
-Korean copy on the screen has to say so.
+fresh checkout — `.gitignore` ignores `config/*.yaml` — so `config/loader.py` falls through
+to the committed `app.example.yaml`. That is the shipped value living in a file rather than
+in a field default, and the Korean copy on the screen has to say so.
 
-**Five keys have a reader; eight do not.** An override only means something if some other
-screen changes because of it, so the five that do are the five this screen offers a control
-for. Four resolve through `schedule.effective_document(session)`, which is what carries a
-stored override into `/api/collection/schedule`, the generated launchd plists, the manual
+**Five keys have a reader, and those five are editable.** Four resolve through
+`schedule.effective_document(session)`, which is what carries a stored override into
+`/api/collection/schedule`, the in-app scheduler, the generated launchd plists, the manual
 refresh gate and the day boundary on Today. The fifth, `general.ceremonialEntry`, is read
-off this endpoint's own payload by the web app's startup route, which is the only thing that
-decides whether the app opens on Splash, on Greeting or on Today.
+off this endpoint's own payload by the web app's startup route. The other three —
+`appearance.*` and `general.locale` — are shown read-only: the theme is resolved by the web
+app's own bootstrap, and nothing reads the locale.
 
-The other eight ship `editable: false`, each for its own reason: `appearance.*` is resolved
-by the web app's theme bootstrap and never by this service, `privacy.debugRetentionDays` is
-shadowed by the collectors package's own `DEFAULT_RETENTION_DAYS`, and `features.*` gate
-collectors that read the file once at process start. They are in the document because the
-user can see them in the file and is entitled to know what they say — not because this
-screen can change them.
+The feature flags that described collectors this product never built, the debug-retention
+value only a browser collector read, and the per-source switches that stopped nothing were
+removed on 2026-09-28 (docs/DECISIONS.md).
 """
 
 from __future__ import annotations
@@ -69,23 +56,15 @@ from ..config.schema import (
     AppDocument,
     AppSection,
     CollectionSection,
-    FeatureFlags,
 )
-from ..db.models import Checkpoint, Setting, SourceAccount
+from ..db.models import Setting
 from .app import ApiError
-from .cards import PLATFORM_LABEL, generated_at
-
-# The status a source is really in, resolved exactly the way Today resolves it — from
-# `checkpoints` and `collector_runs`. `source_accounts.state` is only ever written as the
-# literal "collected" (`ingest/captures.py`), so reading the column would report every
-# account healthy including one stopped on a login challenge.
-from .today import COLLECTOR_PLATFORM, _source_status
+from .cards import generated_at
 
 #: Which top-level key of `config/app.yaml` each pydantic section validates.
 SECTION_MODELS: dict[str, type[BaseModel]] = {
     "app": AppSection,
     "collection": CollectionSection,
-    "features": FeatureFlags,
 }
 
 
@@ -95,9 +74,9 @@ class _Leaf:
 
     `group`/`name` are the camelCase document path and therefore the dotted patch key;
     `section`/`field` are the snake_case pydantic path. The two differ deliberately —
-    `privacy.debugRetentionDays` renders under a heading the user thinks in while the value
-    lives on `app.debug_retention_days`, and pretending they are the same name would force
-    either the config file or the screen to be organised for the other one's convenience.
+    `general.timezone` renders under a heading the user thinks in while the value lives on
+    `app.timezone`, and pretending they are the same name would force either the config
+    file or the screen to be organised for the other one's convenience.
     """
 
     group: str
@@ -112,17 +91,16 @@ class _Leaf:
         return f"{self.group}.{self.name}"
 
 
-#: The thirteen writable leaves, in the order the document renders them.
+#: The settable leaves, in the order the document renders them.
 #:
 #: Matches `SETTING_KEYS` in `packages/shared/src/domain/settings.ts` exactly; a leaf added
 #: here without a key there is a value the frontend will refuse the whole payload over, so
 #: `tests/test_settings.py` asserts the two lists rather than trusting them.
 #:
-#: The five fields of `AppDocument` that are *not* here are absent on purpose: `data_dir`,
-#: `media_dir` and `browser_profile_dir` are paths nothing reads (`api/app.py:218` resolves
-#: media under `var/media` itself), and both `briefing` times describe notifications that
-#: have no delivery mechanism at all. Showing a path or a time the product ignores would be
-#: the same lie in a read-only coat.
+#: The fields of `AppDocument` that are *not* here are absent on purpose: `data_dir` is a
+#: path nothing reads, and both `briefing` times describe notifications that have no
+#: delivery mechanism at all. Showing a path or a time the product ignores would be the same
+#: lie in a read-only coat.
 LEAVES: tuple[_Leaf, ...] = (
     # The only section whose values reach running code — through the YAML, not through the
     # override table. `nextInstall` is the honest half of a value with two clocks: the
@@ -149,11 +127,6 @@ LEAVES: tuple[_Leaf, ...] = (
     # member for "nothing reads this", so `editable: false` carries that fact instead.
     _Leaf("appearance", "defaultTheme", "app", "default_theme", "choice", "immediate"),
     _Leaf("appearance", "defaultMotion", "app", "default_motion", "choice", "immediate"),
-    # `nextRun` names the layer that *would* read it. Today the sweep uses the collectors
-    # package's own `DEFAULT_RETENTION_DAYS = 7` because `browser_sources.py:663` calls
-    # `capture_failure` without `retention_days`, so this number and the one that runs are
-    # two different sevens.
-    _Leaf("privacy", "debugRetentionDays", "app", "debug_retention_days", "number", "nextRun"),
     # `timezone` is the one genuinely live field in the document: the day boundary on Today
     # and the slot boundary on the schedule are this single value, recomputed per request.
     _Leaf("general", "timezone", "app", "timezone", "text", "immediate"),
@@ -165,20 +138,6 @@ LEAVES: tuple[_Leaf, ...] = (
     # document already carries an override. What that means for a person is the next time
     # they open the app, which is where the field's copy puts it.
     _Leaf("general", "ceremonialEntry", "app", "ceremonial_entry", "choice", "immediate"),
-    # CLAUDE.md §7 says each platform collector is independently feature-flagged. That is
-    # the intent; nothing reads these four, so `linkedin_collector: true` starts no
-    # collector. They are in the document because the user can see them in the file.
-    _Leaf("features", "shareCapture", "features", "share_capture", "boolean", "nextRun"),
-    _Leaf("features", "historicalImport", "features", "historical_import", "boolean", "nextRun"),
-    _Leaf("features", "linkedinCollector", "features", "linkedin_collector", "boolean", "nextRun"),
-    _Leaf(
-        "features",
-        "localModelEnrichment",
-        "features",
-        "local_model_enrichment",
-        "boolean",
-        "nextRun",
-    ),
 )
 
 LEAF_BY_KEY: dict[str, _Leaf] = {leaf.key: leaf for leaf in LEAVES}
@@ -206,10 +165,9 @@ LEAF_BY_FIELD: dict[tuple[str, str], _Leaf] = {(leaf.section, leaf.field): leaf 
 #: `theme-bootstrap.ts` reads `localStorage` and never asks this service — so an override of
 #: it moves nothing; the entry sequence has no second source to disagree with.
 #:
-#: The other eight stay out, and not as a placeholder. `appearance.*` is read by the theme
-#: bootstrap in the web app rather than by this service; `privacy.debugRetentionDays` is
-#: shadowed by the collectors package's own constant; `features.*` gate collectors that
-#: read the file at process start. Each needs its own reader before it can move.
+#: The other three stay out, and not as a placeholder. `appearance.*` is read by the theme
+#: bootstrap in the web app rather than by this service, and nothing reads the locale. Each
+#: needs its own reader before it can move.
 EDITABLE: frozenset[str] = frozenset(
     {
         "collection.intervalHours",
@@ -219,21 +177,6 @@ EDITABLE: frozenset[str] = frozenset(
         "general.ceremonialEntry",
     }
 )
-
-#: Provenance marker for a per-source switch, e.g. `sources.instagram.enabled`.
-#:
-#: `source_accounts.enabled` is created as the literal `1` by `ingest/captures.py:155` and
-#: changed by nothing else, so the column alone cannot say whether `true` is the value the
-#: ingester wrote or the value the user chose — and that distinction is the one thing
-#: `origin` exists to report. The marker row costs one row per platform the user has ever
-#: touched and keeps the switch from claiming an intent nobody expressed. It is skipped by
-#: `_stored()` because it is not one of the twelve config keys.
-SOURCE_KEY_PREFIX = "sources."
-
-
-def _source_marker(platform: str) -> str:
-    return f"{SOURCE_KEY_PREFIX}{platform}.enabled"
-
 
 # ------------------------------------------------------------------ effective value
 
@@ -267,11 +210,12 @@ def _raw_mapping(path: Path) -> dict[str, Any]:
 def _stored(session: Session) -> dict[str, Any]:
     """Every override this screen wrote, keyed by dotted path.
 
-    A row whose key is not one of the thirteen is skipped rather than reported: the per-source
-    markers live in the same table, and a key left behind by an older version of this screen
-    must not become an unlabelled value on it. A row whose JSON no longer parses is skipped
-    for the same reason it is not raised on — a corrupt override that took the settings
-    screen down would be a corrupt override nobody could remove.
+    A row whose key is not a leaf is skipped rather than reported: account names and the
+    profile live in the same table (`api/accounts.py`, `api/profile.py`), and a key left
+    behind by an older version of this screen must not become an unlabelled value on it. A
+    row whose JSON no longer parses is skipped for the same reason it is not raised on — a
+    corrupt override that took the settings screen down would be a corrupt override nobody
+    could remove.
     """
     values: dict[str, Any] = {}
     for row in session.scalars(select(Setting).order_by(Setting.key)):
@@ -440,64 +384,11 @@ def _setting(config: EffectiveConfig, leaf: _Leaf) -> dict[str, Any]:
     return setting
 
 
-def _sources(session: Session) -> list[dict[str, Any]]:
-    """One row per platform this product collects from, connected or not.
-
-    Keyed on platform rather than on account because the switch is per platform and
-    `source_accounts` holds one row per platform-and-handle: two Instagram handles are two
-    rows and one control. A platform with no row at all is still listed — `connectedAt:
-    null` is how the screen says "never connected", and omitting it would leave the user
-    wondering whether GitHub is missing or merely quiet.
-    """
-    checkpoints = list(session.scalars(select(Checkpoint)))
-    status = {row["platform"]: row for row in _source_status(session, checkpoints)}
-
-    accounts: dict[str, list[SourceAccount]] = {}
-    for account in session.scalars(select(SourceAccount).order_by(SourceAccount.id)):
-        accounts.setdefault(account.platform, []).append(account)
-
-    markers = {
-        row.key
-        for row in session.scalars(select(Setting).where(Setting.key.startswith(SOURCE_KEY_PREFIX)))
-    }
-
-    rows: list[dict[str, Any]] = []
-    for platform in sorted(set(COLLECTOR_PLATFORM.values()) | set(accounts) | set(status)):
-        connected = accounts.get(platform, [])
-        stamps = sorted(row.connected_at for row in connected if row.connected_at)
-        rows.append(
-            {
-                "platform": platform,
-                "label": PLATFORM_LABEL.get(platform, platform),
-                "enabled": {
-                    "value": bool(connected) and all(bool(row.enabled) for row in connected),
-                    "origin": "user" if _source_marker(platform) in markers else "default",
-                    # Not `immediate`: nothing consults this column before collecting.
-                    # Collector selection never touches `source_accounts` — the schedule
-                    # iterates a hardcoded `SOURCE_ORDER` and `launchd.py` writes a plist
-                    # for all six regardless — so `nextRun` names the layer that would read
-                    # it if anything did, and `editable: false` is what keeps the screen
-                    # from drawing a switch that stops no collection.
-                    "effect": "nextRun",
-                    "editable": False,
-                },
-                # From `checkpoints` and `collector_runs`, never from `source_accounts.state`.
-                "state": str(status.get(platform, {}).get("state", "disabled")),
-                # The first capture that created an account here, not a login event: this
-                # product has no connect flow, so "connected" means "has produced data".
-                "connectedAt": stamps[0] if stamps else None,
-                "itemCount": int(status.get(platform, {}).get("collectedCount", 0)),
-            }
-        )
-    return rows
-
-
 def build_document(session: Session, *, path: Path | None = None) -> dict[str, Any]:
     config = resolve_effective(session, path=path)
     document: dict[str, Any] = {"generatedAt": generated_at()}
     for leaf in LEAVES:
         document.setdefault(leaf.group, {})[leaf.name] = _setting(config, leaf)
-    document["sources"] = _sources(session)
     return document
 
 
@@ -590,7 +481,7 @@ def _rejected(error: ValidationError, candidate: dict[str, Any], changed: list[s
     both languages for a screen: the frontend maps `code` to its own copy and shows
     `message` to a person. The key is in the message because the error envelope
     (`api/app.py:60-71`) carries only `code`, `message` and `recoverable`, and a rejection
-    that does not say which of thirteen values was refused is not actionable.
+    that does not say which value was refused is not actionable.
     """
     first = error.errors()[0]
     location = [str(part) for part in first["loc"]]
@@ -680,61 +571,10 @@ def apply_changes(
     return build_document(session, path=path)
 
 
-def set_source_enabled(
-    session: Session, platform: str, payload: dict[str, Any] | None, *, path: Path | None = None
-) -> dict[str, Any]:
-    """Write `source_accounts.enabled` for every account on one platform.
-
-    The column is genuinely inert: it is created as `1` by `ingest/captures.py:155` and read
-    by nothing, and collection never consults the table — the schedule iterates a hardcoded
-    `SOURCE_ORDER` and `ingest/cli.py` reads every capture file present regardless. Writing
-    it is still the right half to build, because the alternative is a screen that cannot
-    record what the user asked for at all; what must not happen is the payload claiming the
-    write stopped a collector, which is why the switch ships `editable: false`.
-    """
-    enabled = payload.get("enabled") if isinstance(payload, dict) else None
-    if not isinstance(enabled, bool):
-        raise ApiError(
-            422,
-            "setting_rejected",
-            "enabled에 true 또는 false를 보내주세요.",
-            recoverable=True,
-        )
-
-    accounts = list(
-        session.scalars(select(SourceAccount).where(SourceAccount.platform == platform))
-    )
-    if not accounts:
-        # Not a 422: the request is well formed, the account simply does not exist. This
-        # product has no connect flow, so an account appears when a capture first mentions
-        # it and there is nothing the user can retry here.
-        raise ApiError(
-            404,
-            "source_not_connected",
-            f"'{platform}' 계정이 아직 연결되지 않았어요.",
-            recoverable=False,
-        )
-
-    for account in accounts:
-        account.enabled = enabled
-    marker = _source_marker(platform)
-    row = session.get(Setting, marker)
-    stamp = generated_at()
-    if row is None:
-        session.add(Setting(key=marker, value=json.dumps(enabled), updated_at=stamp))
-    else:
-        row.value = json.dumps(enabled)
-        row.updated_at = stamp
-    session.commit()
-
-    return build_document(session, path=path)
-
-
 __all__ = [
     "EDITABLE",
     "LEAVES",
     "apply_changes",
     "build_document",
     "effective_app_document",
-    "set_source_enabled",
 ]

@@ -2,8 +2,8 @@ import {
   AIItemCardModelSchema,
   EffectiveResourcePolicySchema,
   HostProfileSchema,
+  ItemDetailModelSchema,
   JobModelSchema,
-  StyleItemCardModelSchema,
 } from "@taste-inbox/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { MockRepository } from "@/lib/mock/repository";
@@ -66,7 +66,7 @@ describe("host profile and resource policy", () => {
   });
 });
 
-describe("AI items", () => {
+describe("Inbox items", () => {
   it("returns validated cards", async () => {
     const page = await repository.listAIItems();
     expect(page.items.length).toBeGreaterThan(0);
@@ -80,23 +80,30 @@ describe("AI items", () => {
     // Architecture §29 "Data fixtures".
     expect(items.some((item) => item.title.length > 60)).toBe(true);
     expect(items.some((item) => item.checkedAt === null)).toBe(true);
-    expect(items.every((item) => item.preview === null || item.preview.alt.length > 0)).toBe(true);
+    expect(items.some((item) => item.summary === "")).toBe(true);
+    // Every kind and every signal the collectors produce.
+    expect(new Set(items.map((item) => item.kind))).toEqual(
+      new Set(["repo", "model", "dataset", "space", "paper"]),
+    );
+    expect(new Set(items.map((item) => item.source.actionType))).toEqual(
+      new Set(["star", "like", "upvote"]),
+    );
   });
 
   it("paginates with a cursor", async () => {
-    const first = await repository.listAIItems({ limit: 2 });
-    expect(first.items).toHaveLength(2);
-    expect(first.nextCursor).toBe("2");
+    const first = await repository.listAIItems({ limit: 4 });
+    expect(first.items).toHaveLength(4);
+    expect(first.nextCursor).toBe("4");
 
-    const second = await repository.listAIItems({ limit: 2, cursor: first.nextCursor });
-    expect(second.items).toHaveLength(2);
+    const second = await repository.listAIItems({ limit: 4, cursor: first.nextCursor });
+    expect(second.items).toHaveLength(3);
     expect(second.nextCursor).toBeNull();
     expect(second.items[0]?.id).not.toBe(first.items[0]?.id);
   });
 
   it("filters on the local calendar day, not on the UTC date", async () => {
     /*
-     * The seed runs 2026-08-07T21:05Z → 2026-08-08T06:40Z, which is one Seoul day and two
+     * The seed runs 2026-08-07T22:10Z → 2026-08-08T06:33Z, which is one Seoul day and two
      * UTC dates. A mock that split on the UTC prefix would answer `?day=2026-08-08` with
      * part of the board and hand `2026-08-07` the rest — while the rail's calendar, which
      * converts, offered only the 8th. The two have to be the same rule.
@@ -126,78 +133,64 @@ describe("AI items", () => {
 
   it("finds an item by id", async () => {
     const item = await repository.getAIItem("garden-lens");
-    expect(item?.title).toBe("Garden Lens");
+    expect(item?.title).toBe("sample-org/garden-lens");
+  });
+
+  it("counts what it lists", async () => {
+    const { items } = await repository.listAIItems({ limit: 200 });
+    expect(await repository.getItemCount()).toBe(items.length);
   });
 });
 
-describe("style items", () => {
-  it("returns validated cards", async () => {
-    const page = await repository.listStyleItems();
-    for (const item of page.items) {
-      expect(() => StyleItemCardModelSchema.parse(item)).not.toThrow();
+describe("item detail", () => {
+  it("answers for every card, and carries nothing from the Instagram era", async () => {
+    const { items } = await repository.listAIItems({ limit: 200 });
+    for (const card of items) {
+      const detail = await repository.getItem(card.id);
+      expect(() => ItemDetailModelSchema.parse(detail)).not.toThrow();
+      expect(detail).not.toHaveProperty("board");
+      expect(detail).not.toHaveProperty("photos");
     }
   });
+});
 
-  it("covers one photo, a carousel, and none at all", async () => {
-    // The three shapes the card has to render. A carousel is the case the collector only
-    // started keeping on 2026-08-09; before that every post stored its cover and nothing
-    // else, so a fixture without one would not exercise the gallery.
-    const { items } = await repository.listStyleItems();
-    const counts = items.map((item) => item.media.length);
-    expect(counts).toContain(0);
-    expect(counts).toContain(1);
-    expect(counts.some((count) => count > 1)).toBe(true);
-  });
-
-  it("carries the caption, hashtags and all", async () => {
-    // Not a slice. The card clamps past 180 characters behind a disclosure, which only
-    // works if the whole thing arrives.
-    const { items } = await repository.listStyleItems();
-    expect(items.some((item) => item.caption.includes("#"))).toBe(true);
-    expect(items.every((item) => typeof item.caption === "string")).toBe(true);
-  });
-
-  it("gives every image a descriptive alt", async () => {
-    // Architecture §23 — Style images describe the product or outfit.
-    const { items } = await repository.listStyleItems();
-    for (const item of items) {
-      for (const media of item.media) {
-        expect(media.alt.length).toBeGreaterThan(5);
-      }
-    }
-  });
-
-  it("filters by where the item came from", async () => {
-    // The board's only axis. `match` and `stock` filtered a resolved product and went
-    // with the resolver (docs/DECISIONS.md, 2026-08-09).
-    const page = await repository.listStyleItems({ source: ["instagram"] });
-    expect(page.items.every((item) => item.source.platform === "instagram")).toBe(true);
+describe("manual items", () => {
+  it.each([
+    ["https://github.com/someone/tool", "github", "repo"],
+    ["https://huggingface.co/datasets/someone/set", "huggingface", "dataset"],
+    ["https://huggingface.co/spaces/someone/demo", "huggingface", "space"],
+    ["https://huggingface.co/someone/model", "huggingface", "model"],
+    ["https://arxiv.org/abs/2599.00001", "arxiv", "paper"],
+    ["https://example.com/post", "web", "post"],
+  ])("reads %s as a %s %s, as the service does", async (url, platform, kind) => {
+    const { item } = await new MockRepository().createManualItem({ url });
+    expect([item.source.platform, item.kind]).toEqual([platform, kind]);
   });
 });
 
 describe("jobs", () => {
-  it("returns validated jobs including a blocked one", async () => {
+  it("returns validated jobs including one that stopped part-way", async () => {
     const jobs = await repository.listJobs();
     for (const job of jobs) {
       expect(() => JobModelSchema.parse(job)).not.toThrow();
     }
 
-    const blocked = jobs.find((job) => job.state === "blocked");
-    expect(blocked).toBeDefined();
-    // A challenge stops the collector; it never retries automatically.
-    expect(blocked?.steps.some((step) => step.message === "auth_required")).toBe(true);
-    expect(blocked?.cancellable).toBe(false);
+    const partial = jobs.find((job) => job.state === "partially_succeeded");
+    expect(partial).toBeDefined();
+    // A collector that stopped says why; it never retries automatically.
+    expect(partial?.steps.some((step) => step.state === "failed")).toBe(true);
+    expect(partial?.cancellable).toBe(false);
   });
 });
 
 describe("seed content safety", () => {
-  it("uses only example hosts in source URLs", async () => {
-    const [ai, style] = await Promise.all([repository.listAIItems(), repository.listStyleItems()]);
-
-    for (const item of [...ai.items, ...style.items]) {
+  it("names no real account, repository or paper", async () => {
+    // `sample-org` is nobody's account, and `2599` is a month no arXiv id can have.
+    const { items } = await repository.listAIItems({ limit: 200 });
+    for (const item of items) {
       const url = new URL(item.source.originalUrl);
       expect(url.protocol).toBe("https:");
-      expect(url.pathname + url.hostname).toMatch(/example/);
+      expect(url.pathname).toMatch(/sample-org|2599\.00001/);
     }
   });
 });

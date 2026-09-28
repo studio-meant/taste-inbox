@@ -58,7 +58,7 @@ describe("The commands the service generated", () => {
     await showPanel();
     const text = panel().textContent;
     expect(text).toContain("launchctl bootstrap gui/$(id -u) /");
-    expect(text).toContain("launchctl bootout gui/$(id -u)/dev.tasteinbox.github-stars");
+    expect(text).toContain("launchctl bootout gui/$(id -u)/dev.tasteinbox.github-stars-api");
   });
 
   it("keeps the sleep stagger, which is the only thing spacing the jobs apart", async () => {
@@ -66,7 +66,7 @@ describe("The commands the service generated", () => {
     // far apart they collect. Dropping these lines would silently collapse the stagger.
     await showPanel();
     const text = panel().textContent;
-    expect(text).toContain("sleep 180  # instagram_saved_music → +3분");
+    expect(text).toContain("sleep 180  # huggingface_activity → +3분");
   });
 
   it("separates 등록 from 해제, because pasting both at once undoes the first", async () => {
@@ -86,7 +86,7 @@ describe("The commands the service generated", () => {
     const { jobs } = await plan();
     await showPanel();
 
-    expect(jobs).toHaveLength(6);
+    expect(jobs).toHaveLength(3);
     for (const job of jobs) {
       expect(within(panel()).getByText(job.label)).toBeInTheDocument();
     }
@@ -227,8 +227,8 @@ describe("What the panel refuses to claim", () => {
     // strings for one file.
     await showPanel();
     const text = panel().textContent;
-    expect(text).toContain("/var/launchd/dev.tasteinbox.github-stars.plist");
-    expect(text).not.toContain(" var/launchd/dev.tasteinbox.github-stars.plist");
+    expect(text).toContain("/var/launchd/dev.tasteinbox.github-stars-api.plist");
+    expect(text).not.toContain(" var/launchd/dev.tasteinbox.github-stars-api.plist");
   });
 
   it("says so when the paths on screen are not this Mac's", async () => {

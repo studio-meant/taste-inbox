@@ -25,43 +25,38 @@ function respondWith(body: unknown): void {
   );
 }
 
-/** A Trends card that passes the shared schema, so tests can bend one field at a time. */
+/** An Inbox card that passes the shared schema, so tests can bend one field at a time. */
 const VALID_AI_ITEM = {
   id: "gh-1",
   kind: "repo",
-  title: "example/repo",
+  title: "sample-org/repo",
   summary: "",
   tags: [],
   links: [],
-  preview: null,
   checkedAt: null,
   source: {
     platform: "github",
     label: "GitHub",
-    originalUrl: "https://github.com/example/repo",
+    originalUrl: "https://github.com/sample-org/repo",
     firstSeenAt: "2026-08-08T07:00:00Z",
   },
 };
 
 const VALID_DETAIL_ITEM = {
   id: "manual-1",
-  kind: "post",
-  board: "music",
+  kind: "dataset",
   title: "직접 추가한 링크",
   body: "내 메모",
   source: {
-    platform: "instagram",
-    label: "직접 추가 · Instagram",
-    originalUrl: "https://www.instagram.com/reel/Manual_123/",
+    platform: "huggingface",
+    label: "직접 추가 · Hugging Face",
+    originalUrl: "https://huggingface.co/datasets/sample-org/set",
     author: null,
     actionType: null,
     firstSeenAt: "2026-08-08T07:00:00Z",
   },
-  media: null,
-  photos: [],
   tags: [],
   links: [],
-  author: null,
   evidence: [],
   sourcePublishedAt: null,
   checkedAt: null,
@@ -113,27 +108,9 @@ describe("transport failures", () => {
 });
 
 describe("desktop transport", () => {
-  it("uses Tauri IPC and converts trusted cached-file markers without fetch", async () => {
-    const invoke = vi.fn(() =>
-      Promise.resolve(
-        page([
-          {
-            ...VALID_AI_ITEM,
-            preview: {
-              id: "cover-1",
-              type: "image",
-              src: "taste-inbox-file:file:///Users/example/cover.jpg",
-              width: 640,
-              height: 640,
-              alt: "저장한 표지",
-              blurDataUrl: null,
-            },
-          },
-        ]),
-      ),
-    );
-    const convertFileSrc = vi.fn((path: string) => `asset://localhost${path}`);
-    vi.stubGlobal("__TAURI__", { core: { invoke, convertFileSrc } });
+  it("uses Tauri IPC rather than fetch, with the same query and validation", async () => {
+    const invoke = vi.fn(() => Promise.resolve(page([VALID_AI_ITEM])));
+    vi.stubGlobal("__TAURI__", { core: { invoke } });
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.reject(new Error("fetch must not run"))),
@@ -142,15 +119,14 @@ describe("desktop transport", () => {
     const result = await new TauriRepository().listAIItems({ day: "2026-08-08" });
 
     expect(invoke).toHaveBeenCalledWith("bridge_request", {
-      request: { method: "GET", path: "/api/trends/items?day=2026-08-08" },
+      request: { method: "GET", path: "/api/items?day=2026-08-08" },
     });
-    expect(convertFileSrc).toHaveBeenCalledWith("/Users/example/cover.jpg");
-    expect(result.items[0]?.preview?.src).toBe("asset://localhost/Users/example/cover.jpg");
+    expect(result.items[0]?.id).toBe("gh-1");
     expect(fetch).not.toHaveBeenCalled();
   });
 });
 
-describe("board pages", () => {
+describe("the Inbox list", () => {
   it("names the 1-based row when one item breaks the contract", async () => {
     // The whole reason both languages share one schema: the mismatch has to be findable
     // without reading three layers of undefined.
@@ -188,21 +164,7 @@ function recordRequests(): { readonly urls: readonly string[] } {
 }
 
 describe("filters on the wire", () => {
-  it("sends the merged board's source filter to the music list too", async () => {
-    /*
-     * The one part of `/library`'s "a parsed filter must be applied" that a component test
-     * cannot see: mock mode filters in process, so a `source` the live client forgot to
-     * serialise would pass every jsdom test and put Instagram Reels on `?source=github`
-     * against the real service.
-     */
-    const { urls } = recordRequests();
-
-    await new HttpRepository(BASE).listMusicItems({ source: ["github"] });
-
-    expect(urls[0]).toContain("source=github");
-  });
-
-  it("sends ?day= to all three boards, so the calendar is not a client-side illusion", async () => {
+  it("sends every filter the Inbox parsed, in one request", async () => {
     /*
      * The half-fix this guards against passes every jsdom test: mock mode filters in
      * process, so a `day` the live client never serialised would look correct in every
@@ -210,37 +172,28 @@ describe("filters on the wire", () => {
      * the failure docs/DECISIONS.md (2026-08-08) calls worse than not offering the filter.
      */
     const { urls } = recordRequests();
-    const repository = new HttpRepository(BASE);
 
-    await repository.listAIItems({ day: "2026-08-08" });
-    await repository.listStyleItems({ day: "2026-08-08" });
-    await repository.listMusicItems({ day: "2026-08-08" });
+    await new HttpRepository(BASE).listAIItems({
+      kind: ["paper", "repo"],
+      source: ["huggingface"],
+      day: "2026-08-10",
+    });
 
-    expect(urls).toEqual([
-      `${BASE}/api/trends/items?day=2026-08-08`,
-      `${BASE}/api/style/items?day=2026-08-08`,
-      `${BASE}/api/music/items?day=2026-08-08`,
-    ]);
-  });
-
-  it("keeps a day and a source in the same request", async () => {
-    // `/library` can carry both, and dropping either would answer a shared link with a
-    // board it does not describe.
-    const { urls } = recordRequests();
-
-    await new HttpRepository(BASE).listStyleItems({ source: ["instagram"], day: "2026-08-10" });
-
-    expect(urls[0]).toContain("source=instagram");
-    expect(urls[0]).toContain("day=2026-08-10");
+    expect(urls).toEqual([`${BASE}/api/items?kind=paper%2Crepo&source=huggingface&day=2026-08-10`]);
   });
 
   it("leaves the query bare when nothing is filtered", async () => {
-    // A board with no filter has a canonical URL, here as well as in the address bar.
+    // The Inbox with no filter has a canonical URL, here as well as in the address bar.
     const { urls } = recordRequests();
 
-    await new HttpRepository(BASE).listMusicItems();
+    await new HttpRepository(BASE).listAIItems();
 
-    expect(urls[0]).toBe(`${BASE}/api/music/items`);
+    expect(urls[0]).toBe(`${BASE}/api/items`);
+  });
+
+  it("reads the Inbox count off /api/health", async () => {
+    respondWith({ data: { status: "ok", itemCount: 135 } });
+    expect(await new HttpRepository(BASE).getItemCount()).toBe(135);
   });
 });
 
@@ -250,8 +203,7 @@ describe("single-payload endpoints", () => {
     const repository = new HttpRepository(BASE);
 
     const result = await repository.createManualItem({
-      url: "https://www.instagram.com/reel/Manual_123/",
-      board: "music",
+      url: "https://huggingface.co/datasets/sample-org/set",
       note: "내 메모",
     });
 
@@ -261,8 +213,7 @@ describe("single-payload endpoints", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
-          url: "https://www.instagram.com/reel/Manual_123/",
-          board: "music",
+          url: "https://huggingface.co/datasets/sample-org/set",
           note: "내 메모",
         }),
       }),
@@ -275,7 +226,7 @@ describe("single-payload endpoints", () => {
     const repository = new HttpRepository(BASE);
 
     const error = await repository
-      .createManualItem({ url: "javascript:alert(1)", board: "trends" })
+      .createManualItem({ url: "javascript:alert(1)" })
       .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(ApiDataError);

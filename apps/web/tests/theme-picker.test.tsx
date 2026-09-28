@@ -218,9 +218,9 @@ describe("settings copy about the theme", () => {
     expect(field!.fixedReason).not.toMatch(/읽는 코드는 아직 없어요\.$/);
   });
 
-  it("names the screen that does change the theme", () => {
-    expect(field!.fixedReason).toContain("System");
-    expect(field!.fixedReason).toContain("테마");
-    expect(section!.description).toContain("System");
+  it("names the place that does change the theme", () => {
+    // System is part of Settings since 2026-09-28, so the picker is the '테마' block below.
+    expect(field!.fixedReason).toContain("아래 '테마'");
+    expect(section!.description).toContain("아래 '테마'");
   });
 });

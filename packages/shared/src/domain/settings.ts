@@ -1,24 +1,20 @@
 import { z } from "zod";
 import { IsoDateTimeSchema } from "../host/host-profile";
-import { SourcePlatformSchema } from "./common";
-import { SourceCollectionStateSchema } from "./today";
 
 /**
- * `GET /api/settings` payload, and the two `PATCH` bodies that write it.
+ * `GET /api/settings` payload, and the `PATCH` body that writes it.
  *
- * The screen this describes exists to answer one question the product could not previously
- * answer at all: **where did this number come from?** `config/app.example.yaml` carries 17
- * fields and exactly four of them have a reader — `app.timezone`, `collection.interval_hours`,
- * `collection.stagger_minutes`, `collection.allow_manual_refresh`. The other thirteen validate
- * on load and are then consumed by nobody. A settings screen that renders all 17 as identical
- * switches would be thirteen-seventeenths a lie, so every value here is wrapped rather than
- * sent bare: the wrapper is what lets the UI print `4` next to "이 값은 아직 아무 것도 읽지
- * 않아요" instead of next to an editable slider.
+ * The screen this describes exists to answer one question: **where did this number come
+ * from?** Every value here is wrapped rather than sent bare: the wrapper is what lets the UI
+ * print a value next to "이 값은 아직 아무 것도 읽지 않아요" instead of next to an editable
+ * slider. Five values have a reader and are editable; three are shown read-only.
  *
- * A fifth field has a reader and is deliberately *not* in that file: `app.ceremonial_entry`
- * defaults in `config/schema.py` and is meant to be written from this screen rather than by
- * hand, so on a fresh checkout it reports `origin: "default"` — the only other value that
- * does is `app.debug_retention_days`, which the example simply forgets.
+ * `app.ceremonial_entry` defaults in `config/schema.py` and is meant to be written from this
+ * screen rather than by hand, so on a fresh checkout it reports `origin: "default"`.
+ *
+ * The feature flags for collectors this product never built ("아직 없는 설정"), the debug
+ * retention only a browser collector read, and the per-source switches that stopped nothing
+ * were removed on 2026-09-28 (docs/DECISIONS.md).
  *
  * Three facts about the backend shape this file:
  *
@@ -31,19 +27,16 @@ import { SourceCollectionStateSchema } from "./today";
  *    on `설치 시각 + N × interval` and keeps doing so until somebody runs `launchctl bootout`
  *    and `bootstrap` by hand — nothing in this repository executes `launchctl`
  *    (`api/launchd.py:11-30`, `:156-179`). `effect: "nextInstall"` names that gap.
- * 3. **`settings` (`db/models.py:403-408`) is a created-and-forgotten table.** Zero reads,
- *    zero writes, no index, referenced only by the migration that made it. Nothing that
- *    consumes a setting today looks anywhere but at the YAML, which is why `origin: "user"`
- *    is a claim about persistence and not yet a claim about effect — see the note on
- *    `SettingOriginSchema`.
+ * 3. **An override lives in the `settings` table**, and every reader of the schedule resolves
+ *    through it (`schedule.effective_document`), so `origin: "user"` is a claim about effect
+ *    as well as persistence.
  */
 
 /**
  * Where the effective value came from. **This is the point of the whole screen.**
  *
  * - `default` — the field default in `config/schema.py`, because the effective YAML does not
- *   mention the key at all. Three fields are in this state today (`media_dir`,
- *   `browser_profile_dir`, `debug_retention_days`); the shipped example simply omits them.
+ *   mention the key at all — `ceremonial_entry` on a fresh checkout.
  * - `file` — written in whichever file `config/loader.py:109-121` resolved. Note the trap:
  *   there is no `config/app.yaml` on a fresh checkout (`.gitignore` ignores `config/*.yaml`),
  *   so `file` today means the *committed* `app.example.yaml`. UI copy must not read that as
@@ -71,10 +64,8 @@ export const SettingOriginSchema = z.enum(["default", "file", "user"]);
  *   pair. Nothing here can perform that step.
  *
  * There is deliberately **no** member for "nothing reads this value at all", which is the
- * honest answer for `appearance.*`, `privacy.debugRetentionDays`, `features.*`, `general.locale`
- * and every `sources[].enabled`. Those are marked `editable: false` instead, and the screen
- * must carry the explanation in copy rather than in this union — see the field notes below
- * for which ones and why.
+ * honest answer for `appearance.*` and `general.locale`. Those are marked `editable: false`
+ * instead, and the screen carries the explanation in copy rather than in this union.
  */
 export const SettingEffectSchema = z.enum(["immediate", "nextRun", "nextInstall"]);
 
@@ -108,9 +99,10 @@ const settingBase = {
  *
  * **The bounds are per-field and the backend's are not.**
  * `CollectionSection._stagger_must_fit_inside_one_interval` (`config/schema.py`) rejects
- * `stagger_minutes × 5 >= interval_hours × 60`, so `staggerMinutes` and `intervalHours` are
- * coupled and a pair inside both static ranges can still be refused. If `staggerMinutes.max`
- * is sent as the static 60 the UI can offer `interval=1, stagger=15` and earn a 422 for it;
+ * `stagger_minutes × 2 >= interval_hours × 60` (three collectors, two gaps), so
+ * `staggerMinutes` and `intervalHours` are coupled and a pair inside both static ranges can
+ * still be refused. If `staggerMinutes.max` is sent as the static 60 the UI can offer
+ * `interval=1, stagger=30` and earn a 422 for it;
  * sending the *derived* ceiling instead makes the control unable to compose an invalid pair.
  */
 export const SettingNumberSchema = z
@@ -201,33 +193,6 @@ export const CEREMONIAL_ENTRY_MODES = ["full", "brief", "skip"] as const;
 
 export const CeremonialEntrySchema = z.enum(CEREMONIAL_ENTRY_MODES);
 
-/**
- * One connected account as the settings screen sees it.
- *
- * `enabled` is a full `SettingBoolean` rather than a bare boolean, and that is the only shape
- * that can tell the truth about it. `source_accounts.enabled` is written once as the literal
- * `enabled=1` in `ingest/captures.py:174` and read by nothing anywhere — collector selection
- * never touches the table (`api/schedule.py` iterates a hardcoded `SOURCE_ORDER`,
- * `api/launchd.py` generates a plist for all six regardless). A bare boolean would render as a
- * working switch; the wrapper carries the `editable: false` that keeps it from pretending.
- *
- * `state` reuses the Today union so the two screens cannot disagree about what
- * `auth_required` means. Note it must be resolved the way `api/today.py` resolves it — from
- * `checkpoints` and `collector_runs` — and not from `source_accounts.state`, which is only
- * ever written as the literal `"collected"` and would report every account healthy.
- */
-export const SourceSettingSchema = z.object({
-  platform: SourcePlatformSchema,
-  /** As the product names the account, e.g. `Instagram · 저장됨`. */
-  label: z.string().min(1),
-  enabled: SettingBooleanSchema,
-  state: SourceCollectionStateSchema,
-  /** When the account first produced a capture. Null for a platform never connected. */
-  connectedAt: IsoDateTimeSchema.nullable(),
-  /** Items collected from this account so far — a count, never a cap. */
-  itemCount: z.number().int().nonnegative(),
-});
-
 export const SettingsDocumentSchema = z.object({
   /** `api/cards.py::generated_at()` — second precision, `Z` suffix, when this was assembled. */
   generatedAt: IsoDateTimeSchema,
@@ -259,18 +224,6 @@ export const SettingsDocumentSchema = z.object({
     defaultTheme: SettingChoiceSchema,
     defaultMotion: SettingChoiceSchema,
   }),
-  /**
-   * `app.debug_retention_days` validates 0–90 and is read by nobody.
-   *
-   * `browser_sources.py:663` calls `capture_failure(page, surface=..., outcome=...)` without
-   * `retention_days`, so the sweep uses the collectors package's own
-   * `DEFAULT_RETENTION_DAYS = 7` (`browser/failure_capture.py:32`). Two numbers, one of them
-   * decorative. Until that call site passes the config value, an editable field here would be
-   * a number the user sets and the sweep ignores — worse than a printed 7.
-   */
-  privacy: z.object({
-    debugRetentionDays: SettingNumberSchema,
-  }),
   general: z.object({
     /** Live: the day boundary on Today and the slot boundary on the schedule are this one value. */
     timezone: SettingTextSchema,
@@ -288,19 +241,6 @@ export const SettingsDocumentSchema = z.object({
      */
     ceremonialEntry: SettingChoiceSchema,
   }),
-  /**
-   * CLAUDE.md §7 says "Each platform collector is independently feature-flagged". That is the
-   * intent; none of these four booleans is read by anything, so setting `linkedinCollector`
-   * true starts no collector. They are in the document because the config validates them and
-   * the user can see them in the file — all four `editable: false`.
-   */
-  features: z.object({
-    shareCapture: SettingBooleanSchema,
-    historicalImport: SettingBooleanSchema,
-    linkedinCollector: SettingBooleanSchema,
-    localModelEnrichment: SettingBooleanSchema,
-  }),
-  sources: z.array(SourceSettingSchema),
 });
 
 /**
@@ -313,9 +253,6 @@ export const SettingsDocumentSchema = z.object({
  * them onto the snake_case pydantic fields, which is the same translation every other endpoint
  * already performs.
  *
- * `sources[].enabled` is absent on purpose: it is per-platform and gets its own endpoint,
- * because a dotted key would have to embed the platform and become parseable-not-enumerable.
- *
  * Hand-written and then checked against `SettingsDocumentSchema` by a test that walks the
  * document's leaves, so a field added to the document without a key here fails the suite
  * rather than becoming quietly unpatchable. Longest key is 29 characters against the
@@ -327,14 +264,9 @@ export const SETTING_KEYS = [
   "collection.allowManualRefresh",
   "appearance.defaultTheme",
   "appearance.defaultMotion",
-  "privacy.debugRetentionDays",
   "general.timezone",
   "general.locale",
   "general.ceremonialEntry",
-  "features.shareCapture",
-  "features.historicalImport",
-  "features.linkedinCollector",
-  "features.localModelEnrichment",
 ] as const;
 
 export const SettingKeySchema = z.enum(SETTING_KEYS);
@@ -356,11 +288,6 @@ export const SettingsPatchRequestSchema = z.object({
   changes: z.partialRecord(SettingKeySchema, z.union([z.number(), z.boolean(), z.string()])),
 });
 
-/** `PATCH /api/settings/sources/{platform}` body. */
-export const SourceSettingPatchRequestSchema = z.object({
-  enabled: z.boolean(),
-});
-
 export type SettingOrigin = z.infer<typeof SettingOriginSchema>;
 export type SettingEffect = z.infer<typeof SettingEffectSchema>;
 export type SettingNumber = z.infer<typeof SettingNumberSchema>;
@@ -368,8 +295,6 @@ export type SettingBoolean = z.infer<typeof SettingBooleanSchema>;
 export type SettingChoice = z.infer<typeof SettingChoiceSchema>;
 export type SettingText = z.infer<typeof SettingTextSchema>;
 export type CeremonialEntry = z.infer<typeof CeremonialEntrySchema>;
-export type SourceSetting = z.infer<typeof SourceSettingSchema>;
 export type SettingsDocument = z.infer<typeof SettingsDocumentSchema>;
 export type SettingKey = z.infer<typeof SettingKeySchema>;
 export type SettingsPatchRequest = z.infer<typeof SettingsPatchRequestSchema>;
-export type SourceSettingPatchRequest = z.infer<typeof SourceSettingPatchRequestSchema>;

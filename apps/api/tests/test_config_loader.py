@@ -39,16 +39,16 @@ def test_example_app_config_is_valid() -> None:
     # 19:00, and a single evening run made the 02:00 one wait eighteen hours.
     assert document.collection.interval_hours == 4
     assert document.collection.allow_manual_refresh is True
-    # Experimental collector stays off by default (IMPLEMENTATION_PLAN.md Phase 4).
-    assert document.features.linkedin_collector is False
+    # The flags for collectors this product never built went on 2026-09-28.
+    assert not hasattr(document, "features")
 
 
 @pytest.mark.parametrize("hours", [0, -4, 25, 8760])
 def test_an_absurd_interval_is_refused_at_load_time(tmp_path: Path, hours: int) -> None:
     """Not at the first run, hours later, with a launchd job already installed.
 
-    Zero is a busy loop against four logged-in accounts, and anything past a day is no
-    longer the daily board this product is.
+    Zero is a busy loop against the platforms' APIs, and anything past a day is no longer
+    the daily Inbox this product is.
     """
     raw = yaml.safe_load((CONFIG_DIR / "app.example.yaml").read_text(encoding="utf-8"))
     raw["collection"]["interval_hours"] = hours
@@ -60,18 +60,17 @@ def test_an_absurd_interval_is_refused_at_load_time(tmp_path: Path, hours: int) 
 
 
 def test_a_stagger_that_outruns_the_interval_is_refused(tmp_path: Path) -> None:
-    # 60 minutes across six sources spans five hours, so with a four-hour interval the
-    # printed install block asks a person to wait longer than a whole collection cycle
-    # before the last job is loaded. Not starvation — `StartInterval` counts from load, so
-    # a late-loaded collector still fires every interval on a later phase — but a config
-    # whose install reads as a hang is worth refusing. Both values are individually inside
-    # their own bounds.
+    # 30 minutes across three sources spans an hour, so with a one-hour interval the printed
+    # install block asks a person to wait a whole collection cycle before the last job is
+    # loaded. Not starvation — `StartInterval` counts from load — but a config whose install
+    # reads as a hang is worth refusing. Both values are individually inside their bounds.
     raw = yaml.safe_load((CONFIG_DIR / "app.example.yaml").read_text(encoding="utf-8"))
-    raw["collection"]["stagger_minutes"] = 60
+    raw["collection"]["interval_hours"] = 1
+    raw["collection"]["stagger_minutes"] = 30
     broken = tmp_path / "app.yaml"
     broken.write_text(yaml.safe_dump(raw), encoding="utf-8")
 
-    with pytest.raises(ConfigError, match="takes longer than the 4-hour interval"):
+    with pytest.raises(ConfigError, match="takes longer than the 1-hour interval"):
         load_app_document(broken)
 
 

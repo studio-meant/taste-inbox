@@ -30,7 +30,7 @@ import type { AIItemQuery, Page, TasteInboxRepository } from "@/lib/repository/t
  */
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/trends",
+  usePathname: () => "/library",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -41,9 +41,7 @@ vi.mock("@/lib/repository", () => ({
 }));
 
 /** Imported after the mock, so the page sees it. */
-const { default: TrendsPage } = await import("@/app/(workspace)/trends/page");
-
-const COUNTS = { ai: 8, style: 76, music: 3, places: 0, none: 0 } as const;
+const { default: LibraryPage } = await import("@/app/(workspace)/library/page");
 
 describe("which day an item was collected on", () => {
   it("files a UTC evening on the Seoul morning that follows it", () => {
@@ -147,7 +145,7 @@ const SPARSE: readonly CollectedDay[] = [
 
 describe("the calendar in the rail", () => {
   function renderCalendar(params: Record<string, string> = {}, days = SPARSE) {
-    return render(<CollectionCalendar pathname="/trends" params={params} days={days} />);
+    return render(<CollectionCalendar pathname="/library" params={params} days={days} />);
   }
 
   it("lists the days that have items, with their counts", () => {
@@ -178,7 +176,7 @@ describe("the calendar in the rail", () => {
     expect(day).toHaveAttribute("title", "8월 8일 토요일 142개");
 
     rerender(
-      <CollectionCalendar pathname="/trends" params={{ day: "2026-08-08" }} days={SPARSE} />,
+      <CollectionCalendar pathname="/library" params={{ day: "2026-08-08" }} days={SPARSE} />,
     );
     expect(screen.getByRole("link", { name: "8월 8일 토요일 142개, 선택됨" })).toBeInTheDocument();
   });
@@ -189,17 +187,17 @@ describe("the calendar in the rail", () => {
     const { rerender } = renderCalendar();
     expect(screen.getByRole("link", { name: /8월 8일/ })).toHaveAttribute(
       "href",
-      "/trends?day=2026-08-08",
+      "/library?day=2026-08-08",
     );
 
     rerender(
-      <CollectionCalendar pathname="/trends" params={{ day: "2026-08-08" }} days={SPARSE} />,
+      <CollectionCalendar pathname="/library" params={{ day: "2026-08-08" }} days={SPARSE} />,
     );
-    expect(screen.getByRole("link", { name: /8월 8일/ })).toHaveAttribute("href", "/trends");
+    expect(screen.getByRole("link", { name: /8월 8일/ })).toHaveAttribute("href", "/library");
     // And picking a different day replaces the selection rather than adding to it.
     expect(screen.getByRole("link", { name: /8월 10일/ })).toHaveAttribute(
       "href",
-      "/trends?day=2026-08-10",
+      "/library?day=2026-08-10",
     );
   });
 
@@ -216,7 +214,7 @@ describe("the calendar in the rail", () => {
     // in sync. Nothing here is a button.
     renderCalendar();
     for (const link of screen.getAllByRole("link")) {
-      expect(link.getAttribute("href")).toMatch(/^\/trends/);
+      expect(link.getAttribute("href")).toMatch(/^\/library/);
     }
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
@@ -233,16 +231,16 @@ describe("the calendar in the rail", () => {
     expect(screen.getByText("2026년 8월")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "2026년 6월 보기" })).toHaveAttribute(
       "href",
-      "/trends?cal=2026-06",
+      "/library?cal=2026-06",
     );
     expect(screen.queryByRole("link", { name: /7월/ })).not.toBeInTheDocument();
 
-    rerender(<CollectionCalendar pathname="/trends" params={{ cal: "2026-06" }} days={across} />);
+    rerender(<CollectionCalendar pathname="/library" params={{ cal: "2026-06" }} days={across} />);
     expect(screen.getByText("2026년 6월")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "6월 30일 화요일 4개" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "2026년 8월 보기" })).toHaveAttribute(
       "href",
-      "/trends?cal=2026-08",
+      "/library?cal=2026-08",
     );
   });
 
@@ -251,7 +249,7 @@ describe("the calendar in the rail", () => {
       { day: "2026-06-30", count: 4 },
       { day: "2026-08-08", count: 142 },
     ];
-    render(<CollectionCalendar pathname="/trends" params={{ day: "2026-06-30" }} days={across} />);
+    render(<CollectionCalendar pathname="/library" params={{ day: "2026-06-30" }} days={across} />);
     expect(screen.getByText("2026년 6월")).toBeInTheDocument();
 
     // `?cal=` wins over the selection. The other order pins the calendar to the selected
@@ -259,7 +257,7 @@ describe("the calendar in the rail", () => {
     cleanupRender();
     render(
       <CollectionCalendar
-        pathname="/trends"
+        pathname="/library"
         params={{ day: "2026-06-30", cal: "2026-08" }}
         days={across}
       />,
@@ -289,9 +287,8 @@ describe("the rail's day block", () => {
      */
     render(
       <CollectionRail
-        pathname="/style"
+        pathname="/library"
         params={{}}
-        counts={COUNTS}
         sources={[]}
         groups={[]}
         days={[{ day: "2026-08-08", count: 142 }]}
@@ -303,37 +300,21 @@ describe("the rail's day block", () => {
 
   it("becomes a calendar as soon as a second day exists", () => {
     render(
-      <CollectionRail
-        pathname="/style"
-        params={{}}
-        counts={COUNTS}
-        sources={[]}
-        groups={[]}
-        days={SPARSE}
-      />,
+      <CollectionRail pathname="/library" params={{}} sources={[]} groups={[]} days={SPARSE} />,
     );
     expect(screen.getByRole("link", { name: "8월 8일 토요일 142개" })).toHaveAttribute(
       "href",
-      "/style?day=2026-08-08",
+      "/library?day=2026-08-08",
     );
   });
 
   it("says nothing about days on a board that has none", () => {
-    render(
-      <CollectionRail
-        pathname="/style"
-        params={{}}
-        counts={COUNTS}
-        sources={[]}
-        groups={[]}
-        days={[]}
-      />,
-    );
+    render(<CollectionRail pathname="/library" params={{}} sources={[]} groups={[]} days={[]} />);
     expect(screen.queryByText("수집한 날")).not.toBeInTheDocument();
   });
 });
 
-describe("?day= on a board", () => {
+describe("?day= on the Inbox", () => {
   /**
    * A repository whose items are spread across two days.
    *
@@ -368,9 +349,9 @@ describe("?day= on a board", () => {
     }
   }
 
-  async function renderTrends(params: Record<string, string> = {}) {
+  async function renderInbox(params: Record<string, string> = {}) {
     repository.current = new TwoDays();
-    return render(await TrendsPage({ searchParams: Promise.resolve(params) }));
+    return render(await LibraryPage({ searchParams: Promise.resolve(params) }));
   }
 
   function cardIds(container: HTMLElement): readonly string[] {
@@ -388,11 +369,11 @@ describe("?day= on a board", () => {
      * read `?day=` and rendered every day would contradict the link it came from, which is
      * worse than not offering the filter at all.
      */
-    const whole = await renderTrends();
+    const whole = await renderInbox();
     const everything = cardIds(whole.container);
     cleanupRender();
 
-    const oneDay = await renderTrends({ day: TwoDays.early });
+    const oneDay = await renderInbox({ day: TwoDays.early });
     const shown = cardIds(oneDay.container);
 
     expect(shown.length).toBeGreaterThan(0);
@@ -401,7 +382,7 @@ describe("?day= on a board", () => {
 
     // The other day's items are gone, not merely reordered.
     cleanupRender();
-    const otherDay = await renderTrends({ day: TwoDays.late });
+    const otherDay = await renderInbox({ day: TwoDays.late });
     for (const id of cardIds(otherDay.container)) {
       expect(shown).not.toContain(id);
     }
@@ -410,7 +391,7 @@ describe("?day= on a board", () => {
   it("says so rather than showing an unfiltered board when a day matches nothing", async () => {
     // `NoMatches`, not the empty state: the board has items and this day has none, which is
     // a different fact from "you have saved nothing".
-    const { container } = await renderTrends({ day: "2026-08-09" });
+    const { container } = await renderInbox({ day: "2026-08-09" });
 
     expect(screen.getByText("이 조건에 맞는 항목이 없어요")).toBeInTheDocument();
     expect(screen.queryByText("아직 항목이 없어요")).not.toBeInTheDocument();
@@ -418,11 +399,11 @@ describe("?day= on a board", () => {
   });
 
   it("puts the selected day on the calendar and offers the click that clears it", async () => {
-    await renderTrends({ day: TwoDays.early });
+    await renderInbox({ day: TwoDays.early });
 
     const calendar = screen.getByRole("link", { name: /8월 8일 토요일 .*선택됨/ });
     // Built from the unfiltered board, so the day you picked is still there to unpick.
-    expect(calendar).toHaveAttribute("href", "/trends");
+    expect(calendar).toHaveAttribute("href", "/library");
   });
 
   it("keeps the day removable on the narrow surface the rail does not reach", async () => {
@@ -431,15 +412,15 @@ describe("?day= on a board", () => {
      * the day would be a filter with no control anywhere on a phone. It appears only while
      * a day is selected, and it clears itself.
      */
-    const { container } = await renderTrends({ day: TwoDays.early });
+    const { container } = await renderInbox({ day: TwoDays.early });
     const controls = container.querySelector("[class*='controls']");
     expect(controls).not.toBeNull();
 
     const chip = within(controls as HTMLElement).getByRole("link", { name: /8월 8일/ });
-    expect(chip).toHaveAttribute("href", "/trends");
+    expect(chip).toHaveAttribute("href", "/library");
 
     cleanupRender();
-    const unfiltered = await renderTrends();
+    const unfiltered = await renderInbox();
     const bar = unfiltered.container.querySelector("[class*='controls']");
     expect(within(bar as HTMLElement).queryByText("수집한 날")).toBeNull();
   });
@@ -471,9 +452,8 @@ describe("필터 지우기", () => {
     // links to the board without it.
     render(
       <CollectionRail
-        pathname="/trends"
+        pathname="/library"
         params={{ source: "github", day: "2026-08-08" }}
-        counts={COUNTS}
         sources={[]}
         groups={[
           {
@@ -481,7 +461,7 @@ describe("필터 지우기", () => {
             legend: "출처",
             options: [
               { value: "github", label: "GitHub", count: 2 },
-              { value: "instagram", label: "Instagram", count: 6 },
+              { value: "huggingface", label: "Hugging Face", count: 6 },
             ],
           },
         ]}
@@ -491,35 +471,12 @@ describe("필터 지우기", () => {
 
     expect(screen.getByRole("link", { name: "GitHub 2개, 선택됨" })).toHaveAttribute(
       "href",
-      "/trends?day=2026-08-08",
+      "/library?day=2026-08-08",
     );
     expect(screen.getByRole("link", { name: /8월 8일 토요일 .*선택됨/ })).toHaveAttribute(
       "href",
-      "/trends?source=github",
+      "/library?source=github",
     );
-  });
-
-  it("leaves the rail's own board row as the way out of any state at all", () => {
-    /*
-     * The backstop, and the reason no reachable state is a trap even when a filter has no
-     * control of its own on this screen — `?day=` on `/style`, where one day holds
-     * everything and the calendar is a count. "Browse by type" links to the bare route, so
-     * the row for the board you are already on clears every filter in one click.
-     */
-    render(
-      <CollectionRail
-        pathname="/style"
-        params={{ source: "instagram", day: "2026-08-08", cal: "2026-08", density: "compact" }}
-        counts={COUNTS}
-        sources={[{ platform: "instagram", label: "Instagram", count: 76 }]}
-        groups={[]}
-        days={[{ day: "2026-08-08", count: 76 }]}
-      />,
-    );
-
-    const here = screen.getByRole("link", { name: "Style 76개" });
-    expect(here).toHaveAttribute("href", "/style");
-    expect(here).toHaveAttribute("aria-current", "page");
   });
 });
 

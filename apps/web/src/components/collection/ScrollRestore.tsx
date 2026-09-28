@@ -15,7 +15,7 @@ import { usePathname, useSearchParams } from "next/navigation";
  *   scroll on back for a full page load, but a client-side navigation away and back does
  *   not, so the position has to be recorded.
  *
- * Keyed on pathname alone, deliberately: `/style` filtered and `/style` unfiltered are the
+ * Keyed on pathname alone, deliberately: `/library` filtered and `/library` unfiltered are the
  * same board being narrowed, and restoring to a position from a longer list would drop the
  * user into whitespace. Filtering keeps the current scroll because nothing moves it;
  * returning restores the last one recorded for that board.

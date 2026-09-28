@@ -20,9 +20,6 @@ export const SOURCE_LABEL: Readonly<Record<SourcePlatform, string>> = {
   github: "GitHub",
   huggingface: "Hugging Face",
   arxiv: "arXiv",
-  threads: "Threads",
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
   web: "웹",
 };
 
@@ -30,9 +27,6 @@ const SOURCE_GLYPH: Readonly<Record<SourcePlatform, string>> = {
   github: "G",
   huggingface: "H",
   arxiv: "a",
-  threads: "T",
-  linkedin: "in",
-  instagram: "I",
   web: "W",
 };
 
@@ -40,9 +34,6 @@ const SOURCE_DOT_CLASS: Readonly<Record<SourcePlatform, string | undefined>> = {
   github: undefined,
   huggingface: styles.sourceDotHuggingface,
   arxiv: undefined,
-  threads: styles.sourceDotThreads,
-  linkedin: styles.sourceDotLinkedin,
-  instagram: styles.sourceDotInstagram,
   web: styles.sourceDotWeb,
 };
 

@@ -1,13 +1,16 @@
 "use client";
 
-import type { ItemBoard, ManualItemCreateRequest } from "@taste-inbox/shared";
+import type { ManualItemCreateRequest } from "@taste-inbox/shared";
 import { Link2, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { addManualItem } from "@/app/(workspace)/actions";
 import { Button } from "@/components/primitives";
-import { BOARD_CHOICES, BOARD_LABEL, BOARD_MEANING } from "@/lib/navigation/boards";
 import styles from "./AddLinkButton.module.css";
 
+/**
+ * `링크 추가` — a repository, model, paper or page the person wants in the Inbox without
+ * having starred or liked it. The URL decides what it is; nothing is fetched from it.
+ */
 export function AddLinkButton() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
@@ -16,13 +19,12 @@ export function AddLinkButton() {
 
   async function submit(form: HTMLFormElement): Promise<void> {
     const data = new FormData(form);
-    const text = (name: string, fallback = ""): string => {
+    const text = (name: string): string => {
       const value = data.get(name);
-      return typeof value === "string" ? value : fallback;
+      return typeof value === "string" ? value : "";
     };
     const input: ManualItemCreateRequest = {
       url: text("url"),
-      board: text("board", "trends") as ItemBoard,
       title: text("title"),
       note: text("note"),
     };
@@ -84,25 +86,21 @@ export function AddLinkButton() {
 
           <label className={styles.field}>
             <span>링크</span>
-            <input name="url" type="url" inputMode="url" required maxLength={2048} autoFocus />
+            <input
+              name="url"
+              type="url"
+              inputMode="url"
+              required
+              maxLength={2048}
+              autoFocus
+              placeholder="https://github.com/…, https://huggingface.co/…, https://arxiv.org/…"
+            />
           </label>
 
-          <div className={styles.row}>
-            <label className={styles.field}>
-              <span>보드</span>
-              <select name="board" defaultValue="trends">
-                {BOARD_CHOICES.map((board) => (
-                  <option key={board} value={board}>
-                    {BOARD_LABEL[board]} · {BOARD_MEANING[board]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.field}>
-              <span>제목 · 선택</span>
-              <input name="title" type="text" maxLength={200} />
-            </label>
-          </div>
+          <label className={styles.field}>
+            <span>제목 · 선택</span>
+            <input name="title" type="text" maxLength={200} />
+          </label>
 
           <label className={styles.field}>
             <span>메모 · 선택</span>

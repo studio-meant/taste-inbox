@@ -29,7 +29,7 @@
    * `height`, not `min-height`. The mat is the screen, and a screen does not get taller
    * because there is more to show — the content scrolls inside it.
    *
-   * `min-height` let the whole stage grow to fit: on the Music board it reached 23,391px,
+   * `min-height` let the whole stage grow to fit: on one board it reached 23,391px,
    * `.frame` and `.viewport` grew with it, and `.viewport` — the one element with
    * `overflow-y: auto` — ended up exactly as tall as its own content and so never became a
    * scroll container at all. `overscroll-behavior: contain` below then did its job on a

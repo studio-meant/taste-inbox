@@ -19,7 +19,8 @@ function desktopEdges(): Plugin {
       if (source === "@/lib/repository") return DESKTOP_REPOSITORY;
       if (
         source === "./actions" &&
-        importer?.includes("/apps/web/src/app/settings/page.tsx") === true
+        (importer?.includes("/apps/web/src/app/settings/page.tsx") === true ||
+          importer?.includes("/apps/web/src/app/onboarding/page.tsx") === true)
       ) {
         return DESKTOP_ACTIONS;
       }
@@ -46,8 +47,6 @@ export default defineConfig(({ mode }) => ({
     "process.env.NEXT_PUBLIC_DATA_SOURCE": JSON.stringify("live"),
     "process.env.NEXT_PUBLIC_REMOTE_READ_ONLY": JSON.stringify("0"),
     "process.env.TASTE_INBOX_API_URL": "undefined",
-    "process.env.TASTE_INBOX_USE_CAPTURES": "undefined",
-    "process.env.TASTE_INBOX_CAPTURE_DIR": "undefined",
     "process.env.APP_TIMEZONE": JSON.stringify("Asia/Seoul"),
   },
   build: {

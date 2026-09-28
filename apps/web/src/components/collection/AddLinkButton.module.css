@@ -96,12 +96,6 @@
   color: var(--ink);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-3);
-}
-
 .field {
   display: grid;
   gap: 7px;
@@ -112,7 +106,6 @@
 }
 
 .field input,
-.field select,
 .field textarea {
   width: 100%;
   box-sizing: border-box;
@@ -125,8 +118,7 @@
   font-weight: 500;
 }
 
-.field input,
-.field select {
+.field input {
   min-height: 42px;
   padding: 0 12px;
 }
@@ -138,7 +130,6 @@
 }
 
 .field input:focus,
-.field select:focus,
 .field textarea:focus {
   outline: 2px solid color-mix(in srgb, var(--sage) 70%, transparent);
   outline-offset: 1px;
@@ -154,12 +145,6 @@
   margin: 0;
   color: var(--status-danger-fg);
   font-size: 13px;
-}
-
-@media (max-width: 640px) {
-  .row {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

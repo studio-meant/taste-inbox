@@ -5,12 +5,12 @@ import {
   CeremonialEntrySchema,
   EvidenceRefSchema,
   ItemKindSchema,
-  ItemDomainSchema,
   JobModelSchema,
+  JobTypeSchema,
   JobStateSchema,
   ManualItemCreateRequestSchema,
   OutboundLinkKindSchema,
-  OutboundLinkOriginSchema,
+  SavedSummarySchema,
   SETTING_KEYS,
   SettingChoiceSchema,
   SettingEffectSchema,
@@ -19,8 +19,6 @@ import {
   SettingsDocumentSchema,
   SettingsPatchRequestSchema,
   SourcePlatformSchema,
-  StyleItemCardModelSchema,
-  StyleMatchGradeSchema,
 } from "../src/domain/index";
 
 /**
@@ -32,19 +30,8 @@ describe("documented unions", () => {
     // The Python producer decides these strings by inspecting an evidence row's type, and
     // a name that drifts on one side is a runtime validation error on the other. Ordered
     // by how actionable the destination is, which is the order the card renders them in.
-    expect(OutboundLinkKindSchema.options).toEqual([
-      "artifact",
-      "shop",
-      "resolved",
-      "outbound",
-      "unresolved",
-    ]);
-  });
-
-  it("OutboundLinkOrigin", () => {
-    // A commenter's link is not the author's claim, and a bio link is not a claim about
-    // this post at all — the card labels each so a click is never read as more than it is.
-    expect(OutboundLinkOriginSchema.options).toEqual(["post", "comment", "profile"]);
+    // Shops, shorteners and comment links went with Instagram, Threads and LinkedIn.
+    expect(OutboundLinkKindSchema.options).toEqual(["artifact", "outbound"]);
   });
 
   it("ItemKind", () => {
@@ -58,34 +45,23 @@ describe("documented unions", () => {
       "demo",
       "tool",
       "post",
-      "product",
-      "outfit",
     ]);
-  });
-
-  it("ItemDomain", () => {
-    // Today highlights use the same presentation rule as Browse: a pending Instagram
-    // Like is visible on None until it receives a filed board.
-    expect(ItemDomainSchema.options).toEqual(["trends", "style", "music", "places", "none"]);
   });
 
   it("SourcePlatform", () => {
-    expect(SourcePlatformSchema.options).toEqual([
-      "github",
-      "huggingface",
-      "arxiv",
-      "threads",
-      "linkedin",
-      "instagram",
-      "web",
-    ]);
+    // Mirrors `db/models.py::PLATFORMS`. Instagram, Threads and LinkedIn went on 2026-09-28.
+    expect(SourcePlatformSchema.options).toEqual(["github", "huggingface", "arxiv", "web"]);
   });
 
-  it("StyleMatchGrade", () => {
-    // No Style card carries one any more. The union survives because `STYLE_MATCH` in the
-    // status registry and the `match` filter in the URL are still built from it, and this
-    // assertion is what keeps those two agreeing on the vocabulary.
-    expect(StyleMatchGradeSchema.options).toEqual(["exact", "likely", "similar", "unknown"]);
+  it("JobType", () => {
+    // A type this enum lacks rejects the whole job list and takes every workspace page down.
+    expect(JobTypeSchema.options).toEqual([
+      "collection",
+      "enrichment",
+      "plan",
+      "research",
+      "trial",
+    ]);
   });
 
   it("JobState", () => {
@@ -121,7 +97,6 @@ describe("model schemas", () => {
       source,
       summary: "설명 문장",
       checkedAt: null,
-      preview: null,
     });
     expect(parsed.tags).toEqual([]);
     expect(parsed.links).toEqual([]);
@@ -138,71 +113,43 @@ describe("model schemas", () => {
       source,
       summary: "",
       checkedAt: null,
-      preview: null,
       status: "ready_local",
       peakMemoryGb: 40,
       requiredSecrets: ["HF_TOKEN"],
+      preview: { id: "x", src: "/api/media/1" },
     });
     expect(parsed).not.toHaveProperty("status");
+    expect(parsed).not.toHaveProperty("preview");
     expect(parsed).not.toHaveProperty("peakMemoryGb");
     expect(parsed).not.toHaveProperty("requiredSecrets");
   });
 
-  it("accepts a collected Style card with no photo at all", () => {
-    // Every product field is gone with the product resolver. What remains is what was
-    // actually collected, and an item whose photo never arrived must still parse.
-    const parsed = StyleItemCardModelSchema.parse({
-      id: "example-outfit",
-      source: { ...source, platform: "instagram", actionType: "save" },
-      media: [],
-      descriptor: "그레이 울 블렌드 미니 스커트",
-      caption: "그레이 울 블렌드 미니 스커트\n#데일리룩",
-      checkedAt: null,
-    });
-    expect(parsed.media).toEqual([]);
-    expect(parsed.tags).toEqual([]);
-    expect(parsed.links).toEqual([]);
+  it("refuses a platform from the Instagram era", () => {
+    for (const platform of ["instagram", "threads", "linkedin"]) {
+      expect(
+        AIItemCardModelSchema.safeParse({
+          id: "x",
+          kind: "post",
+          title: "x",
+          source: { ...source, platform },
+          summary: "",
+          checkedAt: null,
+        }).success,
+      ).toBe(false);
+    }
   });
 
-  it("keeps every photo of a carousel, in order", () => {
-    const photo = (id: string) => ({
-      id,
-      type: "image" as const,
-      src: `https://cdn.example/${id}.jpg`,
-      alt: "저장한 게시물의 사진",
+  it("counts today's signals by kind, and nothing by board", () => {
+    const parsed = SavedSummarySchema.parse({
+      newItemCount: 5,
+      kindCounts: { repo: 3, paper: 2 },
+      sources: ["github", "huggingface"],
+      href: "/library?day=2026-09-28",
+      aiCount: 5,
+      previews: [],
     });
-    const parsed = StyleItemCardModelSchema.parse({
-      id: "example-outfit",
-      source: { ...source, platform: "instagram", actionType: "save" },
-      media: [photo("a"), photo("b"), photo("c")],
-      descriptor: "여름 코디",
-      caption: "여름 코디",
-      checkedAt: null,
-    });
-    expect(parsed.media.map((image) => image.id)).toEqual(["a", "b", "c"]);
-  });
-
-  it("drops a product claim a stale producer still sends", () => {
-    // The schema strips unknown keys rather than rejecting them, which is the behaviour
-    // that matters: a producer that has not been updated cannot get a price or a match
-    // grade onto a card, it simply does not arrive.
-    const parsed = StyleItemCardModelSchema.parse({
-      id: "example-outfit",
-      source: { ...source, platform: "instagram", actionType: "save" },
-      media: [],
-      descriptor: "그레이 울 블렌드 미니 스커트",
-      caption: "",
-      checkedAt: null,
-      brand: "Example Studio",
-      matchGrade: "exact",
-      currentPrice: { amount: 89000, currency: "KRW" },
-      retailerCount: 2,
-      stockState: "available",
-    });
-    expect(parsed).not.toHaveProperty("brand");
-    expect(parsed).not.toHaveProperty("matchGrade");
-    expect(parsed).not.toHaveProperty("currentPrice");
-    expect(parsed).not.toHaveProperty("stockState");
+    expect(parsed).not.toHaveProperty("aiCount");
+    expect(parsed).not.toHaveProperty("previews");
   });
 
   it("requires evidence provenance", () => {
@@ -221,8 +168,8 @@ describe("model schemas", () => {
       id: "job-1",
       type: "collection",
       state: "blocked",
-      title: "Threads 수집",
-      steps: [{ id: "s1", label: "로그인 확인", state: "failed", message: "auth_required" }],
+      title: "Hugging Face 수집",
+      steps: [{ id: "s1", label: "업보트한 논문 가져오기", state: "failed", message: "failed" }],
       cancellable: false,
     });
     expect(parsed.state).toBe("blocked");
@@ -232,25 +179,17 @@ describe("model schemas", () => {
 describe("manual item input", () => {
   it("accepts a user-authored web link without requiring fetched metadata", () => {
     expect(
-      ManualItemCreateRequestSchema.parse({
-        url: "https://www.instagram.com/reel/Manual_123/",
-        board: "music",
-      }),
-    ).toEqual({
-      url: "https://www.instagram.com/reel/Manual_123/",
-      board: "music",
-    });
+      ManualItemCreateRequestSchema.parse({ url: "https://huggingface.co/datasets/a/b" }),
+    ).toEqual({ url: "https://huggingface.co/datasets/a/b" });
   });
 
-  it("rejects non-web schemes and unknown boards", () => {
+  it("rejects non-web schemes, and asks for no board", () => {
+    expect(ManualItemCreateRequestSchema.safeParse({ url: "javascript:alert(1)" }).success).toBe(
+      false,
+    );
     expect(
-      ManualItemCreateRequestSchema.safeParse({ url: "javascript:alert(1)", board: "music" })
-        .success,
-    ).toBe(false);
-    expect(
-      ManualItemCreateRequestSchema.safeParse({ url: "https://example.com", board: "archive" })
-        .success,
-    ).toBe(false);
+      ManualItemCreateRequestSchema.parse({ url: "https://example.com", board: "music" }),
+    ).not.toHaveProperty("board");
   });
 });
 
@@ -320,25 +259,12 @@ describe("settings document", () => {
         options: ["cinematic", "reduced"],
       },
     },
-    privacy: {
-      debugRetentionDays: {
-        // `origin: "default"` and not `"file"`: the shipped example omits the key entirely,
-        // so the 7 comes from the pydantic field default in `config/schema.py`.
-        value: 7,
-        origin: "default",
-        effect: "nextRun",
-        editable: false,
-        min: 0,
-        max: 90,
-      },
-    },
     general: {
       timezone: { value: "Asia/Seoul", origin: "file", effect: "immediate", editable: false },
       locale: { value: "ko-KR", origin: "file", effect: "immediate", editable: false },
       ceremonialEntry: {
-        // `origin: "default"` for the same reason as `debugRetentionDays` and a different
-        // motive: the shipped example never names it, because this screen is where it is
-        // meant to be written.
+        // `origin: "default"`: the shipped example never names it, because this screen is
+        // where it is meant to be written.
         value: "full",
         origin: "default",
         effect: "immediate",
@@ -346,28 +272,12 @@ describe("settings document", () => {
         options: ["full", "brief", "skip"],
       },
     },
-    features: {
-      shareCapture: { value: false, origin: "file", effect: "nextRun", editable: false },
-      historicalImport: { value: false, origin: "file", effect: "nextRun", editable: false },
-      linkedinCollector: { value: false, origin: "file", effect: "nextRun", editable: false },
-      localModelEnrichment: { value: false, origin: "file", effect: "nextRun", editable: false },
-    },
-    sources: [
-      {
-        platform: "instagram",
-        label: "Instagram · 저장됨",
-        enabled: { value: true, origin: "default", effect: "nextRun", editable: false },
-        state: "collected",
-        connectedAt: "2026-08-08T06:31:00Z",
-        itemCount: 76,
-      },
-    ],
   });
 
   it("pins the three origins a value can have", () => {
-    // The whole screen is this union. `file` and `default` are not interchangeable — three
-    // config fields (`media_dir`, `browser_profile_dir`, `debug_retention_days`) are absent
-    // from the shipped example and reach the user as a pydantic field default instead.
+    // The whole screen is this union. `file` and `default` are not interchangeable —
+    // `ceremonial_entry` is absent from the shipped example and reaches the user as a
+    // pydantic field default instead.
     expect(SettingOriginSchema.options).toEqual(["default", "file", "user"]);
   });
 
@@ -486,14 +396,22 @@ describe("settings document", () => {
     ).toBe(true);
   });
 
-  it("requires a source switch to carry its own provenance", () => {
-    // `source_accounts.enabled` is written once as the literal `enabled=1`
-    // (ingest/captures.py:174) and read by nothing, so this switch must be able to arrive
-    // `editable: false`. A bare boolean cannot say that, and would render as a working
-    // control that stops no collection.
-    const document = settingsDocument();
-    const bare = { ...document, sources: [{ ...document.sources[0], enabled: true }] };
-    expect(SettingsDocumentSchema.safeParse(bare).success).toBe(false);
+  it("drops the sections the Instagram era sent", () => {
+    // Removed on 2026-09-28: the flags for collectors never built ("아직 없는 설정"), a debug
+    // retention only a browser collector read, and per-source switches that stopped nothing.
+    const parsed = SettingsDocumentSchema.parse({
+      ...settingsDocument(),
+      privacy: {},
+      features: {},
+      sources: [],
+    });
+    expect(parsed).not.toHaveProperty("privacy");
+    expect(parsed).not.toHaveProperty("features");
+    expect(parsed).not.toHaveProperty("sources");
+    expect(
+      SettingsPatchRequestSchema.safeParse({ changes: { "features.linkedinCollector": true } })
+        .success,
+    ).toBe(false);
   });
 
   it("round-trips a full document unchanged", () => {
@@ -540,7 +458,6 @@ describe("settings document", () => {
       }
       return found;
     };
-    // `sources[].enabled` is per-platform and has its own endpoint, so it is not a dotted key.
     expect(leaves(SettingsDocumentSchema, "")).toEqual([...SETTING_KEYS]);
   });
 
@@ -556,9 +473,9 @@ describe("settings document", () => {
     ).toBe(true);
   });
 
-  it("accepts a patch that names one key out of thirteen", () => {
+  it("accepts a patch that names one key out of eight", () => {
     // Partial by construction: a body is what changed, not the document restated. An
-    // exhaustive record would force the client to echo twelve values it never touched.
+    // exhaustive record would force the client to echo seven values it never touched.
     const parsed = SettingsPatchRequestSchema.parse({
       changes: { "collection.allowManualRefresh": false },
     });

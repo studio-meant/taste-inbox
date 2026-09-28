@@ -1,4 +1,9 @@
-"""Store a link the user supplied, without fetching or inspecting its destination."""
+"""Store a link the user supplied, without fetching or inspecting its destination.
+
+A person's own explicit signal, beside the stars and likes the collectors bring. The URL
+decides what it is — a GitHub repository, a Hugging Face model, dataset, Space or paper, an
+arXiv paper, or any other page — and nothing is requested from it.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +17,6 @@ from sqlalchemy.orm import Session
 
 from ..db.models import Item, ItemSource, SourceAccount
 from .app import ApiError
-from .boards import WRITABLE_BOARDS, set_item_board
 from .cards import generated_at, to_item_detail
 
 MAX_URL = 2048
@@ -60,21 +64,27 @@ def _canonical_url(payload: dict[str, Any]) -> str:
     return urlunsplit((parsed.scheme.lower(), netloc, path, parsed.query, ""))
 
 
-def _platform(url: str) -> tuple[str, str, str]:
+#: A Hugging Face path's first segment, and the kind of thing it names. Anything else on
+#: the Hub — `/{owner}/{name}` — is a model, which is how the Hub itself routes it.
+_HF_KINDS = {"datasets": "dataset", "spaces": "space", "papers": "paper"}
+
+
+def _platform(url: str) -> tuple[str, str, str, str]:
+    """`(platform, kind, label, identity)` for a link, read off the URL alone."""
     parsed = urlsplit(url)
     host = (parsed.hostname or "").removeprefix("www.")
-    if host == "instagram.com":
-        platform, label = "instagram", "직접 추가 · Instagram"
-    elif host in {"threads.com", "threads.net"}:
-        platform, label = "threads", "직접 추가 · Threads"
-    elif host == "linkedin.com" or host.endswith(".linkedin.com"):
-        platform, label = "linkedin", "직접 추가 · LinkedIn"
-    elif host == "github.com":
-        platform, label = "github", "직접 추가 · GitHub"
+    first = parsed.path.strip("/").split("/", 1)[0]
+    if host == "github.com":
+        platform, kind, label = "github", "repo", "직접 추가 · GitHub"
+    elif host == "huggingface.co":
+        platform, label = "huggingface", "직접 추가 · Hugging Face"
+        kind = _HF_KINDS.get(first, "model")
+    elif host == "arxiv.org":
+        platform, kind, label = "arxiv", "paper", "직접 추가 · arXiv"
     else:
-        platform, label = "web", "직접 추가 · 웹"
+        platform, kind, label = "web", "post", "직접 추가 · 웹"
     identity = "manual:" + hashlib.sha256(url.encode("utf-8")).hexdigest()
-    return platform, label, identity
+    return platform, kind, label, identity
 
 
 def _account(session: Session, platform: str, label: str) -> SourceAccount:
@@ -100,26 +110,24 @@ def _account(session: Session, platform: str, label: str) -> SourceAccount:
 
 
 def create_manual_item(session: Session, payload: dict[str, Any] | None) -> dict[str, Any]:
-    """Create or re-file one local bookmark. No request is made to ``url``."""
+    """Create one local bookmark, or answer with the one already there. No request is made
+    to ``url``."""
 
     if not isinstance(payload, dict):
-        _reject("추가할 링크와 보드를 보내주세요.")
-    board = payload.get("board")
-    if not isinstance(board, str) or board not in WRITABLE_BOARDS:
-        _reject("저장할 보드를 골라 주세요.")
+        _reject("추가할 링크를 보내주세요.")
     url = _canonical_url(payload)
     title = _text(payload, "title", MAX_TITLE)
     note = _text(payload, "note", MAX_NOTE)
 
     existing = session.scalar(select(Item).where(Item.canonical_url == url))
     if existing is not None:
-        return {"created": False, "item": set_item_board(session, existing.id, {"board": board})}
+        return {"created": False, "item": to_item_detail(session, existing)}
 
-    platform, label, identity = _platform(url)
+    platform, kind, label, identity = _platform(url)
     stamp = generated_at()
     item = Item(
         id=str(uuid.uuid4()),
-        kind="repo" if platform == "github" else "post",
+        kind=kind,
         platform=platform,
         platform_item_id=identity,
         canonical_url=url,
@@ -140,7 +148,6 @@ def create_manual_item(session: Session, payload: dict[str, Any] | None) -> dict
             item_id=item.id,
             source_account_id=account.id,
             action_type=None,
-            collection_name=WRITABLE_BOARDS[board],
             position=None,
             first_seen_at=stamp,
             action_at=None,

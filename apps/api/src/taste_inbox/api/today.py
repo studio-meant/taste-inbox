@@ -32,23 +32,20 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..db.models import Checkpoint, CollectorRun, Item, ItemSource, Job, JobStep, MediaAsset
-from .cards import BOARD_COLLECTIONS, PLATFORM_LABEL, board_filter, board_of
+from ..db.models import Checkpoint, CollectorRun, Item, Job, JobStep
+from .cards import PLATFORM_LABEL
 from .schedule import configured_zone
 
 #: Which collector entry belongs to which platform, for the source-status list.
 COLLECTOR_PLATFORM: dict[str, str] = {
-    "instagram_saved_ai": "instagram",
-    "instagram_saved_music": "instagram",
-    "instagram_saved_fashion": "instagram",
-    "instagram_likes": "instagram",
-    "github_stars": "github",
     "github_stars_api": "github",
     "huggingface_activity": "huggingface",
     "huggingface_upvotes": "huggingface",
-    "threads_reposts": "threads",
-    "linkedin_reactions": "linkedin",
 }
+
+#: A collector's last outcome that asks for a person. `rate_limited` is not one of them:
+#: the next cycle is the retry, and nothing a person does makes it come sooner.
+_NEEDS_A_PERSON = frozenset({"auth_required", "blocked", "failed"})
 
 
 def _greeting(now: datetime) -> str:
@@ -127,39 +124,12 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
     today = moment.date().isoformat()
 
     per_day = _first_seen_days(session, zone)
-    # Per board, **for today** — the split the Saved card draws under its own headline.
-    #
-    # These used to be whole-board totals, and the card treats them as parts of
-    # `newItemCount`: it computes `other = newItemCount - ai - style` and draws a meter from
-    # the three. So `10 새 항목` sat over `AI 41` and `Style 76`, a bar claiming to divide ten
-    # into a hundred and seventeen, and `max(0, 10 - 41 - 76)` quietly clamping -107 to zero
-    # so nothing looked broken. The reference is unambiguous about the shape it wants —
-    # `17 new items · AI 11 · Style 6`, and 11 + 6 = 17.
-    #
-    # `board_filter` is imported rather than reimplemented: a private copy of the board rule
-    # is what made this screen disagree with the boards in the first place.
     today_start, today_end = _utc_window(moment.date(), zone)
-    board_counts = {
-        board: (
-            session.scalar(
-                select(func.count())
-                .select_from(Item)
-                .join(ItemSource, ItemSource.item_id == Item.id)
-                .where(
-                    board_filter(board),
-                    Item.first_seen_at >= today_start,
-                    Item.first_seen_at < today_end,
-                )
-            )
-            or 0
-        )
-        for board in BOARD_COLLECTIONS
-    }
 
     checkpoints = list(session.scalars(select(Checkpoint)))
-    # A collector that stopped on a challenge is the one thing on this screen that asks
-    # for a person. Nothing else here is actionable yet.
-    attention = sum(1 for row in checkpoints if row.last_outcome in {"auth_required", "blocked"})
+    # A collector that stopped — refused, or reading a shape it no longer recognises — asks
+    # for a person, and so does a blocked trial below.
+    attention = sum(1 for row in checkpoints if row.last_outcome in _NEEDS_A_PERSON)
     queue = _working_queue(session)
     attention += sum(1 for row in queue if row["kind"] == "trial_blocked")
 
@@ -177,12 +147,7 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
         "leadConnection": None,
         "relatedConnections": [],
         "savedSummary": _saved_summary(
-            session,
-            board_counts,
-            per_day.get(today, 0),
-            today,
-            today_start,
-            today_end,
+            session, per_day.get(today, 0), today, today_start, today_end
         ),
         "workingQueue": queue,
         "previousDays": _previous_days(session, per_day, moment, zone),
@@ -320,52 +285,13 @@ def _working_queue(session: Session) -> list[dict[str, Any]]:
 
 
 def _saved_summary(
-    session: Session,
-    board_counts: dict[str, int],
-    new_today: int,
-    today: str,
-    today_start: str,
-    today_end: str,
+    session: Session, new_today: int, today: str, today_start: str, today_end: str
 ) -> dict[str, Any]:
     platforms = sorted(
         {value for value in session.scalars(select(Item.platform).distinct()) if value}
     )
-    rows = session.execute(
-        select(MediaAsset, Item.canonical_url)
-        .join(Item, MediaAsset.item_id == Item.id)
-        .where(
-            MediaAsset.local_path.is_not(None),
-            Item.first_seen_at >= today_start,
-            Item.first_seen_at < today_end,
-        )
-        .order_by(Item.first_seen_at.desc(), MediaAsset.id)
-    ).all()
-    previews: list[dict[str, Any]] = []
-    represented: set[str] = set()
-    for asset, canonical_url in rows:
-        # One cover per item. A carousel should not push two other newly saved posts out of
-        # a three-slot overview; its remaining photographs belong on the detail gallery.
-        if asset.item_id in represented:
-            continue
-        represented.add(asset.item_id)
-        video = "/reel/" in canonical_url
-        previews.append(
-            {
-                "id": f"saved-preview-{asset.id}",
-                "type": "video_frame" if video else "image",
-                "src": f"/api/media/{asset.id}",
-                "width": asset.width,
-                "height": asset.height,
-                "alt": asset.alt_text
-                or ("최근에 저장한 릴스의 표지 이미지" if video else "최근에 저장한 항목의 사진"),
-            }
-        )
-        if len(previews) == 3:
-            break
     # Today's arrivals by what they are — Repo, Paper, Dataset, Space, Model. The same axis
     # the Inbox rail counts, so a number on this card is one click from the list it counts.
-    # Boards were the split while boards were how items differed; in this edition every item
-    # is on one board, and "AI 135" said nothing the headline had not.
     kinds = {
         str(kind): int(count)
         for kind, count in session.execute(
@@ -378,24 +304,9 @@ def _saved_summary(
     return {
         "newItemCount": new_today,
         "kindCounts": dict(sorted(kinds.items(), key=lambda pair: (-pair[1], pair[0]))),
-        "aiCount": board_counts.get("trends", 0),
-        "styleCount": board_counts.get("style", 0),
-        "musicCount": board_counts.get("music", 0),
-        # Zero for as long as nothing files an item onto the places board — which is a real
-        # number, not a placeholder, and the card draws no chip for a board that received
-        # nothing today.
-        "placesCount": board_counts.get("places", 0),
         "sources": platforms,
-        # `preview` remains for an old desktop bundle already running while this response
-        # contract is deployed. The new card renders `previews` and no abstract stand-ins.
-        "preview": previews[0] if previews else None,
-        "previews": previews,
-        # Today's items, not the whole board.
-        #
-        # The card is headed "N 새 항목" and counts today, so a link that answered with all
-        # 158 was contradicting the number the person just clicked. `?day=` is the calendar
-        # facet the rail grew on 2026-08-10, parsed and applied by every board, so this is
-        # the same filter a person could set by hand rather than a private route.
+        # Today's items, not the whole Inbox: the card is headed "N 새 항목" and counts
+        # today, so the link answers with the same filter a person could set by hand.
         "href": f"/library?day={today}",
     }
 
@@ -434,15 +345,6 @@ def _relative_label(day: date, today: date) -> str:
     return day.isoformat()
 
 
-#: How many rows to consider before giving up on filling a day's three highlights.
-#:
-#: The filter below runs in Python, not in SQL, so the cap has to be here rather than a
-#: `LIMIT 3`. It used to be a `LIMIT 3` and that was the bug: three rows were taken and
-#: *then* filtered, so a day whose first three items were all unfiled produced an empty
-#: section under a heading that had already announced a count.
-_HIGHLIGHT_SCAN = 60
-
-
 def _highlights_for(session: Session, iso: str, zone: ZoneInfo) -> list[dict[str, Any]]:
     # A range, not a `LIKE 'YYYY-MM-DD%'` prefix: the prefix matches the UTC date, which is
     # a different set of items from the local day this row is labelled with.
@@ -450,47 +352,20 @@ def _highlights_for(session: Session, iso: str, zone: ZoneInfo) -> list[dict[str
     rows = session.scalars(
         select(Item)
         .where(Item.first_seen_at >= start, Item.first_seen_at < end)
-        .order_by(Item.first_seen_at.desc())
-        .limit(_HIGHLIGHT_SCAN)
+        .order_by(Item.first_seen_at.desc(), Item.id)
+        .limit(3)
     ).all()
-
-    highlights: list[dict[str, Any]] = []
-    for item in rows:
-        if len(highlights) == 3:
-            break
-        #
-        # `board_of`, not a local copy of the rule.
-        #
-        # This used to map `item_sources.collection_name` through `BOARD_COLLECTIONS`, which
-        # answers "which collection did the user file this into" — and GitHub, Threads and
-        # LinkedIn items are filed into none, by design (`cards.PLATFORM_BOARDS`: the
-        # database records what the user did, the query applies the routing). So every one
-        # of them was dropped, and a day of nothing but stars and reposts rendered its
-        # heading over an empty space. `board_of` asks the rules the boards themselves use,
-        # which is the only answer that cannot disagree with where the item actually is.
-        domain = board_of(session, item)
-        if domain is None:
-            continue
-        # The item's own cached thumbnail, when it has one. Only Instagram media is cached,
-        # so this is null for a starred repository — and the card tints by platform instead
-        # of drawing a picture of something nobody photographed.
-        asset = session.scalar(
-            select(MediaAsset)
-            .where(MediaAsset.item_id == item.id, MediaAsset.local_path.is_not(None))
-            .order_by(MediaAsset.id)
-        )
-        highlights.append(
-            {
-                "id": item.id,
-                "domain": domain,
-                "platform": item.platform,
-                "title": _title_of(item),
-                "meta": PLATFORM_LABEL.get(item.platform, item.platform),
-                "href": f"/items/{item.id}",
-                "preview": None if asset is None else f"/api/media/{asset.id}",
-            }
-        )
-    return highlights
+    return [
+        {
+            "id": item.id,
+            "kind": item.kind,
+            "platform": item.platform,
+            "title": _title_of(item),
+            "meta": PLATFORM_LABEL.get(item.platform, item.platform),
+            "href": f"/items/{item.id}",
+        }
+        for item in rows
+    ]
 
 
 def _title_of(item: Item) -> str:
@@ -500,14 +375,15 @@ def _title_of(item: Item) -> str:
         candidate = line.strip()
         if candidate and not candidate.startswith("#"):
             return candidate[:60]
-    return "저장한 게시물"
+    return "저장한 항목"
 
 
 def _source_status(session: Session, checkpoints: list[Checkpoint]) -> list[dict[str, Any]]:
-    """One row per platform, folding the per-collection Instagram runs together.
+    """One row per platform, folding its collectors together.
 
-    A platform with no checkpoint at all reports `disabled` rather than `failed`: never
-    having run is not the same as having tried and stopped.
+    Hugging Face has two — likes and paper upvotes — and either one stopping is the
+    platform needing a person. A platform with no checkpoint at all reports `disabled`
+    rather than `failed`: never having run is not the same as having tried and stopped.
     """
     collected: dict[str, int] = {
         row[0]: row[1]
@@ -536,7 +412,7 @@ def _source_status(session: Session, checkpoints: list[Checkpoint]) -> list[dict
                 "lastRunAt": None,
             },
         )
-        if row.last_outcome in {"auth_required", "blocked"}:
+        if row.last_outcome in _NEEDS_A_PERSON:
             current["state"] = row.last_outcome if row.last_outcome == "auth_required" else "failed"
         started = latest.started_at if latest else None
         if started and (current["lastRunAt"] is None or started > current["lastRunAt"]):

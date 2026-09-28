@@ -17,16 +17,12 @@ import { z } from "zod";
  */
 
 /**
- * Board ordering.
- *
- * Newly defined rather than adopted: `IA_WIREFRAMES.md` used `recent` and
- * `FRONTEND_COMPONENT_ARCHITECTURE.md` used `newest` for what is the same order, and
- * neither had a schema behind it. `newest` wins because it pairs with the price options
- * without reading as a different kind of word; `recent` is retired.
+ * Inbox ordering. `recent` is retired in favour of `newest`; the price orders went with the
+ * Style board on 2026-09-28.
  */
-export const SortOrderSchema = z.enum(["newest", "relevance", "price_asc", "price_desc"]);
+export const SortOrderSchema = z.enum(["newest", "relevance"]);
 
-/** What the board does before the user has chosen. */
+/** What the Inbox does before the user has chosen. */
 export const DEFAULT_SORT: SortOrder = "newest";
 
 /**

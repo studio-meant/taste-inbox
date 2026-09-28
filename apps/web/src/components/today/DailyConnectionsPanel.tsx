@@ -1,17 +1,11 @@
-import type {
-  DailyConnection,
-  SourcePlatform,
-  SourceStatusSummary,
-  StyleMatchGrade,
-} from "@taste-inbox/shared";
+import type { DailyConnection, SourcePlatform, SourceStatusSummary } from "@taste-inbox/shared";
 import { ArrowRight, Link2, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { StyleMatchPill } from "@/components/items/DomainStatusPill";
+import { kindLabel } from "@/components/collection/source-vocabulary";
 import { CardSurface, EmptyState } from "@/components/primitives";
 // The capsule's shape without the <button> element — see the action below.
 import buttonStyles from "@/components/primitives/Button.module.css";
 import { toUrlObject } from "@/lib/filters/board-filters";
-import { STYLE_MATCH } from "@/lib/status/registry";
 import { SOURCE_LABEL, SourceDots } from "./SourceDots";
 import styles from "./Today.module.css";
 import { cx } from "@/lib/cx";
@@ -20,22 +14,22 @@ import { cx } from "@/lib/cx";
  * Today's Connections — PAGE_SPECIFICATIONS §5.2, IA §7.2, laid out as the reference's
  * `ConnectionsCard` (ref.js:491):
  *
- *   [ 🔗 3 Connections ]                                        ( source dots )
- *   [ thumb ]  Garden Lens
- *              직접 만들고 있는 데이터 검증 흐름과 구조가 겹칩니다.
- *              [ Trends ] [ GitHub Star ]
+ *   [ 🔗 3 Connected bundles ]                                  ( source dots )
+ *   [ PA ]  Sample Reasoning: Small Models That Check Their Own Work
+ *           논문의 코드 저장소와 데모 Space가 함께 공개되어 있어요.
+ *           [ Paper ] [ Hugging Face ]
  *   ────────────────────────────────────────────────────────────────────────
- *   [ ✦ ]  Tiny distilled model for Apple Silicon
+ *   [ ✦ ]  sample-org/tiny-distilled
  *          같은 작업 흐름에서 함께 쓰기 좋아요.
- *   [ Focus 열기 → ]
- *   3 Updates                             GitHub 6   Instagram 6   Threads 5
+ *   [ Open in Lab → ]
+ *   7 Updates                                          GitHub 3   Hugging Face 4
  *
  * Two departures from the reference, both because it was drawn for content this product
  * no longer has:
  *
  * - its feature copy is "What can this repo unlock?" with a `Local` tag — the
  *   "will this run here" affordance removed on 2026-08-09 (CLAUDE.md §8). The shape
- *   carries the lead's own title, its relation note and its real domain/source tags.
+ *   carries the lead's own title, its relation note and its real kind/source tags.
  * - it has no slot for the related items §5.2 requires ("related item 2–4개"). They take
  *   the `.insight-row` shape, repeated, each row linking to its item.
  *
@@ -44,48 +38,12 @@ import { cx } from "@/lib/cx";
  */
 
 /**
- * `readiness` is a domain status string that the backend supplies. The registry is the
- * only thing that knows the vocabulary, so an unrecognised value renders nothing rather
- * than an empty or invented pill.
+ * The two-letter mark inside `.feature-thumb` — the first letters of the lead's kind
+ * (`PA` for a paper, `RE` for a repository), not a fabricated preview.
  */
-function ReadinessPill({
-  domain,
-  readiness,
-}: {
-  readonly domain: DailyConnection["domain"];
-  readonly readiness: string | null;
-}) {
-  if (readiness === null) {
-    return null;
-  }
-  // Trends has no readiness axis any more — its statuses described an execution the
-  // product no longer performs. Style keeps one because a match grade is a real finding.
-  if (domain === "style" && readiness in STYLE_MATCH) {
-    return <StyleMatchPill grade={readiness as StyleMatchGrade} />;
-  }
-  return null;
+function kindMark(kind: DailyConnection["kind"]): string {
+  return kindLabel(kind).slice(0, 2).toUpperCase();
 }
-
-const DOMAIN_LABEL: Readonly<Record<DailyConnection["domain"], string>> = {
-  trends: "Trends",
-  style: "Style",
-  music: "Music",
-  places: "Places",
-  none: "None",
-};
-
-/**
- * The two-letter mark inside `.feature-thumb`. The reference's is "AI", which was this
- * board's name before it became Trends (shared/domain/today.ts), so a board mark is what
- * the slot was drawn for.
- */
-const DOMAIN_MARK: Readonly<Record<DailyConnection["domain"], string>> = {
-  trends: "TR",
-  style: "ST",
-  music: "MU",
-  places: "PL",
-  none: "NO",
-};
 
 /** Distinct platforms, in first-seen order, across every connection on the card. */
 function platformsOf(connections: readonly DailyConnection[]): readonly SourcePlatform[] {
@@ -108,10 +66,8 @@ function platformsOf(connections: readonly DailyConnection[]): readonly SourcePl
  *
  * **Every source, not the first three.** The reference's row is a lead figure plus up to
  * three breakdowns, and that cap was ported with the layout — but the reference was
- * breaking one number into parts of itself, while this row breaks a total into *sources*,
- * and there are four. The screen read `158 Updates  GitHub 8  Instagram 126  LinkedIn 9`:
- * three numbers summing to 143 beside a total of 158, with Threads dropped silently. A
- * breakdown printed next to a total is read as accounting for it. `.updateRow` is already
+ * breaking one number into parts of itself, while this row breaks a total into *sources*.
+ * A breakdown printed next to a total is read as accounting for it, so none is dropped. `.updateRow` is already
  * `flex-wrap: wrap`, so the cap was buying nothing that the layout was not already handling.
  */
 function UpdateRow({
@@ -204,9 +160,9 @@ export function DailyConnectionsPanel({
       ) : (
         <>
           <div className={styles.featureRow}>
-            {/* `.feature-thumb` carries the board mark, not a fabricated preview. */}
+            {/* `.feature-thumb` carries the kind's mark, not a fabricated preview. */}
             <span className={styles.featureThumb} aria-hidden="true">
-              {DOMAIN_MARK[lead.domain]}
+              {kindMark(lead.kind)}
             </span>
 
             <div className={styles.featureCopy}>
@@ -216,12 +172,11 @@ export function DailyConnectionsPanel({
               </p>
               <div className={styles.tagRow}>
                 <span className={cx(styles.tag, styles.tagGreen)} lang="en">
-                  {DOMAIN_LABEL[lead.domain]}
+                  {kindLabel(lead.kind)}
                 </span>
                 <span className={styles.tag} lang="en">
                   {lead.source.label}
                 </span>
-                <ReadinessPill domain={lead.domain} readiness={lead.readiness} />
               </div>
             </div>
           </div>
@@ -253,15 +208,17 @@ export function DailyConnectionsPanel({
             One dark capsule per card (DESIGN.md §9) — and the capsule *is* the link. It
             used to be a <Button> inside the <Link>, which is invalid HTML (interactive
             content nested in an <a>), produced two tab stops for one destination, and made
-            a screen reader announce "Focus 열기" twice. The inner button never had an
-            onClick, so its only contribution was the shape: borrow that and drop the node.
+            a screen reader announce it twice. The inner button never had an onClick, so its
+            only contribution was the shape: borrow that and drop the node.
           */}
+          {/* The Lab, like every other `Open in Lab` in the product — `/focus/[itemId]`. The
+              lead's title above is the way to the item's own page. */}
           <Link
-            href={toUrlObject(lead.href)}
+            href={toUrlObject(`/focus/${lead.id}`)}
             className={cx(buttonStyles.button, buttonStyles.primary, styles.leadAction)}
           >
-            <span className={buttonStyles.label}>
-              Focus 열기
+            <span className={buttonStyles.label} lang="en">
+              Open in Lab
               <ArrowRight
                 className={buttonStyles.icon}
                 strokeWidth={1.75}

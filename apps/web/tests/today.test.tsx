@@ -57,14 +57,11 @@ describe("Today payload", () => {
     }
   });
 
-  it("keeps the saved split consistent with the total", async () => {
+  it("keeps the kind split consistent with the total", async () => {
     const { savedSummary } = await payload();
-    expect(
-      savedSummary.aiCount +
-        savedSummary.styleCount +
-        savedSummary.musicCount +
-        savedSummary.placesCount,
-    ).toBe(savedSummary.newItemCount);
+    expect(Object.values(savedSummary.kindCounts).reduce((sum, count) => sum + count, 0)).toBe(
+      savedSummary.newItemCount,
+    );
   });
 });
 
@@ -116,8 +113,8 @@ describe("TodayHeader", () => {
           lastRunAt: "2026-08-08T06:31:00Z",
         },
         {
-          platform: "threads" as const,
-          label: "Threads Repost",
+          platform: "huggingface" as const,
+          label: "Hugging Face",
           state: "collected" as const,
           collectedCount: 1,
           lastRunAt: "2026-08-08T09:05:00Z",
@@ -155,14 +152,22 @@ describe("DailyConnectionsPanel", () => {
       <DailyConnectionsPanel lead={today.leadConnection} related={today.relatedConnections} />,
     );
 
-    expect(screen.getByRole("heading", { name: "Garden Lens" })).toBeInTheDocument();
-    expect(screen.getByText(/데이터 검증 흐름과 구조가 겹칩니다/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Sample Reasoning: Small Models That Check Their Own Work",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/코드 저장소와 데모 Space/)).toBeInTheDocument();
+    // What the lead is, in the product's own English noun.
+    expect(screen.getByText("Paper")).toBeInTheDocument();
 
     // DESIGN.md §9: one dark capsule per card — and it is a link, not a <button> wrapped
-    // in one. The nested pair was invalid HTML and gave one destination two tab stops,
-    // both announcing "Focus 열기".
-    expect(screen.getByRole("link", { name: "Focus 열기" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Focus 열기/ })).not.toBeInTheDocument();
+    // in one, going where every other `Open in Lab` goes.
+    expect(screen.getByRole("link", { name: "Open in Lab" })).toHaveAttribute(
+      "href",
+      "/focus/sample-reasoning-paper",
+    );
+    expect(screen.queryByRole("button", { name: /Open in Lab/ })).not.toBeInTheDocument();
   });
 
   it("counts the card's connections in its heading", async () => {
@@ -197,29 +202,25 @@ describe("DailyConnectionsPanel", () => {
     const total = collected.reduce((sum, source) => sum + source.collectedCount, 0);
 
     expect(screen.getByText(`${String(total)} Updates`)).toBeInTheDocument();
-    expect(screen.getByText("GitHub 6")).toBeInTheDocument();
-    // The interrupted collector contributes no count it did not collect.
-    expect(screen.queryByText(/LinkedIn 0/)).not.toBeInTheDocument();
+    expect(screen.getByText("GitHub 3")).toBeInTheDocument();
+    // The stopped collector contributes no count to a total of what was collected.
+    expect(screen.queryByText(/Hugging Face 4/)).not.toBeInTheDocument();
   });
 
   it("breaks the total down by every source, not the first three", async () => {
     /*
      * The row used to `slice(0, 3)`, inherited from the reference's "lead plus up to three
-     * breakdowns" layout. On the live board that printed
-     * `158 Updates  GitHub 8  Instagram 126  LinkedIn 9` — 143 next to 158, with Threads
-     * dropped and nothing on screen saying so. A breakdown beside a total is read as
-     * accounting for it.
+     * breakdowns" layout, which printed a total beside parts that did not add up to it. A
+     * breakdown beside a total is read as accounting for it.
      *
-     * Four sources on purpose: the shipped fixture collects two, so a cap of three is
-     * invisible to it — which is exactly why this went unnoticed. The assertion is the
-     * arithmetic, so it keeps holding when a fifth platform starts collecting.
+     * Four sources on purpose — every platform the schema has — so a cap of three shows.
      */
     const today = await payload();
     const four = [
-      { platform: "github", collectedCount: 8 },
-      { platform: "instagram", collectedCount: 126 },
-      { platform: "linkedin", collectedCount: 9 },
-      { platform: "threads", collectedCount: 15 },
+      { platform: "github", collectedCount: 120 },
+      { platform: "huggingface", collectedCount: 15 },
+      { platform: "arxiv", collectedCount: 2 },
+      { platform: "web", collectedCount: 3 },
     ] as const;
 
     const shape = today.sourceStatusSummary.sources[0];
@@ -252,26 +253,6 @@ describe("DailyConnectionsPanel", () => {
       shown.reduce((sum, count) => sum + count, 0),
       "the parts add up to the whole",
     ).toBe(total);
-  });
-
-  it("shows no readiness pill for a Trends connection", async () => {
-    // Its statuses described an execution the product no longer performs, so there is
-    // nothing to resolve — and a pill reading "확인 필요" would imply one is coming.
-    const today = await payload();
-    render(
-      <DailyConnectionsPanel lead={today.leadConnection} related={today.relatedConnections} />,
-    );
-    expect(screen.queryByLabelText("실행 준비 완료")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("토큰 필요")).not.toBeInTheDocument();
-  });
-
-  it("renders nothing for a readiness value the registry does not know", async () => {
-    const today = await payload();
-    const lead = { ...today.leadConnection!, readiness: "invented_status" };
-    render(<DailyConnectionsPanel lead={lead} related={[]} />);
-    // A blank or invented pill would be worse than no pill.
-    expect(screen.queryByLabelText("실행 준비 완료")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Garden Lens" })).toBeInTheDocument();
   });
 
   it("shows an empty state inside the card shape when there is no lead", () => {
@@ -313,18 +294,15 @@ describe("SavedItemsSummaryCard", () => {
     const today = await payload();
     render(<SavedItemsSummaryCard summary={today.savedSummary} />);
 
-    expect(screen.getByText("17")).toBeInTheDocument();
-    // The split used to be one prose line. It is now a three-segment meter plus the two
-    // tags that name it — the same two numbers, still as text, because a bar alone would
-    // make the split colour-only (CLAUDE.md §6).
-    // By kind since 2026-09-28 — the axis the Inbox rail counts, largest first.
-    const chips = ["Post 7", "Outfit 6", "Repo 4"].map((label) => screen.getByText(label));
+    expect(screen.getByText("4")).toBeInTheDocument();
+    // A meter plus the tags that name it — the same numbers, still as text, because a bar
+    // alone would make the split colour-only (CLAUDE.md §6). By kind, largest first.
+    const chips = ["Repo 2", "Model 1", "Paper 1"].map((label) => screen.getByText(label));
     expect(chips).toHaveLength(3);
-    // No board names any more: every item in this edition is on one board.
     expect(screen.queryByText(/^AI /)).toBeNull();
 
     const sources = screen.getByRole("list", { name: "수집한 출처" });
-    expect(within(sources).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(sources).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("hides the meter from assistive technology because the tags already say it", async () => {
@@ -334,24 +312,10 @@ describe("SavedItemsSummaryCard", () => {
     expect(meter).not.toBeNull();
   });
 
-  it("gives the preview a descriptive alt", async () => {
+  it("draws no photographs — nothing collected has one", async () => {
     const today = await payload();
     render(<SavedItemsSummaryCard summary={today.savedSummary} />);
-    const previews = screen.getAllByRole("img");
-    expect(previews).toHaveLength(3);
-    for (const preview of previews) {
-      expect(preview.getAttribute("alt")?.length ?? 0).toBeGreaterThan(5);
-    }
-  });
-
-  it("shows only real previews and leaves missing slots empty", async () => {
-    const today = await payload();
-    render(
-      <SavedItemsSummaryCard
-        summary={{ ...today.savedSummary, previews: today.savedSummary.previews.slice(0, 2) }}
-      />,
-    );
-    expect(screen.getAllByRole("img")).toHaveLength(2);
+    expect(screen.queryAllByRole("img")).toHaveLength(0);
   });
 
   it("makes the whole card one link to the collection", async () => {
@@ -361,7 +325,7 @@ describe("SavedItemsSummaryCard", () => {
     const today = await payload();
     render(<SavedItemsSummaryCard summary={today.savedSummary} />);
 
-    const link = screen.getByRole("link", { name: "오늘 들어온 17개 항목을 Inbox에서 보기" });
+    const link = screen.getByRole("link", { name: "오늘 들어온 4개 항목을 Inbox에서 보기" });
     expect(link).toHaveAttribute("href", today.savedSummary.href);
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
@@ -374,28 +338,28 @@ describe("WorkingQueuePanel", () => {
 
     // The state moved from a full pill into the row's second line, next to the next step,
     // because the reference gives column one a 25px icon tile. It is still words.
-    expect(screen.getByText("준비 완료")).toBeInTheDocument();
-    expect(screen.getByText("Garden Lens")).toBeInTheDocument();
-    expect(screen.getByText("환경 열기")).toBeInTheDocument();
+    expect(screen.getByText("승인 대기")).toBeInTheDocument();
+    expect(screen.getByText("sample-org/garden-lens")).toBeInTheDocument();
+    expect(screen.getByText("안전하게 실행할지 결정하기")).toBeInTheDocument();
   });
 
-  it("sends a collector auth row to System", async () => {
+  it("sends every row to its Lab", async () => {
     const today = await payload();
     render(<WorkingQueuePanel items={today.workingQueue} />);
-    const row = screen.getByText("LinkedIn Reactions").closest("a");
-    expect(row).toHaveAttribute("href", "/settings");
+    const row = screen.getByText("sample-org/garden-lens").closest("a");
+    expect(row).toHaveAttribute("href", "/focus/garden-lens");
   });
 
   it("shows a meter only for rows that report progress", async () => {
     const today = await payload();
     render(<WorkingQueuePanel items={today.workingQueue} />);
-    // Only the price check has progress in the fixture.
+    // Only the research run has progress in the fixture.
     const meters = screen.getAllByRole("meter");
     expect(meters).toHaveLength(1);
     // The bar is 4px tall and has no visible label, so its name and value have to be
     // carried by ARIA or the measurement is invisible to a screen reader.
-    expect(meters[0]).toHaveAccessibleName("Cropped shell jacket 진행률");
-    expect(meters[0]).toHaveAttribute("aria-valuenow", "60");
+    expect(meters[0]).toHaveAccessibleName("Sample Reasoning 진행률");
+    expect(meters[0]).toHaveAttribute("aria-valuenow", "50");
   });
 
   it("carries today's ready and attention counts in the footer", async () => {
@@ -418,7 +382,9 @@ describe("WorkingQueuePanel", () => {
     render(
       <WorkingQueuePanel items={today.workingQueue} counts={{ ...today.counts, attention: 0 }} />,
     );
-    expect(screen.queryByText(/확인 필요/)).not.toBeInTheDocument();
+    // Scoped to the counts: a blocked trial row still names its own state in words.
+    const counts = screen.getByRole("list", { name: "오늘 요약" });
+    expect(within(counts).queryByText(/확인 필요/)).not.toBeInTheDocument();
   });
 
   it("shows an empty state inside the card shape when nothing is queued", () => {
@@ -439,10 +405,10 @@ describe("PartialFailureNotice", () => {
     render(<PartialFailureNotice summary={today.sourceStatusSummary} />);
     const text = screen.getByText(/정상 수집했지만/).textContent;
 
-    expect(text).toContain("정상 수집했지만");
-    expect(text).toContain("LinkedIn Reactions는 로그인 만료로");
+    expect(text).toContain("GitHub는 정상 수집했지만");
+    expect(text).toContain("Hugging Face는 오류로");
     // Leading with the failure would make a mostly-successful run read as broken.
-    expect(text.indexOf("정상 수집")).toBeLessThan(text.indexOf("LinkedIn"));
+    expect(text.indexOf("정상 수집")).toBeLessThan(text.indexOf("Hugging Face"));
   });
 
   it("renders nothing when every collector succeeded", () => {
@@ -470,7 +436,7 @@ describe("PreviousDaySection", () => {
     const today = await payload();
     render(<PreviousDaySection days={today.previousDays} />);
     expect(screen.getByRole("heading", { name: /어제/ })).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
   });
 
   it("says how many the day actually had, and where the rest are", async () => {
@@ -500,50 +466,32 @@ describe("PreviousDaySection", () => {
     expect(screen.queryByText(/전체 보기/)).toBeNull();
   });
 
-  it("shows the item's own photo when it has one, and a tinted cover when it does not", async () => {
-    /*
-     * Every card wore one identical gradient, so a row of three said the same thing three
-     * times. Only Instagram media is cached, so a starred repository has no picture to
-     * show and gets the source's own colour instead of an invented photograph.
-     */
+  it("tints each cover by source and marks it, never inventing a photograph", async () => {
+    // A starred repository has no picture; a row of identical gradients said the same
+    // thing three times, so the cover takes the source's own colour and mark.
     const today = await payload();
     const { container } = render(<PreviousDaySection days={today.previousDays} />);
 
-    const photo = container.querySelector("img");
-    expect(photo, "the Instagram highlight shows its cached thumbnail").not.toBeNull();
-    expect(photo?.getAttribute("src")).toBe("/mock-media/grey-pleated-skirt.svg");
-    // Decorative: the title beside it already names the item.
-    expect(photo?.getAttribute("alt")).toBe("");
-
-    // The GitHub highlight has no media anywhere in the product.
-    const tinted = container.querySelector('[style*="--cover-tint"]');
-    expect(tinted, "the starred repository gets a tint, not a fake photo").not.toBeNull();
-    // The source mark, not a letter: GitHub's own logo, monochrome in the theme's ink.
-    expect(tinted?.querySelector("svg"), "the cover carries the source's mark").not.toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    const tinted = container.querySelectorAll('[style*="--cover-tint"]');
+    expect(tinted).toHaveLength(today.previousDays[0]!.highlights.length);
+    for (const cover of tinted) {
+      expect(cover.querySelector("svg"), "the cover carries the source's mark").not.toBeNull();
+    }
   });
 
-  it("gives every row a cover, a title, a meta line and a trailing board tag", async () => {
+  it("gives every row a cover, a title, a meta line and a trailing kind tag", async () => {
     // ref.js:497. The reference's trailing pills read "Ready" and "78%" — a compatibility
-    // verdict and a price match, both removed. The board name is what the payload has.
+    // verdict and a price match, both removed. The item's kind is what the payload has.
     const today = await payload();
     render(<PreviousDaySection days={today.previousDays} />);
 
     const rows = screen.getAllByRole("listitem");
     const first = within(rows[0]!);
-    expect(first.getByText("Large-batch trainer")).toBeInTheDocument();
-    expect(first.getByText(/GitHub Star/)).toBeInTheDocument();
-    expect(first.getByText("Trends")).toBeInTheDocument();
-    expect(within(rows[1]!).getByText("Style")).toBeInTheDocument();
-  });
-
-  it("renders a collected item still waiting on the None inbox", async () => {
-    const today = await payload();
-    const original = today.previousDays[0]!;
-    const highlight = { ...original.highlights[0]!, domain: "none" as const };
-
-    render(<PreviousDaySection days={[{ ...original, itemCount: 1, highlights: [highlight] }]} />);
-
-    expect(screen.getByText("None")).toBeInTheDocument();
+    expect(first.getByText("sample-org/tiny-eval-set")).toBeInTheDocument();
+    expect(first.getByText("Hugging Face")).toBeInTheDocument();
+    expect(first.getByText("Dataset")).toBeInTheDocument();
+    expect(within(rows[2]!).getByText("Repo")).toBeInTheDocument();
   });
 
   it("keeps the Korean day label", async () => {

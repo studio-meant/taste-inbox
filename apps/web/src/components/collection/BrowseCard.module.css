@@ -43,63 +43,7 @@
   border-color: color-mix(in srgb, var(--library-card-accent, var(--accent)) 40%, transparent);
 }
 
-/* ─────────────────────────────────────────────────────────────────── media */
-
-.media {
-  position: relative;
-  flex: none;
-  /* Reserve the picture independently of the caption; extra text grows the card. */
-  aspect-ratio: 4 / 3;
-  min-height: 122px;
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--light-green) 68%, var(--surface)),
-    color-mix(in srgb, var(--oatmeal) 76%, var(--surface))
-  );
-  overflow: hidden;
-}
-
-/*
- * The gradient is the ground, not the picture. Anything the card puts in the block fills
- * it, so a photo that has not loaded (or a signed URL that has expired) leaves the ground
- * showing rather than a hole.
- */
-.mediaFill {
-  position: absolute;
-  inset: 0;
-}
-
-.mediaFill img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Image-led cards keep a predictable cover, never squeeze their body to fit a row span. */
-.sizeTall .media {
-  aspect-ratio: 1;
-}
-
-.sizeWide .media {
-  aspect-ratio: 16 / 7;
-  max-height: 320px;
-}
-
-/* A card with no picture has no media block at all — the reference hides it outright. */
-.sizeSmall .media {
-  display: none;
-}
-
-/* The source is the upper-right action on every card, visible without hover. */
-.badgeFloating {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  max-width: calc(100% - var(--space-4));
-}
-
-/* No media block to float on — the badge takes the eyebrow row's right-hand slot. */
+/* The badge takes the eyebrow row's right-hand slot. */
 .badgeInline {
   margin-inline-start: auto;
 }
@@ -417,14 +361,7 @@
   }
 }
 
-/* The two positions the corner slot takes, matching `.badgeFloating` / `.badgeInline`. */
-.labFloating {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  max-width: calc(100% - var(--space-4));
-}
-
+/* The corner slot, matching `.badgeInline`. */
 .labInline {
   margin-inline-start: auto;
 }

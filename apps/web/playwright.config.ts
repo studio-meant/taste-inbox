@@ -6,7 +6,7 @@ import { defineConfig } from "@playwright/test";
  * It exists because of a measured gap, not a preference. In one session, four bugs each took
  * a whole screen down while all 657 unit tests passed:
  *
- *   1. one schemeless URL made the Style payload fail validation — the board never rendered
+ *   1. one schemeless URL made a board's payload fail validation — the board never rendered
  *   2. `/api/media/:id` 404'd, so 297 images had no intrinsic size and the grid collapsed to 2px
  *   3. with no filter rail, the board landed in an `auto` grid track and collapsed to 2px again
  *   4. `BROWSE_MODES` crossed a `"use client"` boundary and arrived as a client reference,
@@ -17,8 +17,8 @@ import { defineConfig } from "@playwright/test";
  *
  * **Mock data, deliberately.** `NEXT_PUBLIC_DATA_SOURCE` is left at its default, so the suite
  * runs against committed fixtures and needs no API, no database and no collected content. That
- * keeps it deterministic and keeps the user's saved Instagram photographs out of a test run
- * (CLAUDE.md §10). It is the reason this catches (3) and (4) but not (1) and (2), which need
+ * keeps it deterministic and keeps the user's own stars and likes out of a test run
+ * (CLAUDE.md §11). It is the reason this catches (3) and (4) but not (1) and (2), which need
  * real payloads — that boundary is stated in `docs/DECISIONS.md` rather than left to be
  * discovered.
  */
@@ -68,8 +68,8 @@ export default defineConfig({
      * left it unset and assumed mock. It got live: `NEXT_PUBLIC_*` is inlined at build time,
      * and a build run from a shell that had it set — or against a `.next` a live `pnpm dev`
      * had already written — bakes that in. The suite then rendered the user's own collected
-     * posts and hotlinked Instagram's CDN, which is neither deterministic nor allowed
-     * (CLAUDE.md §10). Setting it explicitly is what makes "mock" true rather than likely.
+     * items, which is neither deterministic nor allowed (CLAUDE.md §11). Setting it
+     * explicitly is what makes "mock" true rather than likely.
      */
     env: {
       /*
@@ -79,17 +79,6 @@ export default defineConfig({
        */
       TASTE_INBOX_DIST_DIR: ".next-e2e",
       NEXT_PUBLIC_DATA_SOURCE: "mock",
-      /*
-       * Seed fixtures only — no `var/captures`.
-       *
-       * Mock mode is not hermetic by default: `lib/mock/captures.ts` reads the real
-       * collections at request time when they exist, so that a developer sees their own
-       * content without any of it being committed. Good for looking at; wrong for a test.
-       * Left on, this suite rendered 76 of the user's saved posts and hotlinked Instagram's
-       * CDN — and failed, because two of those signed URLs had expired. That is a fact about
-       * how old a capture is, not about whether the code works.
-       */
-      TASTE_INBOX_USE_CAPTURES: "0",
     },
     url: "http://127.0.0.1:4199/today",
     reuseExistingServer: false,

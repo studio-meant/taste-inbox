@@ -6,9 +6,8 @@ travel between them as JSON on disk and the checkpoint travels back as an argv s
 That seam is inherited deliberately: it is what lets these tests run with no database and
 the ingester's tests run with no network.
 
-**The shape is not ours to choose.** `taste_inbox.ingest.captures.ingest_browser_file`
-already reads exactly this document, so matching it is what makes the API collectors work
-with an ingester nobody had to change. Field names here are the ones that function reads.
+**The shape is shared.** `taste_inbox.ingest.captures.ingest_source_file` reads exactly
+this document. Field names here are the ones that function reads.
 
 **A failed run is written too.** A capture file is how a run reaches
 `checkpoints.last_outcome` and from there the Today screen, so a rate-limited or
@@ -48,9 +47,8 @@ class SourceItem:
     body_text: str | None = None
     owner: str | None = None
     source_published_at: str | None = None
-    #: When the *user* acted — starred, liked. The inherited browser collectors always left
-    #: this null because the rendered pages never show it; both APIs here do say it, which
-    #: is the single biggest thing these collectors buy over their browser ancestors.
+    #: When the *user* acted — starred, liked, upvoted. The APIs say it, so it is kept
+    #: rather than guessed from when this product first saw the item.
     action_at: str | None = None
     tags: list[str] = field(default_factory=list)
     outbound_urls: list[str] = field(default_factory=list)

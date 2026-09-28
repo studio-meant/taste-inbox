@@ -36,7 +36,7 @@ import {
  * and rendering an empty row.
  */
 
-export type SettingsSectionId = "collection" | "appearance" | "privacy" | "general" | "features";
+export type SettingsSectionId = "collection" | "appearance" | "general";
 
 export interface SettingsSection {
   readonly id: SettingsSectionId;
@@ -49,7 +49,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     id: "collection",
     heading: "수집",
     description:
-      "수집기가 얼마나 자주, 어떤 간격으로 계정을 여는지 정합니다. 이 화면에서 바꾼 값이 실제로 동작하는 유일한 구간이에요.",
+      "GitHub와 Hugging Face를 얼마나 자주 읽을지 정합니다. 이 화면에서 바꾼 값이 실제로 동작하는 구간이에요.",
   },
   {
     id: "general",
@@ -60,18 +60,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
     id: "appearance",
     heading: "화면과 모션",
     description:
-      "설정 파일에 적힌 기본 테마와 모션입니다. 지금 보고 있는 화면의 테마는 이 값이 아니라 브라우저에 저장된 값이고, 그 값은 System 화면의 '테마'에서 고릅니다. 여기서는 파일에 무엇이 적혀 있는지만 보여드려요.",
-  },
-  {
-    id: "privacy",
-    heading: "기록 정리",
-    description: "실패했을 때 남는 화면 캡처를 언제까지 두는지에 대한 값입니다.",
-  },
-  {
-    id: "features",
-    heading: "기능 플래그",
-    description:
-      "CLAUDE.md는 수집기마다 따로 켜고 끌 수 있어야 한다고 적고 있어요. 값은 이미 설정 파일에 있지만, 아직 이 값을 읽는 코드가 없습니다.",
+      "설정 파일에 적힌 기본 테마와 모션입니다. 지금 보고 있는 화면의 테마는 이 값이 아니라 브라우저에 저장된 값이고, 그 값은 아래 '테마'에서 고릅니다. 여기서는 파일에 무엇이 적혀 있는지만 보여드려요.",
   },
 ];
 
@@ -132,7 +121,7 @@ export type SettingField =
  * command, because the screen it points at does not offer to.
  */
 const LAUNCHD_NOTE =
-  "다음 수집 시각 표시는 바로 바뀌지만, launchd에 이미 등록된 작업은 다시 등록할 때까지 옛 간격으로 실행돼요. 해제하고 다시 등록하는 명령은 System 화면의 '수집 작업 등록'에 있고, 실행은 터미널에서 직접 하셔야 합니다.";
+  "다음 수집 시각 표시는 바로 바뀌지만, launchd에 이미 등록된 작업은 다시 등록할 때까지 옛 간격으로 실행돼요. 해제하고 다시 등록하는 명령은 아래 '수집 작업 등록'에 있고, 실행은 터미널에서 직접 하셔야 합니다.";
 
 export const SETTING_FIELDS: readonly SettingField[] = [
   {
@@ -143,7 +132,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     label: "수집 간격",
     unit: "시간",
     description:
-      "자정을 기준으로 몇 시간마다 계정을 열지 정합니다. 4시간이면 하루 여섯 번이에요. 간격은 최신성만 정하고 빠짐없이 가져오는 것과는 상관이 없어서, 한 번 걸러도 잃는 항목은 없습니다.",
+      "자정을 기준으로 몇 시간마다 GitHub와 Hugging Face를 읽을지 정합니다. 4시간이면 하루 여섯 번이에요. 간격은 최신성만 정하고 빠짐없이 가져오는 것과는 상관이 없어서, 한 번 걸러도 잃는 항목은 없습니다.",
     effectNote: LAUNCHD_NOTE,
     fixedReason: "",
   },
@@ -152,10 +141,10 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     section: "collection",
     kind: "number",
     read: (settings) => settings.collection.staggerMinutes,
-    label: "계정별 시차",
+    label: "수집기 사이 간격",
     unit: "분",
     description:
-      "한 번의 수집에서 계정을 몇 분씩 띄워 열지 정합니다. 0이면 여섯 계정을 같은 분에 엽니다. 여섯 계정이 모두 한 번의 간격 안에 들어가야 해서, 넣을 수 있는 최댓값은 수집 간격에 따라 달라져요.",
+      "launchd로 설치한 세 수집기(GitHub 스타, Hugging Face 좋아요, 업보트)를 몇 분씩 띄워 시작할지 정합니다. 세 수집기가 모두 한 번의 간격 안에 들어가야 해서, 넣을 수 있는 최댓값은 수집 간격에 따라 달라져요.",
     effectNote: LAUNCHD_NOTE,
     fixedReason: "",
   },
@@ -222,7 +211,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
      * name the place that does change it, and admit the two values can disagree.
      */
     fixedReason:
-      "설정 파일의 이 값을 읽는 코드는 아직 없어요. 화면에 보이는 테마는 브라우저에 저장된 값이고, 고르는 곳은 System 화면의 '테마'입니다. 그래서 여기 적힌 이름과 지금 보고 있는 테마가 다를 수 있어요.",
+      "설정 파일의 이 값을 읽는 코드는 아직 없어요. 화면에 보이는 테마는 브라우저에 저장된 값이고, 고르는 곳은 아래 '테마'입니다. 그래서 여기 적힌 이름과 지금 보고 있는 테마가 다를 수 있어요.",
   },
   {
     key: "appearance.defaultMotion",
@@ -233,54 +222,6 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     description: "설정 파일에 적힌 모션 모드입니다.",
     fixedReason:
       "이 값도 아직 아무 곳에서도 읽지 않아요. 게다가 화면에는 cinematic·ambient·reduced 세 가지가 있는데 설정 파일은 ambient를 적을 수 없어서, 고를 수 있는 목록이 화면과 다릅니다.",
-  },
-  {
-    key: "privacy.debugRetentionDays",
-    section: "privacy",
-    kind: "number",
-    read: (settings) => settings.privacy.debugRetentionDays,
-    label: "실패 캡처 보관 기간",
-    unit: "일",
-    description: "수집이 실패했을 때 남긴 화면 캡처를 며칠 뒤에 지울지 정하는 값입니다.",
-    fixedReason:
-      "캡처를 지우는 코드가 이 값 대신 자기 기본값 7일을 씁니다. 숫자를 고칠 수 있게 두면 며칠로 적든 7일 뒤에 지워져요.",
-  },
-  {
-    key: "features.shareCapture",
-    section: "features",
-    kind: "boolean",
-    read: (settings) => settings.features.shareCapture,
-    label: "공유 시트로 담기",
-    description: "다른 앱의 공유 시트에서 항목을 바로 담는 경로입니다.",
-    fixedReason: "값은 설정 파일에 있지만 읽는 코드가 없어서, 켜도 아무 일도 일어나지 않아요.",
-  },
-  {
-    key: "features.historicalImport",
-    section: "features",
-    kind: "boolean",
-    read: (settings) => settings.features.historicalImport,
-    label: "과거 기록 가져오기",
-    description: "지금까지 쌓인 예전 신호를 한 번에 불러오는 경로입니다.",
-    fixedReason: "값은 설정 파일에 있지만 읽는 코드가 없어서, 켜도 아무 일도 일어나지 않아요.",
-  },
-  {
-    key: "features.linkedinCollector",
-    section: "features",
-    kind: "boolean",
-    read: (settings) => settings.features.linkedinCollector,
-    label: "LinkedIn 수집기",
-    description: "LinkedIn 반응을 수집기 목록에 넣을지 정하는 값입니다.",
-    fixedReason:
-      "수집기를 고르는 코드가 이 값이 아니라 고정된 목록을 봅니다. 꺼도 LinkedIn은 그대로 목록에 남아요.",
-  },
-  {
-    key: "features.localModelEnrichment",
-    section: "features",
-    kind: "boolean",
-    read: (settings) => settings.features.localModelEnrichment,
-    label: "로컬 모델 보강",
-    description: "이 Mac에서 도는 모델로 수집한 항목을 보강할지 정하는 값입니다.",
-    fixedReason: "값은 설정 파일에 있지만 읽는 코드가 없어서, 켜도 아무 일도 일어나지 않아요.",
   },
 ];
 

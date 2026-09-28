@@ -16,7 +16,7 @@ created at install time instead: `install_commands` puts a `sleep` between the
 known limits, none of them hidden:
 
 - Installing every job takes one gap of `stagger_minutes` per job after the first, so at
-  seven sources and the shipped three minutes that is 18 minutes of waiting.
+  three sources and the shipped three minutes that is 6 minutes of waiting.
 - The phase is not durable. A reboot, or a `bootout` followed by a plain `bootstrap`,
   reloads the jobs together and the spacing collapses. Re-running the printed block
   restores it.
@@ -24,21 +24,24 @@ known limits, none of them hidden:
   The three-minute gap is a margin, not a guarantee.
 
 None of that costs data if it fails: two collectors that do land in the same minute still
-checkpoint on item ids, and the worst case is two browser sessions at once.
+checkpoint on item ids, and their ingests take turns on one lock.
 
 For the same reason the phase here is not the midnight-anchored slot list that
 `api/schedule.py` reports. That payload describes the intended cadence; once these jobs are
 loaded, the real clock times are `install time + N hours`.
 
 **Nothing here installs anything.** It writes plists into `var/launchd/` and prints the
-`launchctl` commands. Loading a job that opens four logged-in accounts on a timer is a
-decision with consequences for those accounts, and `CLAUDE.md` §10 keeps account access
-behind explicit approval — so a person runs the command, having seen what it will do.
+`launchctl` commands. Putting a job on a timer is a person's decision, so a person runs the
+command, having seen what it will do.
+
+The in-app scheduler (`app._scheduler_loop`) is the other way collection runs on an
+interval, and the one `scripts/dev.sh` turns on. These jobs are for a machine where the API
+is not left running.
 
 The jobs are also deliberately *modest*: `RunAtLoad` is off, so installing one does not
-immediately start a browser session and the first run is one whole interval later. A missed
-run is not made up on wake either, which costs nothing: checkpoints are keyed on item ids
-and the next run collects everything since the last one.
+immediately collect and the first run is one whole interval later. A missed run is not made
+up on wake either, which costs nothing: checkpoints are keyed on item ids and the next run
+collects everything since the last one.
 """
 
 from __future__ import annotations
@@ -104,40 +107,35 @@ def build_plist(
         ],
         "WorkingDirectory": str(REPO_ROOT / "apps" / "api"),
         "EnvironmentVariables": {
-            # launchd's default environment has no HOME. The API interpreter itself can
-            # start without it, but the collector child reaches Chrome and Playwright;
-            # both resolve user-owned runtime/config paths through HOME and otherwise
-            # terminate with EX_CONFIG before the driver can write a useful log.
+            # launchd's default environment has no HOME, and `uv` and Python's own user
+            # paths resolve through it.
             "HOME": str(Path.home()),
             "TZ": timezone,
             "DATABASE_URL": f"sqlite:///{REPO_ROOT / 'var' / 'data' / 'taste-inbox.db'}",
             "PYTHONUNBUFFERED": "1",
             # The interpreter that can import a collector. `_python()` above names the API
-            # venv, which has neither playwright nor `taste_inbox_collectors` in it — the
-            # driver reaches the other one by absolute path and never by import.
+            # venv, which does not have `taste_inbox_collectors` in it — the driver reaches
+            # the other one by absolute path and never by import.
             "TASTE_INBOX_COLLECTOR_PYTHON": str(
                 REPO_ROOT / "services" / "collectors" / ".venv" / "bin" / "python"
             ),
             # launchd starts with almost no environment — the same reason `_python()` spells
-            # out the interpreter. Chrome and playwright's node driver both want a PATH.
+            # out the interpreter.
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
         },
         # Seconds, counted from when the job is loaded — not from midnight. The per-source
         # offset lives in the install commands, because launchd cannot express one here.
         "StartInterval": interval_hours * SECONDS_PER_HOUR,
-        # Off on purpose: installing a job should not open an account session there and
-        # then. The first run is one interval after loading.
+        # Off on purpose: installing a job should not collect there and then. The first
+        # run is one interval after loading.
         "RunAtLoad": False,
         "StandardOutPath": str(LOG_DIR / f"{collector_id}.log"),
         "StandardErrorPath": str(LOG_DIR / f"{collector_id}.err.log"),
         # Not a run cap. This is the SIGTERM→SIGKILL grace launchd allows when it unloads a
-        # job, so it only bounds a run somebody is already stopping. The cap that bounds a
-        # normal run is `--deadline-seconds` inside the collector, which matters because a
-        # run that ends there still writes its capture, and one killed here does not.
-        # A collection run that hangs on a slow page should end, not accumulate.
+        # job, so it only bounds a run somebody is already stopping.
         "ExitTimeOut": 900,
-        # No `KeepAlive`. A collector that stopped on a challenge must stay stopped —
-        # restarting it is the aggressive retry CLAUDE.md §7 forbids.
+        # No `KeepAlive`. A collector that stopped must stay stopped until the next
+        # interval — restarting it is the aggressive retry CLAUDE.md §7 forbids.
     }
 
 
@@ -145,8 +143,8 @@ def plan(target: Path | None = None, *, session: Session | None = None) -> list[
     """Describe the jobs. Touches no file.
 
     Split out from `generate` because reading is not writing, and one caller of this module
-    only ever reads: `GET /api/collection/launchd` describes the plan for the System screen,
-    and a GET must not change the machine. It did — every request rewrote every plist, so
+    only ever reads: `GET /api/collection/launchd` describes the plan for Settings, and a
+    GET must not change the machine. It did — every request rewrote every plist, so
     once the screen displayed them, *rendering a page* rewrote them, and so did every run of
     the test suite.
 
@@ -223,10 +221,7 @@ def install_commands(jobs: list[GeneratedJob]) -> list[str]:
     loaded, so how far apart the jobs are loaded is how far apart they collect.
     """
     if not jobs:
-        return [
-            "# Community 배포판에는 로그인 브라우저 자동 수집 작업이 없습니다.",
-            "# 직접 추가하거나 본인 계정에서 내보낸 데이터를 가져와 사용하세요.",
-        ]
+        return ["# 이 배포판에는 예약할 수집 작업이 없습니다."]
 
     target = "gui/$(id -u)"
     total = max((job.offset_minutes for job in jobs), default=0)

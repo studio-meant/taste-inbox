@@ -8,14 +8,15 @@ import { cx } from "@/lib/cx";
  *
  * The documented sentence names what succeeded *before* what failed:
  *
- *   "Instagram Saved는 정상 수집했지만 LinkedIn Reactions는 로그인 만료로 건너뛰었어요."
+ *   "GitHub는 정상 수집했지만 Hugging Face는 오류로 건너뛰었어요."
  *
  * That ordering matters. A page that leads with the failure makes a partly-successful
  * collection read as a broken one.
  */
 
 const FAILURE_REASON: Readonly<Record<string, string>> = {
-  auth_required: "로그인 만료로",
+  // A token that stopped working, or an account the API will not answer for.
+  auth_required: "권한 문제로",
   failed: "오류로",
   skipped: "이번 차례를 건너뛰어",
 };

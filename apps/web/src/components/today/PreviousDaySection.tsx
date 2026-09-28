@@ -1,7 +1,8 @@
-import type { DaySummary, ItemDomain, SourcePlatform } from "@taste-inbox/shared";
+import type { DaySummary, SourcePlatform } from "@taste-inbox/shared";
 import Link from "next/link";
 import styles from "./Today.module.css";
 import { cx } from "@/lib/cx";
+import { kindLabel } from "@/components/collection/source-vocabulary";
 import { toUrlObject } from "@/lib/filters/board-filters";
 import { SourceMark } from "./SourceMark";
 
@@ -11,8 +12,8 @@ import { SourceMark } from "./SourceMark";
  *
  *   어제
  *   ┌──────────────────────────────┐ ┌──────────────────────────────┐
- *   │ ▨  Large-batch trainer       │ │ ▨  Grey pleated skirt        │
- *   │    GitHub Star · …   [Trends]│ │    Instagram Like · … [Style]│
+ *   │ ▨  large-batch-trainer       │ │ ▨  tiny-eval-set             │
+ *   │    GitHub            [Repo]  │ │    Hugging Face    [Dataset] │
  *   └──────────────────────────────┘ └──────────────────────────────┘
  *
  * Deliberately lighter than the three main modules: it is context, not a call to
@@ -21,8 +22,7 @@ import { SourceMark } from "./SourceMark";
  * rather than the 25px section title.
  *
  * The reference's trailing pills read "Ready" and "78%" — a compatibility verdict and a
- * price match, both removed features. The slot keeps the board name instead, which is
- * something this payload actually carries.
+ * price match, both removed features. The slot carries the item's kind instead.
  *
  * **The heading says how many there were.** `_highlights_for` returns at most three, and
  * the reference's heading is the bare word "Yesterday" — so a day that collected 142 items
@@ -32,35 +32,16 @@ import { SourceMark } from "./SourceMark";
  * answer with the right cards in it.
  */
 
-const DOMAIN_LABEL: Readonly<Record<ItemDomain, string>> = {
-  trends: "Trends",
-  style: "Style",
-  music: "Music",
-  places: "Places",
-  none: "None",
-};
-
-const COVER_CLASS: Readonly<Record<ItemDomain, string | undefined>> = {
-  trends: styles.coverTrends,
-  style: styles.coverStyle,
-  music: styles.coverMusic,
-  places: styles.coverPlaces,
-  none: styles.coverNone,
-};
-
 /**
  * The cover's tint, per platform — the same colours the rail's source dots use.
  *
  * Every card used to wear one identical gradient, so a row of three said the same thing
  * three times. This is not decoration picked to look varied: it is the product's existing
  * per-source colour vocabulary, so the tint is something a person can come to read. It is
- * never the only signal — the card prints "Threads" underneath it in words.
+ * never the only signal — the card prints the platform underneath it in words.
  */
 const COVER_TINT: Readonly<Record<SourcePlatform, string>> = {
   github: "--sun",
-  instagram: "--wood",
-  threads: "--light-green",
-  linkedin: "--sage",
   huggingface: "--orchid",
   arxiv: "--light-wood",
   web: "--muted",
@@ -98,43 +79,27 @@ export function PreviousDaySection({ days }: { readonly days: readonly DaySummar
               <li key={highlight.id}>
                 <Link href={toUrlObject(highlight.href)} className={styles.yesterdayCard}>
                   {/*
-                    `.mini-cover` — ref.css:274. The reference draws an abstract cover
-                    because it has no data behind it. Where this product *does* have the
-                    item's own thumbnail it shows that instead; where it does not — GitHub,
-                    Threads and LinkedIn, whose media the collectors never cache — it keeps
-                    the abstract cover rather than inventing a picture, and tints it by
-                    source so a row of three is three different things.
+                    `.mini-cover` — ref.css:274. No picture of a starred repository exists,
+                    so the cover is abstract, tinted by source so a row of three is three
+                    different things.
                   */}
-                  {highlight.preview === null ? (
-                    <span
-                      className={cx(styles.miniCover, COVER_CLASS[highlight.domain])}
-                      style={{
-                        ["--cover-tint" as string]: `var(${COVER_TINT[highlight.platform]})`,
-                      }}
-                      aria-hidden="true"
-                    >
-                      <span className={styles.miniMark}>
-                        <SourceMark platform={highlight.platform} />
-                      </span>
+                  <span
+                    className={cx(styles.miniCover, styles.coverTrends)}
+                    style={{
+                      ["--cover-tint" as string]: `var(${COVER_TINT[highlight.platform]})`,
+                    }}
+                    aria-hidden="true"
+                  >
+                    <span className={styles.miniMark}>
+                      <SourceMark platform={highlight.platform} />
                     </span>
-                  ) : (
-                    /* A plain `img`, not `next/image`: the API serves these from the local
-                       media cache at one fixed size, so an optimiser round trip would be
-                       added to a 46px thumbnail that is already on this disk. */
-                    <img
-                      className={cx(styles.miniCover, styles.miniPhoto)}
-                      src={highlight.preview}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  )}
+                  </span>
                   <span className={styles.yesterdayCopy}>
                     <span className={styles.yesterdayCardTitle}>{highlight.title}</span>
                     <span className={styles.yesterdayMeta}>{highlight.meta}</span>
                   </span>
                   <span className={styles.tag} lang="en">
-                    {DOMAIN_LABEL[highlight.domain]}
+                    {kindLabel(highlight.kind)}
                   </span>
                 </Link>
               </li>

@@ -2,9 +2,9 @@ import {
   DEFAULT_DENSITY,
   DEFAULT_SORT,
   DensitySchema,
+  ItemKindSchema,
   SortOrderSchema,
-  StyleMatchGradeSchema,
-  StyleStockStateSchema,
+  SourcePlatformSchema,
   parseMultiValue,
   serializeMultiValue,
 } from "../src";
@@ -21,8 +21,8 @@ describe("URL vocabulary", () => {
     const every = [
       ...SortOrderSchema.options,
       ...DensitySchema.options,
-      ...StyleMatchGradeSchema.options,
-      ...StyleStockStateSchema.options,
+      ...ItemKindSchema.options,
+      ...SourcePlatformSchema.options,
     ];
     for (const value of every) {
       expect(value).not.toContain("-");
@@ -30,15 +30,11 @@ describe("URL vocabulary", () => {
     }
   });
 
-  it("uses the values the docs were corrected to", () => {
-    // IA_WIREFRAMES said `in-stock`, which was in no enum under any casing.
-    expect(StyleStockStateSchema.options).toContain("available");
-    expect(StyleStockStateSchema.options).not.toContain("in_stock");
-  });
-
   it("retires `recent` in favour of `newest`", () => {
     expect(SortOrderSchema.options).toContain("newest");
     expect(SortOrderSchema.options).not.toContain("recent");
+    // The price orders went with the Style board.
+    expect(SortOrderSchema.options).toEqual(["newest", "relevance"]);
     expect(DEFAULT_SORT).toBe("newest");
     expect(DEFAULT_DENSITY).toBe("cards");
   });
@@ -46,30 +42,28 @@ describe("URL vocabulary", () => {
 
 describe("parseMultiValue", () => {
   it("reads a comma-separated list", () => {
-    expect(parseMultiValue("exact,similar", StyleMatchGradeSchema)).toEqual(["exact", "similar"]);
+    expect(parseMultiValue("paper,repo", ItemKindSchema)).toEqual(["paper", "repo"]);
   });
 
   it("treats a missing or empty key as no filter", () => {
-    expect(parseMultiValue(null, StyleMatchGradeSchema)).toEqual([]);
-    expect(parseMultiValue(undefined, StyleMatchGradeSchema)).toEqual([]);
-    expect(parseMultiValue("", StyleMatchGradeSchema)).toEqual([]);
+    expect(parseMultiValue(null, ItemKindSchema)).toEqual([]);
+    expect(parseMultiValue(undefined, ItemKindSchema)).toEqual([]);
+    expect(parseMultiValue("", ItemKindSchema)).toEqual([]);
   });
 
   it("drops an unknown value instead of throwing", () => {
     // A bookmark saved before an enum changed should still open the board.
-    expect(parseMultiValue("exact,ex-act,nonsense", StyleMatchGradeSchema)).toEqual(["exact"]);
+    // `outfit` is a kind from before 2026-09-28 — exactly the stale bookmark in question.
+    expect(parseMultiValue("paper,outfit,nonsense", ItemKindSchema)).toEqual(["paper"]);
   });
 
   it("tolerates whitespace and collapses duplicates while keeping order", () => {
-    expect(parseMultiValue("similar, exact ,similar", StyleMatchGradeSchema)).toEqual([
-      "similar",
-      "exact",
-    ]);
+    expect(parseMultiValue("repo, paper ,repo", ItemKindSchema)).toEqual(["repo", "paper"]);
   });
 
   it("round-trips", () => {
-    const values = parseMultiValue("exact,similar", StyleMatchGradeSchema);
-    expect(serializeMultiValue(values)).toBe("exact,similar");
+    const values = parseMultiValue("paper,repo", ItemKindSchema);
+    expect(serializeMultiValue(values)).toBe("paper,repo");
   });
 });
 

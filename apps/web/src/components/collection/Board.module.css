@@ -1,9 +1,7 @@
 /**
  * Shared collection board — IA §7.3.
  *
- * AI, Style and Music share this structure and this interaction language. What they do
- * *not* share is card anatomy: DESIGN.md §33 is explicit that the boards share
- * structure, not the inside of a card.
+ * The Inbox's page, header, grid and rail.
  */
 
 .page {
@@ -135,10 +133,8 @@
  * do not fit that promise, and a flat row would clip collected content rather than the
  * placeholder it was drawn around. The floor keeps the rhythm; the ceiling keeps the text.
  *
- * Two columns on mobile rather than one. DESIGN.md:2070 names Style as the exception to
- * the one-column mobile default ("Style grid는 2 columns 또는 중요 카드 1 column") and
- * IA_WIREFRAMES.md:854 says the same; at one column the 76 collected Style items are
- * roughly 59 screens of scrolling, at two, 17.
+ * Two columns on mobile rather than one: at one column a hundred collected items are many
+ * screens of scrolling.
  */
 .browseBoard {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -158,66 +154,14 @@
   }
 }
 
-/* Music's record shelf: the same 2/3/4-column rhythm as Trends, but every sleeve is square. */
-.musicBoard {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.musicBoard > li {
-  min-width: 0;
-}
-
 /*
- * Browse > All keeps one shared grid, but its saved categories should not dissolve into
- * identical white surfaces. These variables cross CSS-module boundaries into each card;
- * dedicated board routes do not set them and therefore keep their existing appearance.
+ * The Inbox card's surface. The variables cross CSS-module boundaries into the card, which
+ * is why they are set on the grid item rather than in `BrowseCard.module.css`.
  */
-.libraryTrends,
-.libraryStyle,
-.libraryMusic,
-.libraryPlaces,
-.libraryNone {
-  min-width: 0;
-}
-
 .libraryTrends {
+  min-width: 0;
   --library-card-bg: color-mix(in srgb, var(--light-green) 48%, var(--surface));
   --library-card-accent: var(--sage);
-}
-
-.libraryStyle {
-  --library-card-bg: color-mix(in srgb, var(--orchid) 18%, var(--surface));
-  --library-card-accent: var(--wood);
-}
-
-.libraryMusic {
-  grid-row: span 2;
-  --library-card-bg: color-mix(in srgb, var(--accent) 22%, var(--surface));
-  --library-card-accent: var(--accent-deep);
-  --library-card-overlay: color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.libraryPlaces {
-  --library-card-bg: color-mix(in srgb, var(--sky-mid) 38%, var(--surface));
-  --library-card-accent: var(--sun);
-}
-
-.libraryNone {
-  --library-card-bg: color-mix(in srgb, var(--oatmeal) 50%, var(--surface));
-  --library-card-accent: var(--muted);
-}
-
-@media (min-width: 768px) {
-  .musicBoard {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1280px) {
-  .musicBoard {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 /*
@@ -240,7 +184,7 @@
      * One column by default, because the rail is not guaranteed to exist.
      *
      * `CollectionRail` now always renders, so the empty case should be unreachable — but
-     * this guard is what the Style board's collapse cost, and it costs nothing to keep. A
+     * this guard is what a board's 2px collapse once cost, and it costs nothing to keep. A
      * board that lands in an `auto` track sized to a grid of `1fr` columns is 2px wide:
      * 76 cards in the DOM and a blank screen.
      */

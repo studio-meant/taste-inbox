@@ -8,28 +8,22 @@ const SOURCES: readonly (Pick<SourceRef, "platform" | "actionType" | "originalUr
   text: string;
 })[] = [
   {
-    platform: "instagram",
-    actionType: "like",
-    originalUrl: "https://www.instagram.com/p/example-like/",
-    text: "Instagram 좋아요",
-  },
-  {
-    platform: "instagram",
-    actionType: "save",
-    originalUrl: "https://www.instagram.com/p/example-save/",
-    text: "Instagram 저장",
-  },
-  {
-    platform: "threads",
-    actionType: "repost",
-    originalUrl: "https://www.threads.com/@example/post/example",
-    text: "Threads 리포스트",
-  },
-  {
     platform: "github",
     actionType: "star",
-    originalUrl: "https://github.com/example/repository",
+    originalUrl: "https://github.com/sample-org/repository",
     text: "GitHub 스타",
+  },
+  {
+    platform: "huggingface",
+    actionType: "like",
+    originalUrl: "https://huggingface.co/sample-org/model",
+    text: "Hugging Face 좋아요",
+  },
+  {
+    platform: "huggingface",
+    actionType: "upvote",
+    originalUrl: "https://huggingface.co/papers/2599.00001",
+    text: "Hugging Face 업보트",
   },
 ];
 
@@ -56,7 +50,7 @@ describe("source links", () => {
         id="example"
         size={size}
         index={0}
-        eyebrow="게시물"
+        eyebrow="Repo"
         title="항목 제목"
         source={{
           ...source,
@@ -66,7 +60,6 @@ describe("source links", () => {
         }}
         openLabel="원본 보기"
         status={collectionStatus(null)}
-        media={<div>사진</div>}
       />,
     );
     expect(screen.queryByText("자세히 보기")).not.toBeInTheDocument();
@@ -74,8 +67,9 @@ describe("source links", () => {
       "href",
       "/items/example",
     );
-    const link = screen.getByRole("link", { name: /Instagram 좋아요/ });
+    const link = screen.getByRole("link", { name: /GitHub 스타/ });
     expect(link).toHaveAttribute("href", source.originalUrl);
-    expect(link.className).toContain(size === "small" ? "badgeInline" : "badgeFloating");
+    // No picture to float on any more, so the badge always takes the eyebrow row.
+    expect(link.className).toContain("badgeInline");
   });
 });

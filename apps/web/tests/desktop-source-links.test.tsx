@@ -9,10 +9,9 @@ afterEach(() => {
 
 describe("desktop source links", () => {
   it.each([
-    ["instagram", "like", "https://www.instagram.com/p/example/"],
-    ["instagram", "save", "https://www.instagram.com/p/example-saved/"],
-    ["threads", "repost", "https://www.threads.com/@example/post/example"],
-    ["github", "star", "https://github.com/example/project"],
+    ["github", "star", "https://github.com/sample-org/project"],
+    ["huggingface", "like", "https://huggingface.co/sample-org/model"],
+    ["huggingface", "upvote", "https://huggingface.co/papers/2599.00001"],
   ] as const)(
     "hands %s %s to macOS exactly once, including clicks on the icon",
     (platform, actionType, originalUrl) => {

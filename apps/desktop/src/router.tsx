@@ -39,26 +39,6 @@ async function pageFor(pathname: string): Promise<ReactNode> {
     const Page = (await import("@/app/(workspace)/library/page")).default;
     return WorkspaceLayout({ children: await Page({ searchParams: params }) });
   }
-  if (pathname === "/trends") {
-    const Page = (await import("@/app/(workspace)/trends/page")).default;
-    return WorkspaceLayout({ children: await Page({ searchParams: params }) });
-  }
-  if (pathname === "/style") {
-    const Page = (await import("@/app/(workspace)/style/page")).default;
-    return WorkspaceLayout({ children: await Page({ searchParams: params }) });
-  }
-  if (pathname === "/music") {
-    const Page = (await import("@/app/(workspace)/music/page")).default;
-    return WorkspaceLayout({ children: await Page({ searchParams: params }) });
-  }
-  if (pathname === "/places") {
-    const Page = (await import("@/app/(workspace)/places/page")).default;
-    return WorkspaceLayout({ children: await Page({ searchParams: params }) });
-  }
-  if (pathname === "/none") {
-    const Page = (await import("@/app/(workspace)/none/page")).default;
-    return WorkspaceLayout({ children: await Page({ searchParams: params }) });
-  }
   if (pathname.startsWith("/items/")) {
     const id = decodeURIComponent(pathname.slice("/items/".length));
     if (id === "" || id.includes("/")) return <NotFound />;
@@ -82,12 +62,7 @@ async function pageFor(pathname: string): Promise<ReactNode> {
 const TITLES: Readonly<Record<string, string>> = {
   "/": "Taste Inbox",
   "/today": "Today · Taste Inbox",
-  "/library": "Browse · Taste Inbox",
-  "/trends": "Trends · Taste Inbox",
-  "/style": "Style · Taste Inbox",
-  "/music": "Music · Taste Inbox",
-  "/places": "Places · Taste Inbox",
-  "/none": "None · Taste Inbox",
+  "/library": "Inbox · Taste Inbox",
   "/system": "Settings · Taste Inbox",
   "/settings": "Settings · Taste Inbox",
   "/onboarding": "시작하기 · Taste Inbox",

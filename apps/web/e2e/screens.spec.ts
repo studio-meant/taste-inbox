@@ -21,25 +21,8 @@ const CARD = "[data-card], article";
 /** Every route a person can reach, and what "it rendered" means for each. */
 const SCREENS = [
   { path: "/today", name: "Today", heading: "Today", minCards: 3 },
-  { path: "/trends", name: "Trends", heading: "Trends", minCards: 1 },
-  { path: "/style", name: "Style", heading: "Style", minCards: 1 },
-  { path: "/music", name: "Music", heading: "Music", minCards: 1 },
-  // Places holds nothing until a classifier files something onto it, so `minCards: 0` is
-  // the board's real state rather than a waiver. What this row is actually watching is the
-  // other half of the two 2px bugs: an empty board still has the rail beside it, and a
-  // layout whose only grid item vanishes is the shape that collapsed `/style`.
-  { path: "/places", name: "Places", heading: "Places", minCards: 0 },
-  // The declined shelf. Empty in mock mode by construction — nothing in this repository has
-  // ever been declined by anybody, and seeding it would be inventing decisions nobody made —
-  // so this row watches the same thing the Places row does: that a route a person can reach
-  // from the rail opens, keeps its rail, and does not collapse.
-  { path: "/none", name: "None", heading: "None", minCards: 0 },
-  // Browse's landing page was an empty state — "the combined view is not built yet" — and
-  // this row was `minCards: 0` to record that on purpose. It is the merged board now, and
-  // the number is the point: it holds every collection, so it cannot have fewer cards than
-  // the largest of them. Three grammars share this grid — an AI post, a fashion carousel
-  // and a full-width music row — which is exactly the mix the box-measurement check below
-  // exists for. (Places contributes none yet; it reuses the AI grammar when it does.)
+  // The Inbox is the one list since 2026-09-28 — the Trends, Style, Music, Places and None
+  // boards went with Instagram. Every collected item is on it, so it cannot be short.
   { path: "/library", name: "Inbox", heading: "Inbox", minCards: 3 },
   // System lives inside Settings since 2026-09-28 — its health cards are the minimum.
   { path: "/settings", name: "Settings", heading: "Settings", minCards: 1 },
@@ -143,7 +126,7 @@ for (const screen of SCREENS) {
  * `getByRole("heading", { level: 1 })` matches twice and trips strict mode. Everything is
  * scoped to `[data-phase]`, the controller's own hook for which screen is on top.
  *
- * The suite runs on mock fixtures with `TASTE_INBOX_USE_CAPTURES=0` (see the config), so
+ * The suite runs on mock fixtures (see the config), so
  * `general.ceremonialEntry` is the shipped default `full` — Splash, then Greeting, then
  * Today — and nothing here depends on collected content.
  */
@@ -216,7 +199,7 @@ test.describe("Entry", () => {
 
 test.describe("The page body", () => {
   test("never scrolls sideways at a normal desktop width", async ({ page }) => {
-    // Wide content — the photo gallery, a long shop URL — has to scroll inside its own
+    // Wide content — a long repository name, a long URL — has to scroll inside its own
     // container. A page that scrolls horizontally has already lost its layout.
     for (const screen of [...SCREENS, { path: "/" }]) {
       await page.goto(screen.path, { waitUntil: "networkidle" });
@@ -241,10 +224,10 @@ test.describe("The page body", () => {
       /*
        * The sibling above asks that the page not scroll sideways. Nothing asked that it
        * scroll *down*, and for a while it did not: `.shell` was `min-height: 100dvh`, so the
-       * whole stage grew to fit — 23,391px on Music — and `.viewport`, the one element with
+       * whole stage grew to fit — 23,391px on a board — and `.viewport`, the one element with
        * `overflow-y: auto`, ended up exactly as tall as its content and never became a
        * scroll container. Its `overscroll-behavior: contain` then swallowed the wheel rather
-       * than letting it chain to the document. 22,491px of collected music sat below the
+       * than letting it chain to the document. 22,491px of collected items sat below the
        * fold, unreachable by any gesture, while every other assertion in this file passed.
        *
        * Deliberately a real wheel rather than `scrollIntoView` or a programmatic `scrollTo`:
@@ -261,10 +244,9 @@ test.describe("The page body", () => {
 
       if (screen.minCards === 0) {
         /*
-         * `/places` and `/none` are empty by design — nothing is classified onto them yet —
-         * and `/library`'s landing has no cards either. A screen with nothing below the fold
-         * cannot be asked to scroll to it, and demanding that would make an honest empty
-         * state fail. What it still owes is a viewport, which the assertion above took.
+         * A screen with nothing below the fold cannot be asked to scroll to it, and demanding
+         * that would make an honest empty state fail. What it still owes is a viewport, which
+         * the assertion above took.
          */
         return;
       }

@@ -44,7 +44,9 @@ for (const viewport of VIEWPORTS) {
     await expect(page).toHaveURL(/\/focus\/garden-lens$/);
     const canvas = page.locator("[data-focus-canvas]");
     await expect(canvas).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Garden Lens", level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "sample-org/garden-lens", level: 1 }),
+    ).toBeVisible();
     await expect(page.getByText("문제가 생겼어요")).toHaveCount(0);
 
     // The honest empty state, stated in words.

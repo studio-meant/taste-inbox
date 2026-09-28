@@ -4,12 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from taste_inbox.desktop.bridge import (
-    FILE_MARKER,
-    _replace_media_urls,
-    dispatch,
-    validate_request,
-)
+import pytest
+
+from taste_inbox.desktop.bridge import dispatch, validate_request
 
 
 class _Response:
@@ -52,39 +49,40 @@ def test_forwards_patch_body_without_opening_http() -> None:
     assert client.calls == [("PATCH", "/api/settings", body)]
 
 
-def test_allows_only_the_manual_item_post_write() -> None:
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("POST", "/api/items/manual"),
+        ("POST", "/api/onboarding"),
+        ("PUT", "/api/profile"),
+        ("PUT", "/api/accounts/github"),
+        ("DELETE", "/api/accounts/huggingface"),
+        ("POST", "/api/accounts/github/collect"),
+    ],
+)
+def test_forwards_the_writes_the_desktop_screens_make(method: str, path: str) -> None:
     client = _Client({"data": {"ok": True}})
-    body = {"url": "https://example.test/post", "board": "trends"}
+    body = {"value": "x"}
 
-    assert dispatch(
-        {"method": "POST", "path": "/api/items/manual", "body": body}, client=client
-    ) == {"data": {"ok": True}}
-    assert client.calls == [("POST", "/api/items/manual", body)]
+    assert dispatch({"method": method, "path": path, "body": body}, client=client) == {
+        "data": {"ok": True}
+    }
+    assert client.calls == [(method, path, body)]
 
-    refused = dispatch(
-        {"method": "POST", "path": "/api/collection/refresh", "body": {}},
-        client=_Client({}),
-    )
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("POST", "/api/collection/refresh"),
+        ("POST", "/api/trials"),
+        ("PUT", "/api/accounts/instagram"),
+        ("DELETE", "/api/settings"),
+        ("PATCH", "/api/items/x/board"),
+    ],
+)
+def test_refuses_every_other_write(method: str, path: str) -> None:
+    refused = dispatch({"method": method, "path": path, "body": {}}, client=_Client({}))
     assert refused["error"]["code"] == "desktop_request_rejected"
-
-
-def test_rewrites_only_exact_cached_media_references() -> None:
-    marker = f"{FILE_MARKER}file:///tmp/cover.jpg"
-    value = {
-        "data": {
-            "preview": "/api/media/51",
-            "original": "https://example.com/api/media/51",
-            "nested": ["/api/media/52"],
-        }
-    }
-
-    assert _replace_media_urls(value, {"/api/media/51": marker}) == {
-        "data": {
-            "preview": marker,
-            "original": "https://example.com/api/media/51",
-            "nested": ["/api/media/52"],
-        }
-    }
 
 
 def test_rejects_non_json_responses() -> None:

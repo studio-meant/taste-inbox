@@ -16,12 +16,13 @@ import { toUrlObject } from "@/lib/filters/board-filters";
  *   17  new items
  *   ▬▬▬▬▬▬▬▬▬▬▬  ▬▬▬▬▬▬
  *   [ Repo 120 ] [ Paper 9 ] [ Dataset 3 ]
- *   [ latest ] [ latest ] [ latest ]
- *   ( ● ● ● ● )                                              Inbox에서 보기
+ *   ( ● ● )                                                  Inbox에서 보기
  *
- * Count, split, source summary, up to three recent previews, and a link to the
- * collection. It answers "얼마나 들어왔나" in one glance and nothing else; adding a
- * second question here would break DESIGN.md §11.11's one-question-per-card rule.
+ * Count, split by kind, source summary, and a link to the day in the Inbox. The reference's
+ * row of recent photographs went with Instagram: nothing collected now has a picture.
+ *
+ * It answers "얼마나 들어왔나" in one glance and nothing else; adding a second question here
+ * would break DESIGN.md §11.11's one-question-per-card rule.
  *
  * The whole surface is the link, as in the reference — but a `<a>`, not the reference's
  * `<button>`, because it navigates. It is the card's only interactive element, so the
@@ -55,50 +56,18 @@ function SavedMeter({ segments }: { readonly segments: readonly number[] }) {
 
 export function SavedItemsSummaryCard({ summary }: { readonly summary: SavedSummary }) {
   /*
-   * The split of the number above it, board by board.
-   *
-   * Every chip here is part of `newItemCount`, and together with `기타` they add to it —
-   * the reference states the same contract in its own figures (`17 new items · AI 11 ·
-   * Style 6`). Music and Places are named rather than folded into the remainder: this
-   * product has four boards where the reference drew two, and a saved Reel appearing only
-   * as an anonymous meter segment was the cost of porting the shape instead of the rule.
-   * Places is listed while it is still always zero — `shown` drops it, so an empty board
-   * costs no chip, and the day it receives something the chip appears with no change here.
-   *
-   * `Math.max` stays, and is now only ever a floor for rounding rather than a lid on a
-   * contradiction. It used to clamp `10 - 41 - 76` to zero, which is how a card headed
-   * with today's ten came to show two all-time board totals underneath and look fine.
+   * The split of the number above it by kind — `Repo 120 · Paper 9 · Dataset 3` — the axis
+   * the Inbox rail counts, so the card and the list it links to use one vocabulary. Every
+   * chip is part of `newItemCount`; `기타` is whatever the split does not name, and
+   * `Math.max` is only a floor for a payload whose parts do not add up.
    */
-  /*
-   * By kind since 2026-09-28 — `Repo 120 · Paper 9 · Dataset 3 · Space 3` — the axis the
-   * Inbox rail counts, so the card and the list it links to use one vocabulary. The board
-   * split stays only as the fallback for a payload from before `kindCounts` existed.
-   */
-  const byKind = Object.entries(summary.kindCounts);
-  const boards =
-    byKind.length > 0
-      ? byKind.map(([kind, count], index) => ({ key: kindLabel(kind), count, lead: index === 0 }))
-      : ([
-          { key: "AI", count: summary.aiCount, lead: true },
-          { key: "Style", count: summary.styleCount, lead: false },
-          { key: "Music", count: summary.musicCount, lead: false },
-          { key: "Places", count: summary.placesCount, lead: false },
-        ] as const);
+  const kinds = Object.entries(summary.kindCounts)
+    .filter(([, count]) => count > 0)
+    .map(([kind, count], index) => ({ key: kindLabel(kind), count, lead: index === 0 }));
   const otherCount = Math.max(
     0,
-    summary.newItemCount - boards.reduce((sum, board) => sum + board.count, 0),
+    summary.newItemCount - kinds.reduce((sum, kind) => sum + kind.count, 0),
   );
-  // Only the boards that actually received something. A row of zeroes says nothing the
-  // headline has not already said, and on a quiet day it would be three of them.
-  const shown = boards.filter((board) => board.count > 0);
-  // `preview` keeps an already-running desktop bundle compatible during deployment. The
-  // new payload always sends `previews`; the fallback only matters across that short seam.
-  const previews =
-    summary.previews.length > 0
-      ? summary.previews
-      : summary.preview === null
-        ? []
-        : [summary.preview];
 
   return (
     <CardSurface
@@ -139,32 +108,21 @@ export function SavedItemsSummaryCard({ summary }: { readonly summary: SavedSumm
         <span className={styles.savedCountUnit}>오늘 들어옴</span>
       </p>
 
-      <SavedMeter segments={[...boards.map((board) => board.count), otherCount]} />
+      <SavedMeter segments={[...kinds.map((kind) => kind.count), otherCount]} />
 
-      {/* `.saved-tags` — ref.css:256. The reference's board names carry no numbers;
-          ours do, because that is the split the meter above is drawing. */}
+      {/* `.saved-tags` — ref.css:256. The reference's names carry no numbers; ours do,
+          because that is the split the meter above is drawing. */}
       <div className={styles.tagRow}>
-        {shown.map((board) => (
+        {kinds.map((kind) => (
           <span
-            key={board.key}
-            className={cx(styles.tag, board.lead ? styles.tagGreen : null)}
-          >{`${board.key} ${board.count.toLocaleString("ko-KR")}`}</span>
+            key={kind.key}
+            className={cx(styles.tag, kind.lead ? styles.tagGreen : null)}
+          >{`${kind.key} ${kind.count.toLocaleString("ko-KR")}`}</span>
         ))}
         {otherCount > 0 ? (
           <span className={styles.tag}>{`기타 ${otherCount.toLocaleString("ko-KR")}`}</span>
         ) : null}
       </div>
-
-      {previews.length === 0 ? null : (
-        <div className={styles.savedTiles} data-count={previews.length}>
-          {previews.map((preview) => (
-            <span key={preview.id} className={styles.tile}>
-              {/* Same-origin, locally cached media. The tile reserves its own box. */}
-              <img src={preview.src} alt={preview.alt} loading="lazy" />
-            </span>
-          ))}
-        </div>
-      )}
 
       {/* `.saved-sources` — ref.css:262: the dot cluster left, the destination right. */}
       <div className={styles.savedFooter}>

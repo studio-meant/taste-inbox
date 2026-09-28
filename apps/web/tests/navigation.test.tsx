@@ -49,18 +49,19 @@ describe("navigation model", () => {
     ["/focus/abc", "today"],
     ["/library", "browse"],
     ["/library/anything", "browse"],
-    ["/trends", "browse"],
-    ["/style", "browse"],
     ["/items/garden-lens", "browse"],
+    // Removed with Instagram, 2026-09-28: no destination claims them.
+    ["/trends", undefined],
+    ["/style", undefined],
     ["/system", "system"],
     ["/settings", "system"],
-  ])("resolves %s to the %s destination", (path, expected) => {
+  ] as const)("resolves %s to the %s destination", (path, expected) => {
     expect(findActiveDestination(path)?.id).toBe(expected);
   });
 
   it("does not treat a prefix collision as a match", () => {
-    // `/styleguide` must not activate `/style`.
-    expect(findActiveDestination("/styleguide")).toBeUndefined();
+    // `/libraryish` must not activate `/library`.
+    expect(findActiveDestination("/libraryish")).toBeUndefined();
     expect(findActiveDestination("/todayish")).toBeUndefined();
   });
 
@@ -90,15 +91,12 @@ describe("GlobalNavPill", () => {
     expect(screen.getByRole("link", { name: /Inbox/ })).not.toHaveAttribute("aria-current");
   });
 
-  it.each(["/library", "/trends", "/style", "/items/garden-lens"])(
-    "activates the Inbox on %s",
-    (path) => {
-      pathname.current = path;
-      render(<GlobalNavPill />);
-      expect(screen.getByRole("link", { name: /Inbox/ })).toHaveAttribute("aria-current", "page");
-      expect(screen.getByRole("link", { name: /Today/ })).not.toHaveAttribute("aria-current");
-    },
-  );
+  it.each(["/library", "/items/garden-lens"])("activates the Inbox on %s", (path) => {
+    pathname.current = path;
+    render(<GlobalNavPill />);
+    expect(screen.getByRole("link", { name: /Inbox/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /Today/ })).not.toHaveAttribute("aria-current");
+  });
 
   it("marks nothing active on a route outside the model", () => {
     pathname.current = "/nope";

@@ -9,7 +9,6 @@ import {
   EffectiveResourcePolicySchema,
   FocusPayloadSchema,
   HostProfileSchema,
-  ItemBoardPatchRequestSchema,
   ItemDetailModelSchema,
   ManualItemCreateRequestSchema,
   ManualItemCreateResponseSchema,
@@ -18,10 +17,8 @@ import {
   SettingsDocumentSchema,
   SettingsPatchRequestSchema,
   TodayPayloadSchema,
-  MusicItemCardModelSchema,
   QuestionStartResponseSchema,
   ResearchStartResponseSchema,
-  StyleItemCardModelSchema,
   TrialStartResponseSchema,
   type OnboardingRequest,
   type OnboardingResponse,
@@ -33,10 +30,8 @@ import {
   type EffectiveResourcePolicy,
   type FocusPayload,
   type HostProfile,
-  type ItemBoard,
   type JobModel,
   type LaunchdPlan,
-  type MusicItemCardModel,
   type ItemDetailModel,
   type ManualItemCreateRequest,
   type ManualItemCreateResponse,
@@ -44,23 +39,11 @@ import {
   type ResearchStartResponse,
   type SettingsDocument,
   type SettingsPatchRequest,
-  type SourcePlatform,
-  type SourceSettingPatchRequest,
-  type StyleItemCardModel,
   type TodayPayload,
   type TrialStartResponse,
 } from "@taste-inbox/shared";
 import { z } from "zod";
-import type {
-  AIItemQuery,
-  BoardCounts,
-  DeclinedItemQuery,
-  MusicItemQuery,
-  Page,
-  PlacesItemQuery,
-  StyleItemQuery,
-  TasteInboxRepository,
-} from "./types";
+import type { AIItemQuery, Page, TasteInboxRepository } from "./types";
 
 /**
  * The same interface, backed by the local FastAPI service instead of fixtures.
@@ -110,23 +93,12 @@ interface RawPage {
 }
 
 /**
- * `GET /api/health`. Only the counts are read here; `status` is for the operator.
+ * `GET /api/health`. Only the count is read here; `status` is for the operator.
  *
  * Declared locally rather than in `@taste-inbox/shared` because no other consumer of the
- * contract has a use for it — the boards each have their own model already.
+ * contract has a use for it.
  */
-const BoardCountsResponseSchema = z.object({
-  boards: z.object({
-    // `trends` is the service's name for the board this interface calls `ai`.
-    trends: z.number().int().nonnegative(),
-    style: z.number().int().nonnegative(),
-    music: z.number().int().nonnegative(),
-    places: z.number().int().nonnegative(),
-    // Beside the four, never inside them. The service counts it separately for the same
-    // reason (`api/app.py::health`).
-    none: z.number().int().nonnegative(),
-  }),
-});
+const ItemCountResponseSchema = z.object({ itemCount: z.number().int().nonnegative() });
 
 export class HttpRepository implements TasteInboxRepository {
   constructor(private readonly baseUrl: string) {}
@@ -191,7 +163,7 @@ export class HttpRepository implements TasteInboxRepository {
     });
   }
 
-  /** A typed JSON write, shared by the board picker and the settings controls. */
+  /** A typed JSON write, shared by the manual link form and the settings controls. */
   private patch<T>(path: string, body: unknown): Promise<T> {
     return this.send<T>(path, {
       method: "PATCH",
@@ -287,7 +259,7 @@ export class HttpRepository implements TasteInboxRepository {
   }
 
   /**
-   * `?day=YYYY-MM-DD`, single-valued, on all three boards.
+   * `?day=YYYY-MM-DD`, single-valued, on the Inbox list.
    *
    * Sent as the plain key the service declares rather than through `multi`: a day is one
    * value, and the service resolves it against the *local* calendar day with the same
@@ -312,95 +284,7 @@ export class HttpRepository implements TasteInboxRepository {
       source: HttpRepository.multi(query?.source),
       day: query?.day ?? null,
     });
-    return this.page(
-      `/api/trends/items${search}`,
-      (value) => AIItemCardModelSchema.parse(value),
-      "Trends",
-    );
-  }
-
-  listStyleItems(query?: StyleItemQuery): Promise<Page<StyleItemCardModel>> {
-    const search = HttpRepository.query({
-      source: HttpRepository.multi(query?.source),
-      day: query?.day ?? null,
-    });
-    return this.page(
-      `/api/style/items${search}`,
-      (value) => StyleItemCardModelSchema.parse(value),
-      "Style",
-    );
-  }
-
-  listMusicItems(query?: MusicItemQuery): Promise<Page<MusicItemCardModel>> {
-    const search = HttpRepository.query({
-      handled: query?.includeHandled === true ? "shown" : null,
-      source: HttpRepository.multi(query?.source),
-      day: query?.day ?? null,
-    });
-    return this.page(
-      `/api/music/items${search}`,
-      (value) => MusicItemCardModelSchema.parse(value),
-      "Music",
-    );
-  }
-
-  /**
-   * The places board. Same card model as `/trends`, and so the same parser.
-   *
-   * No `kind` in the query: every place is a saved post, so the axis has one value and
-   * narrows nothing — see `PlacesItemQuery`.
-   */
-  listPlacesItems(query?: PlacesItemQuery): Promise<Page<AIItemCardModel>> {
-    const search = HttpRepository.query({
-      source: HttpRepository.multi(query?.source),
-      day: query?.day ?? null,
-    });
-    return this.page(
-      `/api/places/items${search}`,
-      (value) => AIItemCardModelSchema.parse(value),
-      "Places",
-    );
-  }
-
-  /**
-   * The no-board inbox. Same card model again, and so the same parser.
-   *
-   * `/api/none/items` rather than a `?board=none` on one of the board endpoints: the four
-   * boards answer "what is filed here" and this answers "what has no visible board yet",
-   * which is a different query over explicit None and pending Instagram memberships.
-   */
-  listDeclinedItems(query?: DeclinedItemQuery): Promise<Page<AIItemCardModel>> {
-    const search = HttpRepository.query({
-      source: HttpRepository.multi(query?.source),
-      day: query?.day ?? null,
-    });
-    return this.page(
-      `/api/none/items${search}`,
-      (value) => AIItemCardModelSchema.parse(value),
-      "None",
-    );
-  }
-
-  /**
-   * Move one item onto one board.
-   *
-   * The request is validated before it is sent, which is the same unusual direction
-   * `updateSettings` checks in and for a sharper reason here: the service refuses an unknown
-   * board with a 422, but a board name that is merely *stale* — one this build no longer
-   * draws — would be accepted, stored, and put the item somewhere no screen renders. The
-   * enum is shared with the service's own `WRITABLE_BOARDS`, so catching it here names it
-   * before it can happen.
-   */
-  async setItemBoard(id: string, board: ItemBoard): Promise<ItemDetailModel> {
-    const request = ItemBoardPatchRequestSchema.safeParse({ board });
-    if (!request.success) {
-      throw new ApiDataError("board_rejected", "그건 보드 이름이 아니에요.", false);
-    }
-    return HttpRepository.parsed(
-      ItemDetailModelSchema,
-      await this.patch<unknown>(`/api/items/${encodeURIComponent(id)}/board`, request.data),
-      "항목",
-    );
+    return this.page(`/api/items${search}`, (value) => AIItemCardModelSchema.parse(value), "Inbox");
   }
 
   async createManualItem(request: ManualItemCreateRequest): Promise<ManualItemCreateResponse> {
@@ -436,11 +320,6 @@ export class HttpRepository implements TasteInboxRepository {
     }
   }
 
-  async getStyleItem(id: string): Promise<StyleItemCardModel | null> {
-    const { items } = await this.listStyleItems();
-    return items.find((item) => item.id === id) ?? null;
-  }
-
   async getHostProfile(): Promise<HostProfile> {
     // Detected at request time from the Mac actually running this, never a stored device
     // profile (CLAUDE.md §2).
@@ -459,25 +338,13 @@ export class HttpRepository implements TasteInboxRepository {
     );
   }
 
-  async getBoardCounts(): Promise<BoardCounts> {
-    // `/api/health` counts each board in 3 SQL statements and 69 bytes. Fetching the three
-    // boards for the same three integers cost 176 KiB and 653 statements per navigation.
-    //
-    // Not identical, though: health counts the music board with no `handled` filter, while
-    // `listMusicItems` hides handled rows by default. They agree today only because
-    // `handledAt` is hardcoded null, so this number will drift once clearing an item lands.
-    const { boards } = HttpRepository.parsed(
-      BoardCountsResponseSchema,
+  async getItemCount(): Promise<number> {
+    const { itemCount } = HttpRepository.parsed(
+      ItemCountResponseSchema,
       await this.get<unknown>("/api/health"),
-      "보드 항목 수",
+      "Inbox 항목 수",
     );
-    return {
-      ai: boards.trends,
-      style: boards.style,
-      music: boards.music,
-      places: boards.places,
-      none: boards.none,
-    };
+    return itemCount;
   }
 
   async listJobs(): Promise<readonly JobModel[]> {
@@ -622,15 +489,6 @@ export class HttpRepository implements TasteInboxRepository {
     );
   }
 
-  async updateSourceSetting(platform: SourcePlatform, enabled: boolean): Promise<SettingsDocument> {
-    const body: SourceSettingPatchRequest = { enabled };
-    return HttpRepository.parsed(
-      SettingsDocumentSchema,
-      await this.patch<unknown>(`/api/settings/sources/${encodeURIComponent(platform)}`, body),
-      "설정",
-    );
-  }
-
   async getToday(): Promise<TodayPayload> {
     // The parts that need an enricher, a runner or the Focus engine come back empty
     // rather than filled with plausible activity — see `apps/api/.../api/today.py`.
@@ -642,11 +500,8 @@ export class HttpRepository implements TasteInboxRepository {
   }
 }
 
-const DESKTOP_FILE_MARKER = "taste-inbox-file:";
-
 interface TauriCore {
   readonly invoke: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
-  readonly convertFileSrc: (filePath: string, protocol?: string) => string;
 }
 
 declare global {
@@ -665,28 +520,6 @@ function tauriCore(): TauriCore {
     );
   }
   return core;
-}
-
-/** Convert only markers created by the trusted Python bridge; all ordinary URLs stay put. */
-function desktopMedia(value: unknown, core: TauriCore): unknown {
-  if (typeof value === "string" && value.startsWith(DESKTOP_FILE_MARKER)) {
-    try {
-      const url = new URL(value.slice(DESKTOP_FILE_MARKER.length));
-      if (url.protocol !== "file:") return value;
-      return core.convertFileSrc(decodeURIComponent(url.pathname));
-    } catch {
-      return value;
-    }
-  }
-  if (Array.isArray(value)) {
-    return value.map((child) => desktopMedia(child, core));
-  }
-  if (typeof value === "object" && value !== null) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, child]) => [key, desktopMedia(child, core)]),
-    );
-  }
-  return value;
 }
 
 /**
@@ -727,7 +560,7 @@ export class TauriRepository extends HttpRepository {
           ...(body === undefined ? {} : { body }),
         },
       });
-      return desktopMedia(envelope, core) as ApiEnvelope<T>;
+      return envelope as ApiEnvelope<T>;
     } catch (error) {
       if (error instanceof ApiDataError) throw error;
       throw new ApiDataError(

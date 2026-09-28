@@ -20,20 +20,15 @@ export const ItemKindSchema = z.enum([
   "paper",
   "demo",
   "tool",
+  /** A web page a person added by hand (`POST /api/items/manual`). */
   "post",
-  "product",
-  "outfit",
 ]);
 
-export const SourcePlatformSchema = z.enum([
-  "github",
-  "huggingface",
-  "arxiv",
-  "threads",
-  "linkedin",
-  "instagram",
-  "web",
-]);
+/**
+ * Where an item came from. `arxiv` and `web` are reached only by a link added by hand;
+ * Instagram, Threads and LinkedIn were removed on 2026-09-28 (docs/DECISIONS.md).
+ */
+export const SourcePlatformSchema = z.enum(["github", "huggingface", "arxiv", "web"]);
 
 /**
  * The act that put an item here.
@@ -42,7 +37,7 @@ export const SourcePlatformSchema = z.enum([
  * Space, an upvote is on a paper, and a paper reached through a liked model's arXiv tag
  * keeps `like` because nobody upvoted it. Mirrors `db/models.py::ACTION_TYPES`.
  */
-export const SourceActionTypeSchema = z.enum(["star", "like", "upvote", "save", "repost"]);
+export const SourceActionTypeSchema = z.enum(["star", "like", "upvote"]);
 
 export const SourceRefSchema = z.object({
   platform: SourcePlatformSchema,
@@ -57,23 +52,6 @@ export const SourceRefSchema = z.object({
   firstSeenAt: IsoDateTimeSchema,
 });
 
-export const MediaRefSchema = z.object({
-  id: z.string().min(1),
-  type: z.enum(["image", "video_frame", "og_image", "screenshot"]),
-  src: z.string().min(1),
-  width: z.number().positive().nullable().optional(),
-  height: z.number().positive().nullable().optional(),
-  alt: z.string(),
-  blurDataUrl: z.string().nullable().optional(),
-});
-
-export const MoneySchema = z.object({
-  amount: z.number(),
-  currency: z.string().min(1),
-});
-
 export type ItemKind = z.infer<typeof ItemKindSchema>;
 export type SourcePlatform = z.infer<typeof SourcePlatformSchema>;
 export type SourceRef = z.infer<typeof SourceRefSchema>;
-export type MediaRef = z.infer<typeof MediaRefSchema>;
-export type Money = z.infer<typeof MoneySchema>;

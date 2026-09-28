@@ -1,10 +1,9 @@
-"""The schema, exercised against more than one platform.
+"""The schema, exercised against the rows this product actually writes.
 
-Every one of the 126 items collected so far is an Instagram save, so the nullability of
-`title`, `action_at` and `body_text` is currently a *decision* rather than an observation.
-These tests put a GitHub-shaped row and a Threads-shaped row through the same tables, which
-is the cheapest way to find out whether the platform-agnostic design actually is one —
-`CLAUDE.md` §9 asks for saved fixtures rather than live accounts, and this is that.
+A starred repository, a liked model, an upvoted paper and a link added by hand go through
+the same tables — which is the cheapest way to find out whether the platform-agnostic design
+actually is one. `CLAUDE.md` §9 asks for saved fixtures rather than live accounts, and this
+is that.
 """
 
 from __future__ import annotations
@@ -25,12 +24,12 @@ from taste_inbox.db.models import (
     Item,
     ItemSource,
     ItemTag,
-    MediaAsset,
+    Job,
     RawEvent,
     SourceAccount,
 )
 
-NOW = "2026-08-08T07:00:00Z"
+NOW = "2026-09-28T07:00:00Z"
 
 
 @pytest.fixture
@@ -57,15 +56,15 @@ def account(session: Session, platform: str, handle: str | None = None) -> Sourc
 def item(**overrides: object) -> Item:
     base: dict[str, object] = {
         "id": str(uuid.uuid4()),
-        "kind": "post",
-        "platform": "instagram",
-        "platform_item_id": "DAaaaaaaaaa",
-        "canonical_url": "https://www.instagram.com/reel/DAaaaaaaaaa/",
-        "title": None,
-        "body_text": "여름에 이렇게 입고 나갔다가",
+        "kind": "repo",
+        "platform": "github",
+        "platform_item_id": "123456789",
+        "canonical_url": "https://github.com/sample-org/agent-kit",
+        "title": "sample-org/agent-kit",
+        "body_text": "A small toolkit for agents.",
         "first_seen_at": NOW,
-        "source_published_at": "2025-09-13T04:05:41Z",
-        "action_at": None,
+        "source_published_at": None,
+        "action_at": "2026-09-27T09:12:00Z",
         "checked_at": None,
         "updated_at": NOW,
     }
@@ -73,267 +72,104 @@ def item(**overrides: object) -> Item:
     return Item(**base)
 
 
-class TestInstagramShape:
-    def test_stores_a_saved_post_with_no_title_and_no_action_time(self, session: Session) -> None:
-        # Instagram Saved supplies neither. Filling them in would invent facts.
-        source = account(session, "instagram", "__lucky_u___")
-        row = item()
-        session.add(row)
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="save",
-                collection_name="fashion",
-                position=0,
-                first_seen_at=NOW,
-                action_at=None,
-            )
-        )
-        session.commit()
-
-        stored = session.scalar(select(Item))
-        assert stored is not None
-        assert stored.title is None
-        assert stored.action_at is None
-        assert stored.checked_at is None
-
-    def test_one_post_can_belong_to_two_collections(self, session: Session) -> None:
-        # The reason `item_sources` is a table rather than a column on `items`.
-        source = account(session, "instagram", "__lucky_u___")
-        row = item()
-        session.add(row)
-        for name in ("ai", "music"):
-            session.add(
-                ItemSource(
-                    item_id=row.id,
-                    source_account_id=source.id,
-                    action_type="save",
-                    collection_name=name,
-                    first_seen_at=NOW,
-                )
-            )
-        session.commit()
-
-        assert len(session.scalars(select(ItemSource)).all()) == 2
-
-    def test_the_same_membership_cannot_be_recorded_twice(self, session: Session) -> None:
-        source = account(session, "instagram", "__lucky_u___")
-        row = item()
-        session.add(row)
-        session.flush()
-        for _ in range(2):
-            session.add(
-                ItemSource(
-                    item_id=row.id,
-                    source_account_id=source.id,
-                    collection_name="ai",
-                    first_seen_at=NOW,
-                )
-            )
-        with pytest.raises(IntegrityError):
-            session.commit()
+def paper() -> Item:
+    return item(
+        kind="paper",
+        platform="huggingface",
+        platform_item_id="paper:2501.12948",
+        canonical_url="https://huggingface.co/papers/2501.12948",
+        title="A Sample Paper",
+        action_at=None,
+    )
 
 
-class TestANewBoardNeedsNoMigration:
-    """Adding the places board changed no table, and this is why.
-
-    The design of `item_sources` anticipated exactly this: a board is a value in
-    `collection_name`, which is a plain nullable `VARCHAR(64)` with **no CHECK constraint**
-    behind it. So a fourth board is a new key in `cards.BOARD_COLLECTIONS` and nothing else
-    — no `ALTER`, and none of the table rebuild SQLite would demand if the column were an
-    enum. These tests pin that property, because the cheap way to break it is to "tighten"
-    the column later and silently make a board unfilable.
-    """
-
-    def test_a_places_membership_stores_and_reads_back(self, session: Session) -> None:
-        source = account(session, "instagram", "__lucky_u___")
-        row = item(
-            platform_item_id="DBbbbbbbbbb",
-            canonical_url="https://www.instagram.com/p/DBbbbbbbbbb/",
-            body_text="성수동 이 카페 진짜 좋았어요 #카페추천",
-        )
-        session.add(row)
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="save",
-                collection_name="places",
-                position=0,
-                first_seen_at=NOW,
-            )
-        )
-        session.commit()
-
-        stored = session.scalar(select(ItemSource).where(ItemSource.collection_name == "places"))
-        assert stored is not None
-        assert stored.item_id == row.id
-
-    def test_a_place_is_a_post_and_needs_no_new_kind(self, session: Session) -> None:
-        # `items.kind` *is* a CHECK — repo/model/paper/demo/tool/post/product/outfit — and a
-        # new member there would need the table rebuild SQLite requires. It does not need
-        # one: a saved place is an Instagram post, which the constraint already allows.
-        # Anything else would be asserting a classification no enricher has made.
-        source = account(session, "instagram", "__lucky_u___")
-        row = item(kind="post", platform_item_id="DBbbbbbbbbb")
-        row.canonical_url = "https://www.instagram.com/p/DBbbbbbbbbb/"
-        session.add(row)
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="save",
-                collection_name="places",
-                first_seen_at=NOW,
-            )
-        )
-        session.commit()
-
-        stored = session.scalar(select(Item).where(Item.platform_item_id == "DBbbbbbbbbb"))
-        assert stored is not None
-        assert stored.kind == "post"
-
-    def test_one_post_can_be_filed_under_places_and_another_board_at_once(
-        self, session: Session
-    ) -> None:
-        # The reason `item_sources` is a table. A café post that is also a travel reference
-        # can sit on two boards without either row being rewritten.
-        source = account(session, "instagram", "__lucky_u___")
-        row = item(platform_item_id="DCccccccccc")
-        row.canonical_url = "https://www.instagram.com/p/DCccccccccc/"
-        session.add(row)
-        for name in ("places", "fashion"):
-            session.add(
-                ItemSource(
-                    item_id=row.id,
-                    source_account_id=source.id,
-                    action_type="save",
-                    collection_name=name,
-                    first_seen_at=NOW,
-                )
-            )
-        session.commit()
-
-        assert len(session.scalars(select(ItemSource)).all()) == 2
+def membership(row: Item, source: SourceAccount, action: str | None) -> ItemSource:
+    return ItemSource(
+        item_id=row.id, source_account_id=source.id, action_type=action, first_seen_at=NOW
+    )
 
 
-class TestGitHubShape:
-    """GitHub reaches columns Instagram never touches."""
-
+class TestShapes:
     def test_stores_a_star_with_a_title_and_a_real_action_time(self, session: Session) -> None:
-        # `starred_at` is supplied, so `action_at` carries a value here — the column is
-        # not dead weight, it is simply unknown for one platform.
         source = account(session, "github", "sample-user")
-        row = item(
-            kind="repo",
-            platform="github",
-            platform_item_id="123456789",
-            canonical_url="https://github.com/anthropics/claude-code",
-            title="anthropics/claude-code",
-            body_text="Agentic coding tool that lives in your terminal.",
-            action_at="2026-08-01T09:12:00Z",
-        )
+        row = item()
         session.add(row)
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="star",
-                collection_name=None,
-                first_seen_at=NOW,
-                action_at="2026-08-01T09:12:00Z",
-            )
-        )
+        session.add(membership(row, source, "star"))
         session.commit()
 
         stored = session.scalar(select(Item).where(Item.platform == "github"))
         assert stored is not None
-        assert stored.title == "anthropics/claude-code"
-        assert stored.action_at == "2026-08-01T09:12:00Z"
+        assert stored.title == "sample-org/agent-kit"
+        assert stored.action_at == "2026-09-27T09:12:00Z"
 
-    def test_a_source_with_no_collection_name_is_representable(self, session: Session) -> None:
-        # Only Instagram Saved carries a user-declared grouping. A star has none, and a
-        # NOT NULL here would have forced an invented value like "starred".
-        source = account(session, "github", "sample-user")
-        row = item(platform="github", platform_item_id="1", canonical_url="https://github.com/a/b")
-        session.add(row)
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="star",
-                collection_name=None,
-                first_seen_at=NOW,
-            )
-        )
-        session.commit()
-        stored = session.scalar(select(ItemSource))
-        assert stored is not None
-        assert stored.collection_name is None
-
-    def test_two_platforms_coexist(self, session: Session) -> None:
-        # The state the boards need before a `source` filter chip can appear at all.
-        account(session, "instagram", "__lucky_u___")
-        account(session, "github", "sample-user")
-        session.add(item())
-        session.add(
-            item(platform="github", platform_item_id="1", canonical_url="https://github.com/a/b")
-        )
-        session.commit()
-        assert len(session.scalars(select(Item)).all()) == 2
-
-
-class TestThreadsShape:
-    def test_stores_a_repost_with_no_title(self, session: Session) -> None:
-        source = account(session, "threads", "oh.suzie")
+    def test_a_link_added_by_hand_has_no_action_and_no_account_handle(
+        self, session: Session
+    ) -> None:
+        source = account(session, "web", None)
         row = item(
-            platform="threads",
-            platform_item_id="DDddddddddd",
-            canonical_url="https://www.threads.com/@someone/post/DDddddddddd",
+            kind="post",
+            platform="web",
+            platform_item_id="manual:abc",
+            canonical_url="https://example.com/article",
             title=None,
             action_at=None,
         )
         session.add(row)
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="repost",
-                first_seen_at=NOW,
-            )
-        )
+        session.add(membership(row, source, None))
         session.commit()
-        assert session.scalar(select(Item).where(Item.platform == "threads")) is not None
+        assert session.scalar(select(ItemSource)) is not None
 
-    def test_a_platform_with_no_account_handle_is_representable(self, session: Session) -> None:
-        # arXiv has no account of its own.
-        account(session, "arxiv", None)
-        assert session.scalar(select(SourceAccount).where(SourceAccount.platform == "arxiv"))
+    @pytest.mark.parametrize("kind", ["repo", "model", "dataset", "space", "paper", "post"])
+    def test_every_kind_the_collectors_and_the_manual_form_write(
+        self, session: Session, kind: str
+    ) -> None:
+        session.add(item(kind=kind))
+        session.commit()
+
+
+class TestMemberships:
+    def test_one_paper_keeps_both_the_like_and_the_upvote(self, session: Session) -> None:
+        """Reached through a liked model *and* upvoted on its own page: one item, two
+        signals, each with its own time (docs/DECISIONS.md §업보트)."""
+        source = account(session, "huggingface")
+        row = paper()
+        session.add(row)
+        session.add(membership(row, source, "like"))
+        session.add(membership(row, source, "upvote"))
+        session.commit()
+        assert len(session.scalars(select(ItemSource)).all()) == 2
+
+    def test_the_same_signal_cannot_be_recorded_twice(self, session: Session) -> None:
+        source = account(session, "huggingface")
+        row = paper()
+        session.add(row)
+        session.add(membership(row, source, "upvote"))
+        session.commit()
+        session.add(membership(row, source, "upvote"))
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+    def test_the_saved_collection_column_is_gone(self) -> None:
+        assert "collection_name" not in ItemSource.__table__.columns
 
 
 class TestDeduplication:
     def test_the_same_platform_id_cannot_be_stored_twice(self, session: Session) -> None:
         session.add(item())
-        session.add(item(canonical_url="https://www.instagram.com/p/DAaaaaaaaaa/"))
+        session.add(item(canonical_url="https://github.com/sample-org/renamed"))
         with pytest.raises(IntegrityError):
             session.commit()
 
     def test_the_same_canonical_url_cannot_be_stored_twice(self, session: Session) -> None:
         session.add(item())
-        session.add(item(platform_item_id="DIFFERENT01"))
+        session.add(item(platform_item_id="987654321"))
         with pytest.raises(IntegrityError):
             session.commit()
 
-    def test_the_same_shortcode_on_two_platforms_is_not_a_duplicate(self, session: Session) -> None:
+    def test_the_same_id_on_two_platforms_is_not_a_duplicate(self, session: Session) -> None:
         # Identity is the pair, not the id alone.
         session.add(item())
-        session.add(
-            item(
-                platform="threads",
-                canonical_url="https://www.threads.com/@x/post/DAaaaaaaaaa",
-            )
-        )
+        session.add(item(platform="huggingface", canonical_url="https://huggingface.co/x"))
         session.commit()
         assert len(session.scalars(select(Item)).all()) == 2
 
@@ -341,7 +177,16 @@ class TestDeduplication:
 class TestConstraints:
     @pytest.mark.parametrize(
         ("field", "value"),
-        [("platform", "myspace"), ("kind", "nonsense")],
+        [
+            ("platform", "myspace"),
+            ("kind", "nonsense"),
+            # Removed on 2026-09-28 with the Instagram era: nothing here writes them.
+            ("platform", "instagram"),
+            ("platform", "threads"),
+            ("platform", "linkedin"),
+            ("kind", "outfit"),
+            ("kind", "product"),
+        ],
     )
     def test_rejects_a_value_the_frontend_cannot_represent(
         self, session: Session, field: str, value: str
@@ -350,19 +195,21 @@ class TestConstraints:
         with pytest.raises(IntegrityError):
             session.commit()
 
-    def test_rejects_an_action_type_outside_the_shared_enum(self, session: Session) -> None:
-        source = account(session, "instagram", "x")
+    @pytest.mark.parametrize("action", ["bookmarked", "save", "repost"])
+    def test_rejects_an_action_type_outside_the_shared_enum(
+        self, session: Session, action: str
+    ) -> None:
+        source = account(session, "github", "x")
         row = item()
         session.add(row)
         session.flush()
-        session.add(
-            ItemSource(
-                item_id=row.id,
-                source_account_id=source.id,
-                action_type="bookmarked",
-                first_seen_at=NOW,
-            )
-        )
+        session.add(membership(row, source, action))
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+    @pytest.mark.parametrize("job_type", ["build", "run", "price", "cleanup"])
+    def test_rejects_a_job_type_nothing_produces(self, session: Session, job_type: str) -> None:
+        session.add(Job(id="j", type=job_type, state="queued", title="x", created_at=NOW))
         with pytest.raises(IntegrityError):
             session.commit()
 
@@ -373,10 +220,10 @@ class TestConstraints:
         session.add(
             Evidence(
                 item_id=row.id,
-                type="audio_attribution",
-                label="릴스 오디오 표기",
-                value="Ella Mai - Trying",
-                provenance="fact",
+                type="paper.github_repo",
+                label="코드",
+                value="https://github.com/a/b",
+                provenance="huggingface",
                 confidence=1.5,
             )
         )
@@ -388,41 +235,35 @@ class TestConstraints:
         session.add(row)
         session.flush()
         session.add(
-            Evidence(
-                item_id=row.id,
-                type="guess",
-                label="x",
-                value="y",
-                provenance="vibes",
-            )
+            Evidence(item_id=row.id, type="guess", label="x", value="y", provenance="vibes")
         )
         with pytest.raises(IntegrityError):
             session.commit()
 
     def test_rejects_a_run_outcome_the_collector_cannot_produce(self, session: Session) -> None:
         session.add(
-            CollectorRun(collector_id="instagram_saved_ai", outcome="probably_fine", started_at=NOW)
+            CollectorRun(collector_id="github_stars_api", outcome="probably_fine", started_at=NOW)
         )
         with pytest.raises(IntegrityError):
             session.commit()
 
 
 class TestCheckpoints:
-    def test_one_row_per_collection_never_a_union(self, session: Session) -> None:
-        for collector in ("instagram_saved_ai", "instagram_saved_music"):
-            session.add(Checkpoint(collector_id=collector, last_seen_code="AAA", updated_at=NOW))
+    def test_one_row_per_collector_never_a_union(self, session: Session) -> None:
+        for collector in ("huggingface_activity", "huggingface_upvotes"):
+            session.add(Checkpoint(collector_id=collector, last_seen_code="x", updated_at=NOW))
         session.commit()
         assert len(session.scalars(select(Checkpoint)).all()) == 2
 
-    def test_a_collection_cannot_have_two_checkpoints(self, session: Session) -> None:
-        session.add(Checkpoint(collector_id="instagram_saved_ai", updated_at=NOW))
+    def test_a_collector_cannot_have_two_checkpoints(self, session: Session) -> None:
+        session.add(Checkpoint(collector_id="github_stars_api", updated_at=NOW))
         session.commit()
-        session.add(Checkpoint(collector_id="instagram_saved_ai", updated_at=NOW))
+        session.add(Checkpoint(collector_id="github_stars_api", updated_at=NOW))
         with pytest.raises(IntegrityError):
             session.commit()
 
     def test_a_never_run_collector_has_no_code_yet(self, session: Session) -> None:
-        session.add(Checkpoint(collector_id="instagram_saved_ai", updated_at=NOW))
+        session.add(Checkpoint(collector_id="github_stars_api", updated_at=NOW))
         session.commit()
         stored = session.scalar(select(Checkpoint))
         assert stored is not None
@@ -432,15 +273,15 @@ class TestCheckpoints:
     def test_records_whether_a_run_was_allowed_to_advance_the_checkpoint(
         self, session: Session
     ) -> None:
-        # The blocked run keeps repeating work on purpose; without this column that looks
-        # like a bug and gets optimised back into data loss.
+        # A truncated run repeats work on purpose; without this column that looks like a
+        # bug and gets optimised back into data loss.
         session.add(
             CollectorRun(
-                collector_id="instagram_saved_ai",
-                outcome="blocked",
+                collector_id="github_stars_api",
+                outcome="rate_limited",
                 started_at=NOW,
                 advanced_checkpoint=0,
-                stopped_because="restriction text",
+                stopped_because="시간당 한도",
             )
         )
         session.commit()
@@ -449,73 +290,12 @@ class TestCheckpoints:
         assert bool(stored.advanced_checkpoint) is False
 
 
-class TestMediaAndTags:
-    def test_keeps_the_expiring_url_beside_its_expiry(self, session: Session) -> None:
-        row = item()
-        session.add(row)
-        session.flush()
-        session.add(
-            MediaAsset(
-                item_id=row.id,
-                role="thumbnail",
-                remote_url="https://scontent.cdninstagram.com/v/t51/x.jpg?oe=68AB1234",
-                remote_expires_at="2026-08-12T18:38:24Z",
-                width=640,
-                height=1136,
-            )
-        )
-        session.commit()
-        stored = session.scalar(select(MediaAsset))
-        assert stored is not None
-        assert stored.remote_expires_at == "2026-08-12T18:38:24Z"
-        assert stored.local_path is None
-
-    def test_stores_a_landscape_thumbnail(self, session: Session) -> None:
-        # One of the 126 is 640x360. A schema or grid that assumes portrait is wrong.
-        row = item()
-        session.add(row)
-        session.flush()
-        session.add(MediaAsset(item_id=row.id, width=640, height=360))
-        session.commit()
-        stored = session.scalar(select(MediaAsset))
-        assert stored is not None
-        assert stored.width is not None and stored.height is not None
-        assert stored.width > stored.height
-
-    def test_a_carousel_keeps_one_row_per_photo(self, session: Session) -> None:
-        # The reason `media_assets` is a table rather than three columns on `items`: a
-        # carousel is one post with up to twenty photos, and the board renders all of them.
-        row = item()
-        session.add(row)
-        session.flush()
-        for role in ("thumbnail", "image_02", "image_03"):
-            session.add(
-                MediaAsset(
-                    item_id=row.id,
-                    role=role,
-                    remote_url=f"https://scontent.cdninstagram.com/v/t51/{role}.jpg",
-                )
-            )
-        session.commit()
-
-        assert len(session.scalars(select(MediaAsset)).all()) == 3
-
-    def test_one_position_cannot_be_stored_twice_for_one_item(self, session: Session) -> None:
-        # `(item_id, role)` is what makes re-ingesting a capture update rows instead of
-        # adding them, so a daily re-read cannot grow a five-photo post into fifteen.
-        row = item()
-        session.add(row)
-        session.flush()
-        for _ in range(2):
-            session.add(MediaAsset(item_id=row.id, role="image_02"))
-        with pytest.raises(IntegrityError):
-            session.commit()
-
+class TestTags:
     def test_tags_are_indexable_and_ordered(self, session: Session) -> None:
         row = item()
         session.add(row)
         session.flush()
-        for ordinal, tag in enumerate(["#여름코디", "#데일리룩"]):
+        for ordinal, tag in enumerate(["agents", "llm"]):
             session.add(ItemTag(item_id=row.id, tag=tag, ordinal=ordinal))
         session.commit()
         assert len(session.scalars(select(ItemTag)).all()) == 2
@@ -524,54 +304,39 @@ class TestMediaAndTags:
         row = item()
         session.add(row)
         session.flush()
-        session.add(ItemTag(item_id=row.id, tag="#ootd", ordinal=0))
-        session.add(ItemTag(item_id=row.id, tag="#ootd", ordinal=1))
+        session.add(ItemTag(item_id=row.id, tag="agents", ordinal=0))
+        session.add(ItemTag(item_id=row.id, tag="agents", ordinal=1))
         with pytest.raises(IntegrityError):
             session.commit()
 
 
 class TestRawEvents:
-    def test_one_row_per_item_per_run(self, session: Session) -> None:
-        run = CollectorRun(collector_id="instagram_saved_ai", outcome="ok", started_at=NOW)
+    def _run(self, session: Session) -> CollectorRun:
+        run = CollectorRun(collector_id="github_stars_api", outcome="ok", started_at=NOW)
         session.add(run)
         session.flush()
-        session.add(
-            RawEvent(
-                run_id=run.id,
-                platform="instagram",
-                platform_item_id="DAaaaaaaaaa",
-                payload='{"code":"DAaaaaaaaaa"}',
-                observed_at=NOW,
-            )
-        )
-        session.commit()
+        return run
 
-        session.add(
-            RawEvent(
-                run_id=run.id,
-                platform="instagram",
-                platform_item_id="DAaaaaaaaaa",
-                payload="{}",
-                observed_at=NOW,
-            )
+    def _event(self, run: CollectorRun) -> RawEvent:
+        return RawEvent(
+            run_id=run.id,
+            platform="github",
+            platform_item_id="123456789",
+            payload="{}",
+            observed_at=NOW,
         )
+
+    def test_one_row_per_item_per_run(self, session: Session) -> None:
+        run = self._run(session)
+        session.add(self._event(run))
+        session.commit()
+        session.add(self._event(run))
         with pytest.raises(IntegrityError):
             session.commit()
 
     def test_the_same_item_may_be_observed_again_by_a_later_run(self, session: Session) -> None:
-        # Re-collection is normal — an interrupted run deliberately walks the same ground.
+        # Re-collection is normal — a truncated run deliberately walks the same ground.
         for _ in range(2):
-            run = CollectorRun(collector_id="instagram_saved_ai", outcome="ok", started_at=NOW)
-            session.add(run)
-            session.flush()
-            session.add(
-                RawEvent(
-                    run_id=run.id,
-                    platform="instagram",
-                    platform_item_id="DAaaaaaaaaa",
-                    payload="{}",
-                    observed_at=NOW,
-                )
-            )
+            session.add(self._event(self._run(session)))
         session.commit()
         assert len(session.scalars(select(RawEvent)).all()) == 2

@@ -15,20 +15,20 @@ import { isDayKey, isMonthKey } from "./collected-days";
 /**
  * The URL is the source of truth for filter, sort and density (CLAUDE.md §6).
  *
- * Everything here is pure and runs on the server: a board page reads `searchParams`,
- * parses it once, and passes the result to the repository. No component reads the URL
+ * Everything here is pure and runs on the server: the Inbox reads `searchParams`, parses
+ * it once, and passes the result to the repository. No component reads the URL
  * for itself, so there is exactly one place where a query string becomes a query.
  *
  * **Nothing personal is ever encoded here.** These URLs get bookmarked and shared, and
  * every value below is an enum literal from the shared schemas — never a caption, a
  * handle, or an item id.
  *
- * Parsing never throws. A URL someone saved before an enum changed still opens the board,
+ * Parsing never throws. A URL someone saved before an enum changed still opens the Inbox,
  * just without the filter that no longer exists; `unknownKeys` records what was dropped so
  * the page can say so rather than silently ignoring the user's link.
  */
 
-/** What a board page receives from Next.js. */
+/** What the Inbox page receives from Next.js. */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
 /**
@@ -64,13 +64,15 @@ export const BOARD_URL_KEYS = [
   "source",
   DAY_KEY,
   CALENDAR_MONTH_KEY,
-  "handled",
   "sort",
   "density",
 ] as const;
 
-/** Browse routes that may be carried through an item detail URL. */
-const BOARD_RETURN_PATHS = new Set(["/library", "/trends", "/style", "/music", "/places", "/none"]);
+/**
+ * Routes that may be carried through an item detail URL. The Inbox alone since 2026-09-28:
+ * a bookmarked detail link from one of the removed boards falls back to it.
+ */
+const BOARD_RETURN_PATHS = new Set(["/library"]);
 
 function validReturnValue(name: (typeof BOARD_URL_KEYS)[number], value: string): boolean {
   const everyValueIs = (options: readonly string[]) =>
@@ -84,8 +86,6 @@ function validReturnValue(name: (typeof BOARD_URL_KEYS)[number], value: string):
       return isDayKey(value);
     case CALENDAR_MONTH_KEY:
       return isMonthKey(value);
-    case "handled":
-      return value === "shown";
     case "sort":
       return SortOrderSchema.safeParse(value).success;
     case "density":
@@ -106,7 +106,7 @@ export interface BoardView {
   readonly density: Density;
 }
 
-/** The one facet every board shares with the rail's calendar. `null` is "every day". */
+/** The rail's calendar. `null` is "every day". */
 interface DayFilter {
   readonly day: string | null;
 }
@@ -114,15 +114,6 @@ interface DayFilter {
 export interface AIBoardFilters extends BoardView, DayFilter {
   readonly kind: readonly (typeof AIItemKindSchema)["options"][number][];
   readonly source: readonly (typeof SourcePlatformSchema)["options"][number][];
-}
-
-export interface StyleBoardFilters extends BoardView, DayFilter {
-  readonly source: readonly (typeof SourcePlatformSchema)["options"][number][];
-}
-
-export interface MusicBoardFilters extends DayFilter {
-  /** The board is an inbox: cleared rows are hidden unless asked for. */
-  readonly handled: "hidden" | "shown";
 }
 
 /**
@@ -175,54 +166,13 @@ export function parseAIFilters(params: RawSearchParams): AIBoardFilters {
   };
 }
 
-export function parseStyleFilters(params: RawSearchParams): StyleBoardFilters {
-  return {
-    ...readView(params),
-    source: parseMultiValue(first(params.source), SourcePlatformSchema),
-    day: parseDay(params),
-  };
+/** True when the Inbox is showing everything it has. */
+export function isUnfiltered(filters: AIBoardFilters): boolean {
+  return filters.day === null && filters.kind.length === 0 && filters.source.length === 0;
 }
 
-export function parseMusicFilters(params: RawSearchParams): MusicBoardFilters {
-  return {
-    handled: first(params.handled) === "shown" ? "shown" : "hidden",
-    day: parseDay(params),
-  };
-}
-
-/**
- * The Inbox — the merged board.
- *
- * It carries `source` unconditionally, because that is the only field an AI post, a fashion
- * carousel and a saved Reel all answer. `kind` is conditional, and the condition is the
- * board's own contents rather than a setting: a merged board offering a facet that exists
- * on one of its three models would filter one list and silently pass the other two
- * through — which is the failure docs/DECISIONS.md (2026-08-08) calls worse than not
- * offering the filter at all.
- *
- * `withKind` is that condition, and the caller decides it by looking: when nothing on the
- * board is a Style or Music row, every entry carries `kind` and the facet is honest. In the
- * `rnd` edition that is every render — the browser collectors that fill those boards do not
- * run — and in the personal workspace it is whichever days nothing was saved from
- * Instagram. Either way it is read from the items, not declared.
- */
-export function parseLibraryFilters(
-  params: RawSearchParams,
-  { withKind = false }: { readonly withKind?: boolean } = {},
-): AIBoardFilters | StyleBoardFilters {
-  return withKind ? parseAIFilters(params) : parseStyleFilters(params);
-}
-
-/** True when the board is showing everything it has. */
-export function isUnfiltered(filters: AIBoardFilters | StyleBoardFilters): boolean {
-  const groups = "kind" in filters ? [filters.kind, filters.source] : [filters.source];
-  return filters.day === null && groups.every((group) => group.length === 0);
-}
-
-export function activeFilterCount(filters: AIBoardFilters | StyleBoardFilters): number {
-  const groups = "kind" in filters ? [filters.kind, filters.source] : [filters.source];
-  const values = groups.reduce((total, group) => total + group.length, 0);
-  return values + (filters.day === null ? 0 : 1);
+export function activeFilterCount(filters: AIBoardFilters): number {
+  return filters.kind.length + filters.source.length + (filters.day === null ? 0 : 1);
 }
 
 /**
@@ -246,7 +196,7 @@ export function toggleFilterHref(
    *
    * The rail's source rows read as a list of places to go — the same shape, in the same
    * panel, as "Browse by type" directly above them, where one click means *show me this
-   * one*. Accumulating there meant clicking GitHub and then Instagram showed both, which
+   * one*. Accumulating there meant clicking GitHub and then Hugging Face showed both, which
    * is not what the row looks like it promises. Clicking the row that is already on still
    * clears it — and since the "필터 지우기" control was removed (2026-08-10) that
    * re-click, together with the chip that toggles itself off, is how a person gets back to
@@ -340,7 +290,7 @@ export function boardViewHref(pathname: string, params: RawSearchParams): string
   return query === "" ? pathname : `${pathname}?${query}`;
 }
 
-/** Link to a detail while remembering the exact filtered board it came from. */
+/** Link to a detail while remembering the exact filtered Inbox view it came from. */
 export function itemDetailHref(id: string, returnTo?: string): string {
   const pathname = `/items/${encodeURIComponent(id)}`;
   if (returnTo === undefined) return pathname;
@@ -349,7 +299,7 @@ export function itemDetailHref(id: string, returnTo?: string): string {
 }
 
 /**
- * Accept only a known local board and known filter keys from a detail URL.
+ * Accept only the Inbox and known filter keys from a detail URL.
  *
  * `from` is navigation state, not an open redirect: schemes, hosts, hashes, unknown routes
  * and unexpected query keys are discarded before the back link is rendered.

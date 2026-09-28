@@ -3,15 +3,10 @@ import {
   ArrowRight,
   Box,
   Check,
-  CircleAlert,
   FileText,
-  Key,
-  Loader,
-  Eye,
   Search,
   ShieldAlert,
   ShieldCheck,
-  Tag,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -44,11 +39,11 @@ import { RefreshWhileRunning } from "@/components/shell/RefreshWhileRunning";
  * The reference's own three rows are dead features (repo sandbox, price matching), so
  * only the row *shape* is ported; the rows are whatever the queue actually holds.
  *
- * The allowed row kinds are exactly the twelve PAGE_SPECIFICATIONS §5.2 lists — the six it
- * started with and the six research/trial kinds added on 2026-09-28 after the document was
- * changed first. A thirteenth needs a document change too. The record below is total over
- * the enum on purpose: the day the schema gained `trial_blocked` and this table did not,
- * Today died reading `.icon` of undefined, and the type checker is what now refuses that.
+ * The allowed row kinds are the research, planning and trial kinds `api/today.py` produces;
+ * the six inherited ones (environment, token, review, price, collector login) went on
+ * 2026-09-28 with the features that produced them. The record below is total over the enum
+ * on purpose: the day the schema gained `trial_blocked` and this table did not, Today died
+ * reading `.icon` of undefined, and the type checker is what now refuses that.
  */
 
 type QueueTone = "neutral" | "ready" | "active" | "attention";
@@ -60,12 +55,6 @@ interface QueueKindPresentation {
 }
 
 const QUEUE_KIND: Readonly<Record<QueueItemKind, QueueKindPresentation>> = {
-  environment_ready: { label: "준비 완료", tone: "ready", icon: Check },
-  environment_preparing: { label: "빌드 중", tone: "active", icon: Loader },
-  token_required: { label: "토큰 필요", tone: "neutral", icon: Key },
-  review_required: { label: "승인 필요", tone: "neutral", icon: Eye },
-  price_checking: { label: "가격 확인 중", tone: "active", icon: Tag },
-  collector_auth: { label: "로그인 필요", tone: "neutral", icon: CircleAlert },
   research_running: { label: "조사 중", tone: "active", icon: Search },
   research_ready: { label: "제안 준비됨", tone: "ready", icon: FileText },
   plan_running: { label: "검증 설계 중", tone: "active", icon: Search },
@@ -77,8 +66,6 @@ const QUEUE_KIND: Readonly<Record<QueueItemKind, QueueKindPresentation>> = {
 
 /** Rows whose state is still moving, so the card keeps itself current while they exist. */
 const MOVING: ReadonlySet<QueueItemKind> = new Set([
-  "environment_preparing",
-  "price_checking",
   "research_running",
   "plan_running",
   "trial_running",

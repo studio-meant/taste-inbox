@@ -1,16 +1,14 @@
 import { kindLabel } from "@/components/collection/source-vocabulary";
-import type { AIItemCardModel, StyleItemCardModel } from "@taste-inbox/shared";
+import type { AIItemCardModel } from "@taste-inbox/shared";
 import type { FilterGroup } from "@/components/collection/FilterChipRow";
 
 /**
  * Filter options counted from the items actually on the board.
  *
- * Counting rather than enumerating is the whole point. The design documents specify
- * filter groups for a product whose enrichers exist; today every one of the 126 collected
- * items is unenriched, so a `Category` group would offer Outer / Top / Shoes over items
- * that were never classified and return nothing every time. A filter that always finds
- * nothing reads as "no matches", which is a claim about the items rather than about the
- * product — exactly the confusion DESIGN.md §3.5 exists to prevent.
+ * Counting rather than enumerating is the whole point. A group over a field every item
+ * shares — every item from GitHub, say — would offer one option and narrow nothing, and a
+ * filter that always finds nothing reads as "no matches", which is a claim about the items
+ * rather than about the product — exactly the confusion DESIGN.md §3.5 exists to prevent.
  *
  * So a group appears when it can separate the board and disappears when it cannot. As
  * enrichment lands, the groups appear on their own, with no code change here.
@@ -70,7 +68,7 @@ export function aiFilterGroups(items: readonly AIItemCardModel[]): readonly Filt
    * and the papers they cite, so "which kind" is a question the source filter cannot answer.
    *
    * Counted like every facet here, and offered only while some one source holds more than
-   * one kind — on a board of GitHub stars and Instagram posts it disappears again.
+   * one kind — on an Inbox of GitHub stars and hand-added web pages it disappears again.
    */
   const kind = tally(items, (item) => item.kind);
   const kindsBySource = new Map<string, Set<string>>();
@@ -99,18 +97,9 @@ export function aiFilterGroups(items: readonly AIItemCardModel[]): readonly Filt
   return [...kindGroups, ...sourceFilterGroups(items)];
 }
 
-export function styleFilterGroups(items: readonly StyleItemCardModel[]): readonly FilterGroup[] {
-  // Deliberately no product axis while nothing has been priced: `stockState` is `unknown`
-  // on every collected item, so the group would have one option and narrow nothing.
-  return sourceFilterGroups(items);
-}
-
 const PLATFORM_LABEL: Readonly<Record<string, string>> = {
   github: "GitHub",
   huggingface: "Hugging Face",
   arxiv: "arXiv",
-  threads: "Threads",
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
   web: "웹",
 };

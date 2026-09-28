@@ -65,16 +65,25 @@ describe("Where a value came from", () => {
   });
 
   it("separates what the config file set from what the product decided", () => {
-    // `config/app.yaml` pins the interval; `debug_retention_days` is absent from it and
-    // falls through to the schema default. Both are "not mine", and the difference matters:
-    // one is a choice somebody already made in a file, the other is what shipped.
+    // `config/app.yaml` pins the interval; `ceremonial_entry` is absent from it and falls
+    // through to the schema default. Both are "not mine", and the difference matters: one
+    // is a choice somebody already made in a file, the other is what shipped.
     const settings = document_();
     expect(settings.collection.intervalHours.origin).toBe("file");
-    expect(settings.privacy.debugRetentionDays.origin).toBe("default");
+    expect(settings.general.ceremonialEntry.origin).toBe("default");
 
     show(settings);
     expect(within(row("수집 간격")).getByText("설정 파일 값")).toBeInTheDocument();
-    expect(within(row("실패 캡처 보관 기간")).getByText("기본값")).toBeInTheDocument();
+    expect(within(row("시작 연출")).getByText("기본값")).toBeInTheDocument();
+  });
+
+  it("has no section for settings that do not exist yet", () => {
+    // "아직 없는 설정" and the feature flags that described collectors never built went on
+    // 2026-09-28, with the debug retention only a browser collector read.
+    show();
+    for (const gone of ["기능 플래그", "기록 정리", "LinkedIn 수집기", "실패 캡처 보관 기간"]) {
+      expect(screen.queryByText(gone)).not.toBeInTheDocument();
+    }
   });
 });
 
@@ -145,13 +154,13 @@ describe("Saving", () => {
   });
 
   it("batches the pair the cross-field rule is about into one request", async () => {
-    // `stagger × 5 < interval × 60` is a statement about a *pair*. Sending each control as
+    // `stagger × 2 < interval × 60` is a statement about a *pair*. Sending each control as
     // it changes would refuse a user halfway through an edit that is legal as a whole.
     const onSave = vi.fn(accepted);
     show(document_(), onSave);
 
     fireEvent.change(interval(), { target: { value: "8" } });
-    fireEvent.change(within(row("계정별 시차")).getByRole("spinbutton"), {
+    fireEvent.change(within(row("수집기 사이 간격")).getByRole("spinbutton"), {
       target: { value: "10" },
     });
     fireEvent.click(screen.getByRole("button", { name: /저장/ }));
@@ -171,7 +180,7 @@ describe("Saving", () => {
     const refused: SaveSettings = () =>
       Promise.resolve({
         ok: false,
-        message: "수집 주기를 1시간으로 줄이면 계정별 시차가 한 주기를 넘어서요.",
+        message: "수집 주기를 1시간으로 줄이면 수집기 사이 간격이 한 주기를 넘어서요.",
       });
     show(document_(), refused);
 

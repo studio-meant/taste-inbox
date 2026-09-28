@@ -37,76 +37,29 @@ from ..config.schema import AppDocument
 from ..distribution import distribution_profile
 from ..paths import REPO_ROOT
 
-#: The order sources are offset in. Instagram first because it is the collection with the
-#: user's own classification, and LinkedIn last because it is the riskiest account.
+#: The collectors, in the order they are offset in.
 #:
-#: `instagram_likes` leads it as of 2026-08-12, and the three `instagram_saved_*` behind it
-#: now mean something different from what they meant when this order was written. Those are
-#: **ingest-only** — Instagram's saved-collection feed 404s to its own web app, so those jobs
-#: read whatever `probe saved` last left in `var/captures/` and open no browser at all
-#: (`ingest/collect.py::COLLECTOR_SHAPES`). Likes is the Instagram surface that still
-#: answers, so it takes the position the user's own filing used to hold: first, because it is
-#: the one whose freshness the boards depend on.
-#:
-#: Keeping the dead three in the list rather than deleting them is deliberate. They still
-#: have capture files, those files still ingest, and a job that re-reads them costs one
-#: `SELECT` per item; removing the ids would take the three boards' backfill off the schedule
-#: to save nothing.
+#: `github_stars_api` reads `GET /users/{login}/starred`, which returns `starred_at` under the
+#: star+json media type. `huggingface_upvotes` is last and is the only unofficial path here —
+#: the public JSON the Hub's own activity page reads, under the conditions in
+#: `docs/DECISIONS.md` §2026-09-28. It has its own id, and therefore its own checkpoint and its
+#: own `last_outcome`, so the day the Hub changes that shape the likes collector keeps running
+#: and the Today screen says which one stopped.
 #:
 #: `config/schema.py::STAGGERED_SOURCES` is the length of this tuple, stated there rather
 #: than imported so config validation does not reach into the API layer, and pinned to it by
-#: `tests/test_api.py`. Adding a source here tightens the stagger ceiling: with seven, six
-#: gaps have to fit inside one interval.
-#: The logged-in browser collectors. Present in this tree only as names: the package that
-#: implements them stayed in the private workspace, and the distribution marker keeps them
-#: off regardless (`distribution.py`). Kept so an inherited schedule still reads the same
-#: and so re-adding one later is a marker change rather than a new list.
-BROWSER_SOURCE_ORDER: tuple[str, ...] = (
-    "instagram_likes",
-    "instagram_saved_ai",
-    "instagram_saved_music",
-    "instagram_saved_fashion",
-    "github_stars",
-    "threads_reposts",
-    "linkedin_reactions",
-)
-
-#: The official-API collectors this distribution actually runs (2026-09-28).
-#:
-#: `github_stars_api` is deliberately a different id from the browser `github_stars`. They
-#: read the same account but not the same facts — the stars *page* never shows when a
-#: repository was starred, while `GET /user/starred` returns `starred_at`. Sharing an id
-#: would let one collector's checkpoint answer for the other's coverage.
-#: `huggingface_upvotes` is last and is the only unofficial path here — the public JSON the
-#: Hub's own activity page reads, under the conditions in `docs/DECISIONS.md` §2026-09-28.
-#: It has its own id, and therefore its own checkpoint and its own `last_outcome`, so the
-#: day the Hub changes that shape the likes collector keeps running and the Today screen
-#: says which one stopped.
-API_SOURCE_ORDER: tuple[str, ...] = (
+#: `tests/test_api.py`.
+SOURCE_ORDER: tuple[str, ...] = (
     "github_stars_api",
     "huggingface_activity",
     "huggingface_upvotes",
 )
 
-#: Backwards-compatible alias. Inherited callers that mean "the browser collectors" keep
-#: working; anything that means "what is actually scheduled" must call `scheduled_sources`.
-SOURCE_ORDER: tuple[str, ...] = BROWSER_SOURCE_ORDER
-
 
 def scheduled_sources(root: Path = REPO_ROOT) -> tuple[str, ...]:
-    """Which collectors this distribution may put on a schedule.
+    """Which collectors this distribution may put on a schedule (`distribution.py`)."""
 
-    Two capabilities rather than one, because this tree runs API collectors while browser
-    automation stays off — see `distribution.py` for why that split exists.
-    """
-
-    profile = distribution_profile(root)
-    sources: tuple[str, ...] = ()
-    if profile.browser_automation:
-        sources += BROWSER_SOURCE_ORDER
-    if profile.api_collection:
-        sources += API_SOURCE_ORDER
-    return sources
+    return SOURCE_ORDER if distribution_profile(root).api_collection else ()
 
 
 def local_zone(name: str) -> ZoneInfo:
@@ -196,9 +149,6 @@ def describe(*, now: datetime | None = None, session: Session | None = None) -> 
         "staggerMinutes": collection.stagger_minutes,
         "allowManualRefresh": collection.allow_manual_refresh,
         "distributionEdition": profile.edition,
-        "browserAutomationAvailable": profile.browser_automation,
-        # Split from the line above on 2026-09-28: this tree collects from official
-        # APIs while browser automation stays off, and one boolean could not say both.
         "apiCollectionAvailable": profile.api_collection,
         # The day's slots before the stagger is applied, so the screen can say "00:00 ·
         # 04:00 · …" without recomputing the interval in the frontend.
@@ -213,8 +163,6 @@ def describe(*, now: datetime | None = None, session: Session | None = None) -> 
 
 
 __all__ = [
-    "API_SOURCE_ORDER",
-    "BROWSER_SOURCE_ORDER",
     "SOURCE_ORDER",
     "configured_zone",
     "describe",

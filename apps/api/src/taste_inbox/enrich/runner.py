@@ -67,8 +67,8 @@ def _now() -> str:
 def repository_targets(session: Session) -> list[tuple[Item, str]]:
     """Items with a repository to read — the item's own URL, or one found in it.
 
-    A LinkedIn post whose comments linked a repository is as good a target as a star: the
-    repository is what gets assessed, and the post is where it was found. That is the whole
+    A paper whose Hub page names its code repository is as good a target as a star: the
+    repository is what gets assessed, and the paper is where it was found. That is the whole
     point of keeping links as evidence.
     """
     targets: list[tuple[Item, str]] = []
@@ -82,7 +82,7 @@ def repository_targets(session: Session) -> list[tuple[Item, str]]:
     rows = session.execute(
         select(Item, Evidence.value)
         .join(Evidence, Evidence.item_id == Item.id)
-        .where(Evidence.type.in_(("artifact_link", "comment_artifact_link")))
+        .where(Evidence.type == "artifact_link")
     ).all()
     for item, url in rows:
         if owner_and_repo(str(url)) and str(url) not in seen:

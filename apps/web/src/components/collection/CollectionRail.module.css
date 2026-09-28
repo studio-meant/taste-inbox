@@ -1,12 +1,10 @@
 /**
- * The Saved Items rail — `reference/ref.css` `.context-rail`.
+ * The Inbox rail — `reference/ref.css` `.context-rail`.
  *
- * A filled dark-green panel, not an outline column, and **always rendered**. The rail
- * that returned null when no facet could narrow the board is what let `/style` become a
- * 2px board: every one of its 76 items is from Instagram, so the one remaining facet had
- * a single option, the rail disappeared, and the board landed in an `auto` grid track
- * sized to a grid of `1fr` columns. The panel's first section is board counts, which are
- * always available, so there is no state in which it has nothing to say.
+ * A filled dark-green panel, not an outline column, and **always rendered**. A rail that
+ * returned null when no facet could narrow the list once let a board become 2px wide: the
+ * rail disappeared and the list landed in an `auto` grid track sized to a grid of `1fr`
+ * columns.
  *
  * Contrast. The reference's ground is `color-mix(--forest 84%, --oatmeal)` = `#677761`
  * (L 0.170) with idle text at `rgba(255,253,248,.7)` — 3.18:1, and its section labels at
@@ -150,7 +148,7 @@ a.row:hover {
 /*
  * A count that is not a control.
  *
- * When a facet cannot separate the board — every Style item is from Instagram — offering
+ * When a facet cannot separate the Inbox — every item from GitHub, say — offering
  * it as a filter would return the same board and read as "no matches", which is a claim
  * about the items rather than about the product. The row still says how many there are;
  * it just does not pretend to be a filter.

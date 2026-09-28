@@ -4,8 +4,7 @@ interface Props {
   readonly dataSource: "mock" | "live";
   readonly hostProfile: HostProfile;
   readonly resourcePolicy: EffectiveResourcePolicy;
-  readonly aiItemCount: number;
-  readonly styleItemCount: number;
+  readonly itemCount: number;
   readonly jobs: readonly JobModel[];
 }
 
@@ -33,8 +32,7 @@ export function FoundationStatus({
   dataSource,
   hostProfile,
   resourcePolicy,
-  aiItemCount,
-  styleItemCount,
+  itemCount,
   jobs,
 }: Props) {
   const blocked = jobs.filter((job) => job.state === "blocked");
@@ -50,7 +48,9 @@ export function FoundationStatus({
           <dt className="type-label">데이터 소스</dt>
           <dd className="type-card-title">{dataSource === "mock" ? "Mock" : "Live"}</dd>
           <p className="type-body-small">
-            자격 증명 없이 동작합니다. 실제 API는 Phase 2에서 연결됩니다.
+            {dataSource === "mock"
+              ? "저장소에 들어 있는 예시 데이터를 보여줘요. 이 Mac의 서비스에 연결하지 않았어요."
+              : "이 Mac에서 도는 서비스의 데이터를 보여줘요."}
           </p>
         </div>
 
@@ -91,8 +91,7 @@ export function FoundationStatus({
         <div className="system-card">
           <dt className="type-label">동시 실행</dt>
           <dd className="type-card-title type-numeric">
-            빌드 {resourcePolicy.concurrency.environmentBuilds} · 수집{" "}
-            {resourcePolicy.concurrency.browserCollectors}
+            빌드 {resourcePolicy.concurrency.environmentBuilds}
           </dd>
           <p className="type-body-small">
             로컬 모델 동시 실행{" "}
@@ -101,10 +100,8 @@ export function FoundationStatus({
         </div>
 
         <div className="system-card">
-          <dt className="type-label">Mock 항목</dt>
-          <dd className="type-card-title type-numeric">
-            AI {aiItemCount} · Style {styleItemCount}
-          </dd>
+          <dt className="type-label">Inbox 항목</dt>
+          <dd className="type-card-title type-numeric">{itemCount}</dd>
           <p className="type-body-small">
             작업 {jobs.length}건
             {blocked.length > 0 ? ` · 확인 필요 ${String(blocked.length)}건` : ""}

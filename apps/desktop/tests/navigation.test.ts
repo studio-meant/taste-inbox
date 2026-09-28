@@ -12,8 +12,8 @@ describe("desktop hrefs", () => {
 
   it("still serializes query objects and repeated values", () => {
     expect(
-      toHref({ pathname: "/library", query: { source: ["github", "linkedin"], page: 2 } }),
-    ).toBe("/library?source=github&source=linkedin&page=2");
+      toHref({ pathname: "/library", query: { source: ["github", "huggingface"], page: 2 } }),
+    ).toBe("/library?source=github&source=huggingface&page=2");
   });
 });
 

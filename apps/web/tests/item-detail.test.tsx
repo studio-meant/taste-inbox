@@ -30,14 +30,14 @@ describe("ItemDetail", () => {
     expect(screen.queryByText("전문 보기")).not.toBeInTheDocument();
   });
 
-  it("says a blank caption is blank rather than rendering nothing", async () => {
+  it("says a blank description is blank rather than rendering nothing", async () => {
     render(<ItemDetail item={{ ...(await anyItem()), body: "   " }} />);
-    expect(screen.getByText(/본문이 없는 게시물/)).toBeInTheDocument();
+    expect(screen.getByText(/본문이 없는 항목/)).toBeInTheDocument();
   });
 
   it("marks every observation with where it came from, in words", async () => {
-    // Colour alone cannot separate "the platform said this" from "a recogniser guessed
-    // it" (CLAUDE.md §6), and the difference is the whole point of the section.
+    // Colour alone cannot separate "the source said this" from "research inferred it"
+    // (CLAUDE.md §6), and the difference is the whole point of the section.
     render(
       <ItemDetail
         item={{
@@ -45,16 +45,16 @@ describe("ItemDetail", () => {
           evidence: [
             {
               id: "e1",
-              type: "audio_attribution",
-              label: "릴스 오디오 표기",
-              value: "Ella Mai - Trying",
+              type: "paper.github_repo",
+              label: "코드",
+              value: "https://github.com/sample-org/self-check",
               provenance: "fact",
             },
             {
               id: "e2",
-              type: "thumbnail_track",
-              label: "표지에 적힌 곡으로 보임",
-              value: "Myles Lloyd - Drive Me Crazy",
+              type: "research.suggestion",
+              label: "다음 한 걸음",
+              value: "작은 입력으로 검산 루프를 돌려 본다",
               provenance: "inference",
             },
           ],
@@ -63,7 +63,7 @@ describe("ItemDetail", () => {
     );
     expect(screen.getByText("관찰됨")).toBeInTheDocument();
     expect(screen.getByText("추론")).toBeInTheDocument();
-    expect(screen.getByText("Myles Lloyd - Drive Me Crazy")).toBeInTheDocument();
+    expect(screen.getByText("작은 입력으로 검산 루프를 돌려 본다")).toBeInTheDocument();
     expect(screen.getByText("확인한 정보").closest("details")).not.toHaveAttribute("open");
   });
 
@@ -76,63 +76,32 @@ describe("ItemDetail", () => {
     expect(screen.getByText(/기록할 만한 것이 없었어요/)).toBeInTheDocument();
   });
 
-  it("always offers the original, and links back to the board it came from", async () => {
+  it("always offers the original, and links back to the Inbox", async () => {
     const item = await anyItem();
-    render(<ItemDetail item={{ ...item, board: "music" }} />);
-    expect(screen.getByRole("link", { name: /원본 게시물 열기/ })).toHaveAttribute(
+    render(<ItemDetail item={item} />);
+    expect(screen.getByRole("link", { name: /원본 열기/ })).toHaveAttribute(
       "href",
       item.source.originalUrl,
     );
-    // `Music으로`, not `Music로`. The back link used to compose `${label}로` for all four
-    // boards, which is wrong Korean after a consonant; `BOARD_BACK_LABEL` spells each one.
-    expect(screen.getByRole("link", { name: /Music으로 돌아가기/ })).toBeInTheDocument();
-    expect(screen.queryByRole("combobox", { name: /보드/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Inbox" })).toHaveAttribute("href", "/library");
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("returns to the exact filtered Browse URL it was opened from", async () => {
+  it("returns to the exact filtered Inbox URL it was opened from", async () => {
     const item = await anyItem();
-    render(
-      <ItemDetail
-        item={{ ...item, board: "trends" }}
-        backHref="/trends?kind=post&source=instagram"
-      />,
-    );
-    expect(screen.getByRole("link", { name: /Trends로 돌아가기/ })).toHaveAttribute(
+    render(<ItemDetail item={item} backHref="/library?kind=paper&source=huggingface" />);
+    expect(screen.getByRole("link", { name: "Inbox" })).toHaveAttribute(
       "href",
-      "/trends?kind=post&source=instagram",
+      "/library?kind=paper&source=huggingface",
     );
   });
 
-  it("uses the board as a visible, category-toned detail state", async () => {
+  it("names what the item is, in English, where the board chip used to be", async () => {
     const item = await anyItem();
-    const { container } = render(<ItemDetail item={{ ...item, board: "style" }} />);
-    const detail = container.querySelector("[data-item-detail]");
-    const boardChip = detail?.querySelector("header [lang='en']");
-
-    expect(detail).not.toBeNull();
-    expect(detail).toHaveAttribute("data-board", "style");
-    expect(boardChip).toHaveTextContent("Style");
-  });
-
-  it("offers the official Instagram view when a manually added post has no cached media", async () => {
-    const item = await anyItem();
-    render(
-      <ItemDetail
-        item={{
-          ...item,
-          title: "직접 추가한 게시물",
-          photos: [],
-          media: null,
-          source: {
-            ...item.source,
-            platform: "instagram",
-            originalUrl: "https://www.instagram.com/p/Manual_123/",
-          },
-        }}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "Instagram 게시물 보기" })).toBeInTheDocument();
+    const { container } = render(<ItemDetail item={{ ...item, kind: "paper" }} />);
+    const chip = container.querySelector("[data-item-detail] header [lang='en']");
+    expect(chip).toHaveTextContent("Paper");
+    expect(container.querySelector("[data-board]")).toBeNull();
   });
 
   it("renders untrusted text as text", async () => {

@@ -24,58 +24,22 @@ from sqlalchemy.pool import StaticPool
 
 from taste_inbox.api.app import app, get_session
 from taste_inbox.db.models import Base, Setting
-from taste_inbox.distribution import distribution_profile
-from taste_inbox.ingest import ingest_all
 from taste_inbox.paths import CONFIG_DIR
 
 #: Copied from `packages/shared/src/domain/settings.ts`. A name that drifts here is a
-#: payload the frontend refuses whole, so the thirteen keys are asserted rather than
-#: trusted — the same reason `test_api.py` pins the board field names.
+#: payload the frontend refuses whole, so the keys are asserted rather than trusted.
 SETTING_KEYS = {
     "collection.intervalHours",
     "collection.staggerMinutes",
     "collection.allowManualRefresh",
     "appearance.defaultTheme",
     "appearance.defaultMotion",
-    "privacy.debugRetentionDays",
     "general.timezone",
     "general.locale",
     "general.ceremonialEntry",
-    "features.shareCapture",
-    "features.historicalImport",
-    "features.linkedinCollector",
-    "features.localModelEnrichment",
 }
-# Renamed in meaning on 2026-09-28: the gate is "does this tree run browser collectors",
-# not "is this the community edition". The `rnd` edition also has no browser schedule,
-# and keying on the edition name let these browser-only tests run against it.
-PERSONAL_WORKSPACE_ONLY = pytest.mark.skipif(
-    not distribution_profile().browser_automation,
-    reason="the community edition intentionally has no browser collection jobs",
-)
+GROUPS = ("collection", "appearance", "general")
 SETTING_BASE = {"value", "origin", "effect", "editable"}
-SOURCE_FIELDS = {"platform", "label", "enabled", "state", "connectedAt", "itemCount"}
-
-
-def instagram(code: str, *, caption: str) -> dict[str, Any]:
-    return {
-        "code": code,
-        "media_type": "video",
-        "product_type": "clips",
-        "taken_at": 1757736341,
-        "owner": "sample_owner",
-        "caption": caption,
-        "accessibility_caption": None,
-        "audio_title": None,
-        "audio_artist": None,
-        "is_original_audio": True,
-        "product_tag_count": 0,
-        "user_tag_count": 0,
-        "source_endpoint": "/api/v1/feed/",
-        "thumbnail_url": "https://scontent.cdninstagram.com/v/t51/x.jpg?oe=6A7CCD0F",
-        "thumbnail_width": 640,
-        "thumbnail_height": 1136,
-    }
 
 
 @pytest.fixture
@@ -89,16 +53,6 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
     )
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine)
-
-    captures = tmp_path / "captures"
-    captures.mkdir()
-    # Seeded through the real ingester rather than by hand-built rows, because the source
-    # list is about accounts an ingest created — `enabled=1` included.
-    (captures / "saved-ai.json").write_text(
-        json.dumps([instagram("AI1", caption="바이브코딩 하는 법 #클로드코드")]), "utf-8"
-    )
-    with factory() as session:
-        ingest_all(session, captures)
 
     def session_override() -> Iterator[Session]:
         with factory() as session:
@@ -152,19 +106,18 @@ def stored(key: str) -> Setting | None:
 class TestOrigin:
     """Which of the three layers produced this value — the question the screen exists for.
 
-    A validated `AppDocument` answers none of them: `debug_retention_days` reads 7 whether
-    the file said 7 or said nothing at all, and those are different sentences on screen.
+    A validated `AppDocument` answers none of them: `ceremonial_entry` reads `full` whether
+    the file said `full` or said nothing at all, and those are different sentences on screen.
     """
 
     def test_a_value_the_file_never_mentions_reports_the_schema_default(
         self, client: TestClient
     ) -> None:
-        # `config/app.example.yaml` omits `debug_retention_days` entirely; the 7 comes from
-        # `config/schema.py:160`. It is the only one of the twelve in this state today.
-        setting = client.get("/api/settings").json()["data"]["privacy"]["debugRetentionDays"]
+        # `config/app.example.yaml` omits `ceremonial_entry` on purpose; `full` is the schema's.
+        setting = client.get("/api/settings").json()["data"]["general"]["ceremonialEntry"]
 
         assert setting["origin"] == "default"
-        assert setting["value"] == 7
+        assert setting["value"] == "full"
 
     def test_a_value_the_yaml_sets_reports_the_file_it_came_from(self, client: TestClient) -> None:
         # Same number the schema would have defaulted to. Only the raw mapping can tell the
@@ -249,21 +202,21 @@ class TestWrites:
     def test_the_stagger_and_the_interval_are_still_validated_as_a_pair(
         self, client: TestClient
     ) -> None:
-        """60 minutes and 4 hours are each inside their own bounds; the pair is not.
+        """One hour and 30 minutes are each inside their own bounds; the pair is not.
 
-        `_stagger_must_fit_inside_one_interval` rejects it because 60 x 5 = 300 minutes of
-        printed `sleep` outruns the 240-minute interval. A patch path that validated field
+        `_stagger_must_fit_inside_one_interval` rejects it because 30 x 2 = 60 minutes of
+        printed `sleep` fills the whole 60-minute interval. A patch path that validated field
         by field would accept what `config/loader.py` refuses to load, and the screen would
         have written a config the app cannot start on.
         """
-        response = patch(client, **{"collection.staggerMinutes": 60})
+        response = patch(client, **{"collection.intervalHours": 1, "collection.staggerMinutes": 30})
 
         assert response.status_code == 422
         message = response.json()["error"]["message"]
-        assert "collection.staggerMinutes" in message
-        # The ceiling is stated, not just the refusal: 4 hours across seven sources leaves
-        # 39 — `ceil(240 / 6) - 1`, and it moved from 47 when the seventh source was added.
-        assert "39" in message
+        assert "collection." in message
+        # The ceiling is stated, not just the refusal: one hour across three sources leaves
+        # 29 — `ceil(60 / 2) - 1`.
+        assert "29" in message
         assert stored("collection.staggerMinutes") is None
 
     def test_resetting_a_key_hands_it_back_to_the_file(self, client: TestClient) -> None:
@@ -357,7 +310,6 @@ class TestHonesty:
         # The derived half too, not just the echoed number: six slots a day become four.
         assert len(after["dailySlots"]) == 4
 
-    @PERSONAL_WORKSPACE_ONLY
     def test_an_override_reaches_the_jobs_the_installer_writes(
         self, client: TestClient, tmp_path: Path
     ) -> None:
@@ -405,94 +357,44 @@ class TestHonesty:
         assert after["value"] == "skip"
 
     def test_a_key_with_no_reader_is_not_offered(self, client: TestClient) -> None:
-        """The eight that stay read-only, and the reason each does.
-
-        `appearance.*` is resolved by the web app's theme bootstrap, never by this service;
-        `privacy.debugRetentionDays` is shadowed by the collectors package's own constant;
-        `features.*` gate collectors that read the file once at process start. They are shown
-        because the user can see them in the file, not because this screen can change them.
-        """
+        """The three that stay read-only: `appearance.*` is resolved by the web app's theme
+        bootstrap, never by this service, and nothing reads the locale."""
         document = client.get("/api/settings").json()["data"]
 
         for group, name in (
             ("appearance", "defaultTheme"),
             ("appearance", "defaultMotion"),
-            ("privacy", "debugRetentionDays"),
             ("general", "locale"),
-            ("features", "shareCapture"),
-            ("features", "historicalImport"),
-            ("features", "linkedinCollector"),
-            ("features", "localModelEnrichment"),
         ):
             assert document[group][name]["editable"] is False, f"{group}.{name}"
-        for source in document["sources"]:
-            assert source["enabled"]["editable"] is False
 
-    def test_a_source_switch_records_the_choice_without_claiming_it_stopped_anything(
-        self, client: TestClient
-    ) -> None:
-        """`source_accounts.enabled` is written by one line and read by none.
+    def test_nothing_from_the_instagram_era_is_left_to_show(self, client: TestClient) -> None:
+        """The feature flags for collectors this product never built ("아직 없는 설정"), the
+        debug retention only a browser collector read, and the per-source switches that
+        stopped nothing were removed on 2026-09-28."""
+        document = client.get("/api/settings").json()["data"]
 
-        `ingest/captures.py:155` creates it as the literal `1`; collector selection never
-        touches the table — the schedule iterates a hardcoded `SOURCE_ORDER` and
-        `ingest/cli.py` reads every capture file present regardless. So the write is
-        recorded and the payload stays silent about consequences.
-        """
-        before = client.get("/api/settings").json()["data"]["sources"]
-        instagram_row = next(row for row in before if row["platform"] == "instagram")
-        assert instagram_row["enabled"] == {
-            "value": True,
-            # True because the ingester wrote it, not because anybody chose it.
-            "origin": "default",
-            "effect": "nextRun",
-            "editable": False,
-        }
-
-        response = client.patch("/api/settings/sources/instagram", json={"enabled": False})
-
-        assert response.status_code == 200
-        after = next(
-            row for row in response.json()["data"]["sources"] if row["platform"] == "instagram"
-        )
-        assert after["enabled"]["value"] is False
-        assert after["enabled"]["origin"] == "user"
-        assert after["enabled"]["editable"] is False
-
-    def test_a_platform_with_no_account_is_listed_rather_than_omitted(
-        self, client: TestClient
-    ) -> None:
-        # Only Instagram has captures in this fixture. GitHub is still a source this product
-        # collects from, and `connectedAt: null` is how the screen says "never connected" —
-        # leaving the row out would read as "GitHub is missing from the product".
-        sources = client.get("/api/settings").json()["data"]["sources"]
-
-        github = next(row for row in sources if row["platform"] == "github")
-        assert github["connectedAt"] is None
-        assert github["state"] == "disabled"
-        assert github["itemCount"] == 0
-        assert github["enabled"]["value"] is False
-
-        response = client.patch("/api/settings/sources/github", json={"enabled": True})
-        assert response.status_code == 404
-        assert response.json()["error"]["code"] == "source_not_connected"
+        for gone in ("features", "privacy", "sources"):
+            assert gone not in document
+        assert patch(client, **{"features.linkedinCollector": True}).status_code == 422
 
     def test_the_stagger_ceiling_follows_the_interval_it_has_to_fit_inside(
         self, client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Static bounds would let the UI compose a pair the backend refuses.
 
-        `interval=1, stagger=15` has both halves inside their declared 1-24 and 0-60 and is
-        rejected as a pair. Sending the derived ceiling — 39 minutes at four hours, 9 at
+        `interval=1, stagger=30` has both halves inside their declared 1-24 and 0-60 and is
+        rejected as a pair. Sending the derived ceiling — the static 60 at four hours, 29 at
         one hour — makes the control unable to build one.
         """
         shipped = client.get("/api/settings").json()["data"]["collection"]
-        assert shipped["staggerMinutes"]["max"] == 39
+        assert shipped["staggerMinutes"]["max"] == 60
         assert shipped["intervalHours"]["min"] == 1
 
         monkeypatch.setenv("TASTE_INBOX_APP_CONFIG", str(config_with(tmp_path, interval_hours=1)))
         tightened = client.get("/api/settings").json()["data"]["collection"]
 
-        assert tightened["staggerMinutes"]["max"] == 9
+        assert tightened["staggerMinutes"]["max"] == 29
         assert tightened["staggerMinutes"]["value"] == 3
 
     def test_an_override_the_file_has_outgrown_is_dropped_rather_than_served(
@@ -500,9 +402,9 @@ class TestHonesty:
     ) -> None:
         """A stored value can stop validating without anybody touching it.
 
-        `stagger_minutes: 30` is legal against the shipped four-hour interval (30 x 5 = 150
+        `stagger_minutes: 30` is legal against the shipped four-hour interval (30 x 2 = 60
         fits inside 240) and illegal the moment the file drops the interval to one hour
-        (150 >= 60). Serving it would print a pair `config/loader.py` refuses to load, and
+        (60 >= 60). Serving it would print a pair `config/loader.py` refuses to load, and
         raising on it would take down the only screen that can remove it.
         """
         assert patch(client, **{"collection.staggerMinutes": 30}).status_code == 200
@@ -522,30 +424,15 @@ class TestContract:
 
     def test_every_settings_response_is_wrapped_in_data(self, client: TestClient) -> None:
         assert "data" in client.get("/api/settings").json()
-        assert "data" in patch(client, **{"features.shareCapture": True}).json()
-        assert (
-            "data" in client.patch("/api/settings/sources/instagram", json={"enabled": True}).json()
-        )
+        assert "data" in patch(client, **{"collection.allowManualRefresh": False}).json()
 
     def test_the_document_carries_exactly_the_shared_contract_field_names(
         self, client: TestClient
     ) -> None:
         document = client.get("/api/settings").json()["data"]
 
-        assert set(document) == {
-            "generatedAt",
-            "collection",
-            "appearance",
-            "privacy",
-            "general",
-            "features",
-            "sources",
-        }
-        keys = {
-            f"{group}.{name}"
-            for group in ("collection", "appearance", "privacy", "general", "features")
-            for name in document[group]
-        }
+        assert set(document) == {"generatedAt", *GROUPS}
+        keys = {f"{group}.{name}" for group in GROUPS for name in document[group]}
         assert keys == SETTING_KEYS
 
     def test_every_setting_carries_its_own_bounds(self, client: TestClient) -> None:
@@ -579,25 +466,13 @@ class TestContract:
         # it. Two homes for one vocabulary, pinned at both ends rather than trusted.
         assert entry["options"] == ["full", "brief", "skip"]
 
-    def test_every_source_carries_the_shared_source_fields(self, client: TestClient) -> None:
-        for source in client.get("/api/settings").json()["data"]["sources"]:
-            assert set(source) == SOURCE_FIELDS
-            assert set(source["enabled"]) == SETTING_BASE
-            assert source["state"] in {
-                "collected",
-                "skipped",
-                "auth_required",
-                "failed",
-                "disabled",
-            }
-
     def test_every_effect_is_one_the_shared_union_can_represent(self, client: TestClient) -> None:
         # There is deliberately no member for "nothing reads this", which is the true answer
-        # for eight of the thirteen. Sending one anyway would fail the frontend's own zod
+        # for three of the eight. Sending one anyway would fail the frontend's own zod
         # parse and cost the screen entirely, so `editable: false` carries it instead.
         document = client.get("/api/settings").json()["data"]
 
-        for group in ("collection", "appearance", "privacy", "general", "features"):
+        for group in GROUPS:
             for setting in document[group].values():
                 assert setting["effect"] in {"immediate", "nextRun", "nextInstall"}
                 assert setting["origin"] in {"default", "file", "user"}

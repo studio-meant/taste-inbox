@@ -91,7 +91,7 @@ class ExplodingProvider:
 def seed(session: Session, tmp_path: Path) -> None:
     payload = {
         "run": {
-            "surface": "github_stars",
+            "surface": "github_stars_api",
             "outcome": "ok",
             "started_at": "2026-08-09T00:00:00+00:00",
             "checkpoint": "a/b",
@@ -111,7 +111,7 @@ def seed(session: Session, tmp_path: Path) -> None:
             }
         ],
     }
-    (tmp_path / "github_stars.json").write_text(json.dumps(payload), "utf-8")
+    (tmp_path / "github_stars_api.json").write_text(json.dumps(payload), "utf-8")
     ingest_all(session, tmp_path)
 
 
@@ -212,18 +212,6 @@ class TestRunner:
             for row in session.scalars(select(Evidence).where(Evidence.type == "declared_fact"))
         ]
         assert stored == ["Rust"]
-
-
-class TestProductProvider:
-    def test_the_shipped_one_answers_that_nothing_is_configured(self) -> None:
-        # Adding a shopping search means sending saved images to a third party, which
-        # CLAUDE.md §10 keeps behind explicit approval. Until then the Style board keeps
-        # saying nothing was checked, because nothing was.
-        from taste_inbox.enrich import NoProductProvider
-
-        result = NoProductProvider().resolve_product(caption="흰 원피스", image_path=None)
-        assert isinstance(result, Unavailable)
-        assert "설정" in result.reason
 
 
 class TestRequestBudget:

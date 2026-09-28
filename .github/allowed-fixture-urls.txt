@@ -1,48 +1,10 @@
 # Identifiers that sanitized fixtures are allowed to use in a social URL.
 #
 # The `no-live-accounts` check exists to stop a real account reaching apps/ or packages/.
-# It cannot tell a real permalink from a fixture by looking at the URL alone, and the
-# previous version tried to — by excluding any line containing the word "example". That is
-# not a safety property, and the check failed on every push once the fixtures were
-# sanitized, which is the worst state for a gate to be in: red for the wrong reason.
+# It cannot tell a real permalink from a fixture by looking at the URL alone, so the
+# vocabulary is enumerated instead: adding a fixture id means adding it here, which is the
+# friction that makes someone look at whether it is really synthetic.
 #
-# So the vocabulary is enumerated instead. Adding a fixture id means adding it here, which
-# is the friction that makes someone look at whether it is really synthetic.
-#
-# Instagram / Threads shortcodes are 11 characters; ours repeat a letter so no real code
-# can collide.
-DAaaaaaaaaa
-DBbbbbbbbbb
-DCccccccccc
-DDddddddddd
-# Short placeholders in unit tests that never reach a network.
-/reel/ABC
-/reel/AAA
-/p/ABC
-/p/AAA
-@a/post
-@x/post
-@someone/post
-# The permalink builder's own template, which contains no id at all.
-{kind}/{code}
-# LinkedIn: the synthetic activity block, plus bare counters used in parser tests.
-urn:li:activity:1
-urn:li:activity:100000000000000000
-urn:li:ugcPost:100000000000000000
-# A company page in the outbound-link test, chosen because it is a public organisation
-# rather than a person.
-linkedin.com/company/helsinki-nlp
-# The bare host, used when asserting that a canonical URL points at LinkedIn at all.
-"https://www.linkedin.com"
-# Mock data marks its ids with an `example-` prefix. Allowed as a *prefix of an identifier*
-# rather than as "the word example appears somewhere on the line", which is what made the
-# previous filter useless.
-/reel/example-
-/p/example-
-@example/post/
-# Parser and ingest fixtures with obviously non-real ids.
-/feed/update/post-
-# Bare hosts inside HTML-noise fixtures, where the point is that the link carries nothing.
-"https://www.linkedin.com/feed"
-# The permalink builder itself, which interpolates rather than hardcoding.
-${isReel(item) ? "reel" : "p"}
+# Empty since 2026-09-28. The Instagram, Threads and LinkedIn readers and every fixture
+# that exercised them were removed (docs/DECISIONS.md), so no social URL has a reason to
+# appear in the code at all — and any that does now fails the check.

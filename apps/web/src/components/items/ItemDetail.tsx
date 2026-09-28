@@ -13,13 +13,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { OutboundLinks } from "@/components/collection/OutboundLinks";
-import { sourceBadgeText } from "@/components/collection/source-vocabulary";
 import { cx } from "@/lib/cx";
+import { kindLabel, sourceBadgeText as badge } from "@/components/collection/source-vocabulary";
 import { toUrlObject } from "@/lib/filters/board-filters";
-import { boardsAreAnAxis } from "@/lib/navigation/edition";
-import { instagramEmbedUrl } from "@/lib/instagram/embed";
-import { BOARD_BACK_LABEL, BOARD_HREF, BOARD_LABEL } from "@/lib/navigation/boards";
-import { ItemGallery } from "./ItemGallery";
 import styles from "./ItemDetail.module.css";
 
 /** What a piece of evidence is, and how much it is allowed to claim. */
@@ -63,83 +59,29 @@ export function ItemDetail({
   readonly item: ItemDetailModel;
   readonly backHref?: string;
 }) {
-  // Whether boards are a distinction this build can make. Read once, used twice below.
-  const boards = boardsAreAnAxis();
   const back = backHref ?? "/library";
-  const author = item.author;
-  const handle = author?.handle ?? item.source.author;
-  const attribution =
-    handle == null
-      ? item.source.label
-      : author?.displayName
-        ? `${author.displayName} (@${handle})`
-        : `@${handle}`;
-  const hasDestinations =
-    item.links.length > 0 || (author?.links.length ?? 0) > 0 || (author?.mentions.length ?? 0) > 0;
+  const attribution = item.source.author ?? item.source.label;
   const evidenceCount = item.evidence.length;
-  const hasOfficialInstagramEmbed = instagramEmbedUrl(item.source.originalUrl) !== null;
-  const hasVisual = item.photos.length > 0 || hasOfficialInstagramEmbed;
 
   return (
-    <article className={styles.page} data-board={item.board ?? "unfiled"} data-item-detail>
+    <article className={styles.page} data-item-detail>
       <div className={styles.toolbar}>
-        {/*
-          Back to where the reader came from, named after where that is.
-
-          On a build whose boards cannot separate anything the board *name* is not the
-          answer — `Trends로 돌아가기` on an item the user reached from the Inbox names a
-          board they never chose and that holds everything. So the label follows the same
-          rule the rail and the cards follow: boards are a destination where they are an
-          axis, and the Inbox is the destination where they are not
-          (`lib/navigation/edition.ts`).
-        */}
-        {boards ? (
-          item.board === null ? (
-            <span />
-          ) : (
-            <Link
-              className={styles.back}
-              href={toUrlObject(backHref ?? BOARD_HREF[item.board])}
-              scroll={false}
-            >
-              <ArrowLeft size={15} strokeWidth={1.75} aria-hidden="true" />
-              {BOARD_BACK_LABEL[item.board]}
-            </Link>
-          )
-        ) : (
-          <Link className={styles.back} href={toUrlObject(back)} scroll={false}>
-            <ArrowLeft size={15} strokeWidth={1.75} aria-hidden="true" />
-            {/* Named after where it actually goes. `Inbox` over a link to `/trends` would
-                be the same mislabel in the other direction. */}
-            {back.startsWith("/library") ? "Inbox" : "돌아가기"}
-          </Link>
-        )}
-        <span className={styles.toolbarSource}>{sourceBadgeText(item.source)}</span>
+        <Link className={styles.back} href={toUrlObject(back)} scroll={false}>
+          <ArrowLeft size={15} strokeWidth={1.75} aria-hidden="true" />
+          {/* Named after where it actually goes. */}
+          {back.startsWith("/library") ? "Inbox" : "돌아가기"}
+        </Link>
+        <span className={styles.toolbarSource}>{badge(item.source)}</span>
       </div>
 
-      <div className={cx(styles.sheet, hasVisual ? null : styles.noMedia)}>
-        {hasVisual ? (
-          <div className={styles.visual}>
-            <ItemGallery
-              photos={item.photos}
-              title={item.title}
-              originalUrl={item.source.originalUrl}
-            />
-          </div>
-        ) : null}
-
+      <div className={cx(styles.sheet, styles.noMedia)}>
         <div className={styles.story}>
           <header className={styles.head}>
             <div className={styles.kicker}>
-              {/* The board chip says which of five boards this is on. Where three of the
-                  five cannot fill, it says nothing a reader can use — the kind and the
-                  signal below carry the whole meaning. */}
-              {boards && item.board !== null ? (
-                <span className={styles.boardChip} lang="en">
-                  {BOARD_LABEL[item.board]}
-                </span>
-              ) : null}
-              <span>{sourceBadgeText(item.source)}</span>
+              <span className={styles.boardChip} lang="en">
+                {kindLabel(item.kind)}
+              </span>
+              <span>{badge(item.source)}</span>
             </div>
             <h1 className={cx(styles.title, "type-page-title")}>{item.title}</h1>
             <p className={cx(styles.meta, "type-body-small")}>{attribution}</p>
@@ -149,7 +91,7 @@ export function ItemDetail({
               target="_blank"
               rel="noreferrer noopener"
             >
-              <span>원본 게시물 열기</span>
+              <span>원본 열기</span>
               <ExternalLink size={15} strokeWidth={1.75} aria-hidden="true" />
               <span className="visually-hidden">(새 탭에서 열림)</span>
             </a>
@@ -172,13 +114,13 @@ export function ItemDetail({
               본문
             </h2>
             {item.body.trim() === "" ? (
-              <p className={cx(styles.empty, "type-body-small")}>본문이 없는 게시물이에요.</p>
+              <p className={cx(styles.empty, "type-body-small")}>본문이 없는 항목이에요.</p>
             ) : (
               <p className={cx(styles.body, "type-body")}>{item.body}</p>
             )}
 
             {item.tags.length === 0 ? null : (
-              <ul className={styles.tags} aria-label="해시태그">
+              <ul className={styles.tags} aria-label="태그">
                 {item.tags.map((tag) => (
                   <li key={tag} className={styles.tag}>
                     {tag}
@@ -188,37 +130,16 @@ export function ItemDetail({
             )}
           </section>
 
-          {hasDestinations ? (
+          {item.links.length === 0 ? null : (
             <section className={styles.contentSection} aria-labelledby="item-links-title">
               <h2 id="item-links-title" className={styles.eyebrow}>
                 연결된 곳
               </h2>
               <div className={styles.destinations}>
-                <OutboundLinks links={item.links} label="게시물이 가리키는 곳" />
-                <OutboundLinks links={author?.links ?? []} label="작성자의 판매처" />
-                {author?.mentions.length ? (
-                  <div className={styles.mentions}>
-                    <span className={styles.mentionsLabel}>소개글에서 언급한 계정</span>
-                    <ul className={styles.mentionList} aria-label="작성자가 언급한 계정">
-                      {author.mentions.map((mention) => (
-                        <li key={mention}>
-                          <a
-                            className={styles.mention}
-                            href={`https://www.instagram.com/${encodeURIComponent(mention)}/`}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                          >
-                            @{mention}
-                            <span className="visually-hidden">(새 탭에서 열림)</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
+                <OutboundLinks links={item.links} label="이 항목이 가리키는 곳" />
               </div>
             </section>
-          ) : null}
+          )}
         </div>
 
         <div className={styles.lower}>

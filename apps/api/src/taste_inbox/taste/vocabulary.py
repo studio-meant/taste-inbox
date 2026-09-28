@@ -1,9 +1,9 @@
 """Turning collected tags into the words a taste context is written in.
 
-**Deterministic, and no model is involved.** The classifier in `enrich/` sends text off
-this machine and is careful about it; this module must not become a second such place. A
-taste context is assembled from rows the database already has, so it stays local, it is
-reproducible, and every term in it can be traced to the item that contributed it.
+**Deterministic, and no model is involved.** A taste context is assembled from rows the
+database already has, so building it sends nothing anywhere, it is reproducible, and every
+term in it can be traced to the item that contributed it. What leaves the machine is the
+summary AI-Q receives, and only when a person asks for research.
 
 The transformations here are small on purpose — case folding, a stop list, and a few
 platform-specific shapes (`arxiv:2501.12948`, `license:mit`) that are identifiers rather

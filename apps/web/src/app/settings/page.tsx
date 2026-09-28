@@ -51,11 +51,11 @@ export default async function SettingsPage() {
   const dataSource = resolveDataSource();
   const readOnly = isRemoteReadOnly();
 
-  const [hostProfile, resourcePolicy, boardCounts, jobs, launchd, settings, accounts, profile] =
+  const [hostProfile, resourcePolicy, itemCount, jobs, launchd, settings, accounts, profile] =
     await Promise.all([
       repository.getHostProfile(),
       repository.getResourcePolicy(),
-      repository.getBoardCounts(),
+      repository.getItemCount(),
       repository.listJobs(),
       loadLaunchdPlan(repository),
       readOnly ? Promise.resolve(null) : repository.getSettings(),
@@ -108,8 +108,7 @@ export default async function SettingsPage() {
         dataSource={dataSource}
         hostProfile={hostProfile}
         resourcePolicy={resourcePolicy}
-        aiItemCount={boardCounts.ai}
-        styleItemCount={boardCounts.style}
+        itemCount={itemCount}
         jobs={jobs}
       />
 

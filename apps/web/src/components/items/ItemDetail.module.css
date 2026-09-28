@@ -7,27 +7,6 @@
   padding-block: var(--space-4) var(--space-10);
 }
 
-.page[data-board="trends"] {
-  --detail-accent: var(--light-green);
-}
-
-.page[data-board="style"] {
-  --detail-accent: var(--light-wood);
-}
-
-.page[data-board="music"] {
-  --detail-accent: var(--orchid);
-}
-
-.page[data-board="places"] {
-  --detail-accent: var(--sun);
-}
-
-.page[data-board="none"],
-.page[data-board="unfiled"] {
-  --detail-accent: var(--sage);
-}
-
 .toolbar {
   display: flex;
   align-items: center;
@@ -54,7 +33,6 @@
 
 .back:focus-visible,
 .original:focus-visible,
-.mention:focus-visible,
 .evidenceSummary:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
@@ -75,18 +53,6 @@
   border-radius: var(--radius-story);
   background: color-mix(in srgb, var(--surface) 96%, var(--detail-accent));
   box-shadow: var(--shadow-float);
-}
-
-.visual {
-  min-width: 0;
-  padding: var(--space-3);
-  background:
-    radial-gradient(
-      circle at 18% 12%,
-      color-mix(in srgb, var(--detail-accent) 28%, transparent),
-      transparent 44%
-    ),
-    color-mix(in srgb, var(--surface-2) 82%, var(--detail-accent));
 }
 
 .story {
@@ -251,46 +217,6 @@
   min-width: 0;
 }
 
-.mentions {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.mentionsLabel {
-  color: var(--subtle);
-  font-size: var(--type-caption-size, 12px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.mentionList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mention {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--control-height-compact);
-  padding-inline: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--muted);
-  font-size: var(--type-body-small-size);
-  overflow-wrap: anywhere;
-  text-decoration: none;
-}
-
-.mention:hover {
-  border-color: var(--forest);
-  background: var(--focus);
-}
-
 .lower {
   min-width: 0;
   padding: 0 clamp(var(--space-5), 3vw, var(--space-10)) var(--space-6);
@@ -387,21 +313,6 @@
 }
 
 @media (min-width: 1000px) {
-  .sheet:not(.noMedia) {
-    grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
-    align-items: start;
-  }
-
-  .sheet:not(.noMedia) .visual {
-    position: sticky;
-    top: var(--space-4);
-    align-self: start;
-  }
-
-  .sheet:not(.noMedia) .lower {
-    grid-column: 1 / -1;
-  }
-
   .noMedia .story,
   .noMedia .lower {
     width: min(100%, 820px);
@@ -425,10 +336,6 @@
 
   .sheet {
     border-radius: calc(var(--radius-story) - 6px);
-  }
-
-  .visual {
-    padding: var(--space-2);
   }
 
   .story {

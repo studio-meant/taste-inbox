@@ -5,13 +5,11 @@ import { APP_LOCALE, APP_TIME_ZONE } from "@/lib/format/datetime";
  * The day an item was collected — grouped the way Today groups it.
  *
  * **Which field.** `source.firstSeenAt`: when the item entered *this* product. It is the
- * field the boards already sort on (`lib/collection/merged-board`), the only date all
- * three card models carry, and the one the platform cannot revise underneath us. The
- * moment a user pressed Save on Instagram is not knowable; the moment we first saw it is.
+ * field the Inbox sorts on, and the one the platform cannot revise underneath us — a link
+ * added by hand has no star time, but every item has a first-seen time.
  *
  * **Which day.** The local calendar day in `APP_TIME_ZONE`, never the UTC date. Seoul is
- * UTC+9, so everything saved between 00:00 and 09:00 KST carries the *previous* UTC date —
- * exactly the early-morning saves this product exists to catch. `apps/api/.../today.py`
+ * UTC+9, so everything starred between 00:00 and 09:00 KST carries the *previous* UTC date. `apps/api/.../today.py`
  * `_local_day` makes the same conversion for the Today screen and for the collection
  * schedule, and this mirrors it deliberately: a board that disagreed with Today about
  * which day something arrived would be two screens contradicting each other over one row.

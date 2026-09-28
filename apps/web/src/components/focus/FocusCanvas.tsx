@@ -62,8 +62,6 @@ const ACTION_LABEL: Readonly<Record<NonNullable<SourceRef["actionType"]>, string
   star: "스타",
   like: "좋아요",
   upvote: "업보트",
-  save: "저장",
-  repost: "리포스트",
 };
 
 /** `GitHub 스타`, `Hugging Face 업보트`. The platform alone when the act was not recorded. */

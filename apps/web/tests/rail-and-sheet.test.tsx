@@ -5,7 +5,7 @@ import { FilterSheet } from "@/components/collection/FilterSheet";
 import { FilterChipRow, type FilterGroup } from "@/components/collection/FilterChipRow";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/style",
+  usePathname: () => "/library",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -24,16 +24,16 @@ const GROUPS: readonly FilterGroup[] = [
 describe("ContextualRail", () => {
   it("narrows the collection and never navigates away from it", () => {
     // IA §7.3: "rail은 destination nav가 아니라 현재 collection의 범위를 좁힌다."
-    render(<ContextualRail pathname="/style" params={{}} groups={GROUPS} />);
+    render(<ContextualRail pathname="/library" params={{}} groups={GROUPS} />);
 
     for (const link of screen.getAllByRole("link")) {
-      expect(link.getAttribute("href")).toMatch(/^\/style/);
+      expect(link.getAttribute("href")).toMatch(/^\/library/);
     }
   });
 
   it("gives every option an accessible name and a tooltip", () => {
     // At 64–72px only a glyph is visible, so both are mandatory (DESIGN.md §11.2).
-    render(<ContextualRail pathname="/style" params={{}} groups={GROUPS} />);
+    render(<ContextualRail pathname="/library" params={{}} groups={GROUPS} />);
 
     const option = screen.getByRole("link", { name: "정확히 확인됨 3개" });
     expect(option).toHaveAttribute("title", "정확히 확인됨 3개");
@@ -43,7 +43,7 @@ describe("ContextualRail", () => {
     // CLAUDE.md §6. The tonal tile is colour and the Check glyph is aria-hidden, so the
     // accessible name is the only other channel — and it has to differ between states.
     // This was `aria-pressed`, which role=link discards: the name was identical on and off.
-    render(<ContextualRail pathname="/style" params={{ match: "exact" }} groups={GROUPS} />);
+    render(<ContextualRail pathname="/library" params={{ match: "exact" }} groups={GROUPS} />);
     const on = screen.getByRole("link", { name: /정확히 확인됨/ });
     const off = screen.getByRole("link", { name: /확인 필요/ });
 
@@ -54,12 +54,12 @@ describe("ContextualRail", () => {
   });
 
   it("drops an option nothing would match", () => {
-    render(<ContextualRail pathname="/style" params={{}} groups={GROUPS} />);
+    render(<ContextualRail pathname="/library" params={{}} groups={GROUPS} />);
     expect(screen.queryByRole("link", { name: /유사한 곡/ })).not.toBeInTheDocument();
   });
 
   it("renders nothing when no group can separate the board", () => {
-    const { container } = render(<ContextualRail pathname="/style" params={{}} groups={[]} />);
+    const { container } = render(<ContextualRail pathname="/library" params={{}} groups={[]} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -69,9 +69,9 @@ describe("ContextualRail", () => {
      * never the only way out: these rows are single-select, so the selected one links to
      * the board with its own group dropped — clicking it again *is* the clear.
      */
-    render(<ContextualRail pathname="/style" params={{ match: "exact" }} groups={GROUPS} />);
+    render(<ContextualRail pathname="/library" params={{ match: "exact" }} groups={GROUPS} />);
 
-    expect(screen.getByRole("link", { name: /정확히 확인됨/ })).toHaveAttribute("href", "/style");
+    expect(screen.getByRole("link", { name: /정확히 확인됨/ })).toHaveAttribute("href", "/library");
     expect(screen.queryByText("필터 지우기")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /지우기/ })).not.toBeInTheDocument();
   });
@@ -80,7 +80,7 @@ describe("ContextualRail", () => {
 describe("FilterSheet", () => {
   function open(params: Record<string, string> = {}, activeCount = 0) {
     render(
-      <FilterSheet pathname="/style" params={params} groups={GROUPS} activeCount={activeCount} />,
+      <FilterSheet pathname="/library" params={params} groups={GROUPS} activeCount={activeCount} />,
     );
     fireEvent.click(screen.getByRole("button", { name: /필터/ }));
   }
@@ -122,7 +122,7 @@ describe("FilterSheet", () => {
   it("clears back to the whole collection", () => {
     open({ match: "exact" }, 1);
     fireEvent.click(screen.getByRole("button", { name: "초기화" }));
-    expect(screen.getByRole("link", { name: "전체 보기" })).toHaveAttribute("href", "/style");
+    expect(screen.getByRole("link", { name: "전체 보기" })).toHaveAttribute("href", "/library");
   });
 
   it("closes on Escape and returns focus to the trigger", () => {
@@ -160,7 +160,12 @@ describe("FilterSheet", () => {
 
   it("shows how many filters are already on before it is opened", () => {
     render(
-      <FilterSheet pathname="/style" params={{ match: "exact" }} groups={GROUPS} activeCount={1} />,
+      <FilterSheet
+        pathname="/library"
+        params={{ match: "exact" }}
+        groups={GROUPS}
+        activeCount={1}
+      />,
     );
     expect(screen.getByRole("button", { name: /필터/ })).toHaveTextContent("1");
   });
@@ -170,7 +175,7 @@ describe("FilterChipRow", () => {
   it("says the selected chip is selected, rather than only painting it", () => {
     // The third filter surface, with the same defect the rail had: a Check glyph that is
     // aria-hidden, a tonal fill, and aria-pressed on a role=link that discards it.
-    render(<FilterChipRow pathname="/style" params={{ match: "exact" }} groups={GROUPS} />);
+    render(<FilterChipRow pathname="/library" params={{ match: "exact" }} groups={GROUPS} />);
 
     const on = screen.getByRole("link", { name: /정확히 확인됨/ });
     const off = screen.getByRole("link", { name: /확인 필요/ });
@@ -187,15 +192,17 @@ describe("FilterChipRow", () => {
      * its own value, so a two-value selection unwinds in two clicks and neither of them
      * needs a control that clears everything.
      */
-    render(<FilterChipRow pathname="/style" params={{ match: "exact,unknown" }} groups={GROUPS} />);
+    render(
+      <FilterChipRow pathname="/library" params={{ match: "exact,unknown" }} groups={GROUPS} />,
+    );
 
     expect(screen.getByRole("link", { name: /정확히 확인됨/ })).toHaveAttribute(
       "href",
-      "/style?match=unknown",
+      "/library?match=unknown",
     );
     expect(screen.getByRole("link", { name: /확인 필요/ })).toHaveAttribute(
       "href",
-      "/style?match=exact",
+      "/library?match=exact",
     );
     expect(screen.queryByRole("link", { name: /지우기/ })).not.toBeInTheDocument();
   });

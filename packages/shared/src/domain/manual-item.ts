@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ItemBoardSchema, ItemDetailModelSchema } from "./item-detail";
+import { ItemDetailModelSchema } from "./item-detail";
 
 const ManualWebUrlSchema = z
   .string()
@@ -14,10 +14,12 @@ const ManualWebUrlSchema = z
     );
   }, "http 또는 https 웹 링크를 입력해 주세요.");
 
-/** A user-authored bookmark. The service stores these fields and never fetches the URL. */
+/**
+ * A user-authored bookmark. The service stores these fields and never fetches the URL; the
+ * URL alone decides what it is (a GitHub repository, a Hugging Face model, an arXiv paper…).
+ */
 export const ManualItemCreateRequestSchema = z.object({
   url: ManualWebUrlSchema,
-  board: ItemBoardSchema,
   title: z.string().trim().max(200).optional(),
   note: z.string().trim().max(5000).optional(),
 });

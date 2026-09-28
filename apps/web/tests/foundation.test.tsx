@@ -7,12 +7,11 @@ import { MockRepository } from "@/lib/mock/repository";
 
 const repository = new MockRepository();
 
-async function renderStatus(overrides: { dataSource?: "mock" | "live" } = {}) {
-  const [hostProfile, resourcePolicy, ai, style, jobs] = await Promise.all([
+async function renderStatus(overrides: { dataSource?: "mock" | "live"; blocked?: boolean } = {}) {
+  const [hostProfile, resourcePolicy, itemCount, jobs] = await Promise.all([
     repository.getHostProfile(),
     repository.getResourcePolicy(),
-    repository.listAIItems(),
-    repository.listStyleItems(),
+    repository.getItemCount(),
     repository.listJobs(),
   ]);
 
@@ -21,9 +20,12 @@ async function renderStatus(overrides: { dataSource?: "mock" | "live" } = {}) {
       dataSource={overrides.dataSource ?? "mock"}
       hostProfile={hostProfile}
       resourcePolicy={resourcePolicy}
-      aiItemCount={ai.items.length}
-      styleItemCount={style.items.length}
-      jobs={jobs}
+      itemCount={itemCount}
+      jobs={
+        overrides.blocked === true
+          ? [...jobs, { ...jobs[0]!, id: "blocked", state: "blocked" as const }]
+          : jobs
+      }
     />,
   );
 }
@@ -45,13 +47,15 @@ describe("FoundationStatus", () => {
   });
 
   it("shows blocked jobs as needing attention", async () => {
-    await renderStatus();
+    await renderStatus({ blocked: true });
     expect(screen.getByText(/확인 필요 1건/)).toBeInTheDocument();
   });
 
-  it("reports mock mode", async () => {
+  it("reports mock mode, and how many items the Inbox holds", async () => {
     await renderStatus();
     expect(screen.getByText("Mock")).toBeInTheDocument();
+    expect(screen.getByText("Inbox 항목")).toBeInTheDocument();
+    expect(screen.getByText(String(await repository.getItemCount()))).toBeInTheDocument();
   });
 
   it("shows no operator-tightening note when none applies", async () => {

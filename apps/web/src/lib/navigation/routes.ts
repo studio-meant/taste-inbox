@@ -26,9 +26,8 @@ export interface Destination {
   readonly href: Route;
   readonly icon: LucideIcon;
   /**
-   * Route prefixes that count as "inside" this destination. Browse owns several
-   * routes — `/library`, `/ai`, `/style` and canonical item detail — because they share
-   * one shell and one interaction language (IA §3).
+   * Route prefixes that count as "inside" this destination — the Inbox owns `/library` and
+   * canonical item detail, which share one shell and one interaction language (IA §3).
    */
   readonly matches: readonly string[];
   /** Sequential shortcut from IA §4, entered after `G`. */
@@ -68,12 +67,9 @@ export const DESTINATIONS: readonly Destination[] = [
     label: "Inbox",
     href: "/library",
     icon: Compass,
-    // AI, Style, Music and Places are contextual modes inside Browse, so all of them keep
-    // the Browse item active (docs/DECISIONS.md, 2026-08-08). `/none` is not a board but it
-    // is browsed the same way and reached from the same rail, so it belongs to the same
-    // destination — leaving it out would blank the global navigation while the user is
-    // standing on it.
-    matches: ["/library", "/trends", "/style", "/music", "/places", "/none", "/items"],
+    // An item's own page is read from the Inbox and returns to it, so it keeps the Inbox
+    // active. The boards that used to sit here as modes went with Instagram (2026-09-28).
+    matches: ["/library", "/items"],
     shortcut: "B",
     labelLang: "en",
   },

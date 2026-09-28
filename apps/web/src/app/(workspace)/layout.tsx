@@ -20,11 +20,10 @@ import { getRepository } from "@/lib/repository";
  * a local always-on service; static prerendering would only serve a stale header.
  *
  * This layout runs on every navigation inside the workspace, so what it fetches is paid
- * for by pages that show none of it. It used to pull all three boards for the three
- * integers in the mode strip: /library paid 4 requests and ~175 KB while containing zero
- * repository calls of its own, and /today pulled 176 KiB of board JSON and 653 SQL
- * statements to render no board cards. `getBoardCounts()` is one request, 69 bytes,
- * 3 statements. Keep it that way — `render-budget.test.ts` fails if a board list comes back.
+ * for by pages that show none of it. It once pulled every board for three integers:
+ * /today paid 176 KiB of board JSON and 653 SQL statements to render no cards. It now asks
+ * for the jobs and the profile and nothing else — `render-budget.test.ts` fails if a list
+ * of items comes back.
  */
 export const dynamic = "force-dynamic";
 

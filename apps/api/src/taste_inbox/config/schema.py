@@ -152,12 +152,6 @@ class AppSection(_Config):
     default_theme: str
     default_motion: Literal["cinematic", "reduced"] = "cinematic"
     data_dir: str
-    #: Defaulted, not required: nothing reads either path yet — `api/app.py` resolves media
-    #: under `var/media` itself — so a config that omits them must still start, and the
-    #: defaults are the paths that code already uses.
-    media_dir: str = "./var/media"
-    browser_profile_dir: str = "./var/browser-profiles"
-    debug_retention_days: Annotated[int, Field(ge=0, le=90)] = 7
     #: How much of the entry sequence to play when the app is opened at `/`.
     #:
     #: `full` is Splash → Greeting → Today, which is the journey the approved reference
@@ -182,18 +176,10 @@ class AppSection(_Config):
 
 
 #: How many collectors the stagger is spread across — the length of
-#: `api.schedule.SOURCE_ORDER`, kept here as a number because config validation must not
-#: import the API layer. `tests/test_api.py` asserts the two still agree.
-#:
-#: Imported rather than counted here would be a config layer reaching into the API layer,
-#: so it is stated — and stated as an upper bound, because several of these are ingest-only
-#: and a job that opens no browser costs no wall-clock. Being wrong high only makes the
-#: bound stricter than it needs to be.
-#:
-#: Seven since 2026-08-12, when `instagram_likes` joined the schedule. That tightens the
-#: stagger ceiling from `interval x 60 / 5` to `/ 6` — at the shipped four-hour interval,
-#: from 47 minutes to 39 — and the shipped 3-minute stagger is nowhere near either.
-STAGGERED_SOURCES = 7
+#: `api.schedule.SOURCE_ORDER` (GitHub Stars, Hugging Face likes, Hugging Face upvotes), kept
+#: here as a number because config validation must not import the API layer.
+#: `tests/test_api.py` asserts the two still agree.
+STAGGERED_SOURCES = 3
 
 
 class CollectionSection(_Config):
@@ -205,14 +191,13 @@ class CollectionSection(_Config):
     """
 
     #: Hours between automatic runs, counted from midnight in the configured timezone.
-    #: Four by default, so a like left at 02:00 is on the board by 04:00 instead of waiting
-    #: for an evening run, at a cost of six runs a day across four accounts.
+    #: Four by default, so a star left at 02:00 is in the Inbox by 04:00 instead of waiting
+    #: for an evening run.
     #:
     #: The bounds refuse the two absurd ends rather than a wrong-ish choice: under an hour
-    #: would open four logged-in accounts more than once an hour, which is the aggressive
-    #: pattern CLAUDE.md §7 forbids, and over 24 hours is no longer a daily board.
+    #: is the aggressive polling CLAUDE.md §7 forbids, and over 24 hours is no longer daily.
     interval_hours: Annotated[int, Field(ge=1, le=24)] = 4
-    #: Minutes between sources, so one run does not open four accounts at once.
+    #: Minutes between sources, so the three collectors do not start in the same minute.
     stagger_minutes: int = Field(default=3, ge=0, le=60)
     #: Whether the UI may start a collection outside the schedule.
     allow_manual_refresh: bool = True
@@ -248,19 +233,9 @@ class BriefingSection(_Config):
     evening_brief_time: str
 
 
-class FeatureFlags(_Config):
-    """Each platform collector is independently feature-flagged (CLAUDE.md §7)."""
-
-    share_capture: bool = False
-    historical_import: bool = False
-    linkedin_collector: bool = False
-    local_model_enrichment: bool = False
-
-
 class AppDocument(_Config):
     """Whole of `config/app.yaml`."""
 
     app: AppSection
     collection: CollectionSection = CollectionSection()
     briefing: BriefingSection
-    features: FeatureFlags

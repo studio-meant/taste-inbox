@@ -1,30 +1,17 @@
 import type { OutboundLink, OutboundLinkKind, SourceRef } from "@taste-inbox/shared";
-import {
-  CornerDownRight,
-  ExternalLink,
-  Link2,
-  Package,
-  ShoppingBag,
-  type LucideIcon,
-} from "lucide-react";
+import { ExternalLink, Link2, Package, type LucideIcon } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { sourceBadgeText } from "./source-vocabulary";
 import styles from "./OutboundLinks.module.css";
 
 /**
- * Where else an item points, on every board.
+ * Where else an item points — a paper's code and demo, a repository's homepage.
  *
- * The card's own source link answers "where did this come from". This answers "what is it
- * actually about", which for a LinkedIn post whose subject is a paper on another domain is
- * the question the user came with.
- *
- * Three things it will not do:
+ * Two things it will not do:
  *
  * - **Claim a destination it has not seen.** The label is the host, because that is
  *   derivable from the URL. A page title would have to be fetched, and rendering a card
  *   never causes a request.
- * - **Hide a shortener it could not follow.** `unresolved` is shown and labelled as such.
- *   The resolver failing is not a reason to take away a working click.
  * - **Distinguish by colour alone.** Every kind carries an icon and words (CLAUDE.md §6).
  */
 
@@ -35,12 +22,9 @@ interface KindPresentation {
 }
 
 const KIND: Readonly<Record<OutboundLinkKind | "source", KindPresentation>> = {
-  artifact: { icon: Package, description: "저장소 또는 모델" },
+  artifact: { icon: Package, description: "저장소, 모델 또는 논문" },
   source: { icon: ExternalLink, description: "원본" },
-  shop: { icon: ShoppingBag, description: "작성자가 프로필에 적은 판매처" },
-  resolved: { icon: CornerDownRight, description: "단축 링크를 따라간 목적지" },
-  outbound: { icon: Link2, description: "게시물에 포함된 링크" },
-  unresolved: { icon: ExternalLink, description: "단축 링크, 목적지 미확인" },
+  outbound: { icon: Link2, description: "포함된 링크" },
 };
 
 /**
@@ -81,8 +65,6 @@ function sourceRow(source: SourceRef): Row {
     url: source.originalUrl,
     label: hostOf(source.originalUrl),
     kind: "source",
-    origin: "post",
-    via: null,
   };
 }
 
@@ -144,9 +126,7 @@ export function OutboundLinks({
                 title={
                   link.kind === "source" && source !== undefined
                     ? `${sourceBadgeText(source)}\n${link.url}`
-                    : link.via === null
-                      ? link.url
-                      : `${link.url}\n(${link.via} 에서 따라감)`
+                    : link.url
                 }
               >
                 <Icon
@@ -160,11 +140,6 @@ export function OutboundLinks({
                     : `${kind.description}: `}
                 </span>
                 <span className={styles.host}>{link.label}</span>
-                {link.origin === "post" ? null : (
-                  <span className={styles.origin}>
-                    {link.origin === "comment" ? "댓글" : "프로필"}
-                  </span>
-                )}
                 <span className="visually-hidden">(새 탭에서 열림)</span>
               </a>
             </li>

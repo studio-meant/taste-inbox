@@ -7,11 +7,9 @@ app:
 
 # How often the collectors run, counted from midnight in the timezone above.
 #
-# Four hours by default: slots at 00:00, 04:00, 08:00, 12:00, 16:00, 20:00. A single
-# evening run assumed the likes arrive during the day, and they do not — one left at 02:00
-# waited eighteen hours to show up. Four hours is the longest any signal now waits, and it
-# costs six runs a day against four accounts. Shorten it if that wait still feels long,
-# lengthen it to touch the accounts less often.
+# Four hours by default: slots at 00:00, 04:00, 08:00, 12:00, 16:00, 20:00. Four hours is
+# the longest any star, like or upvote waits to arrive. Onboarding and Settings change it;
+# this file is only the starting value.
 #
 # The interval only decides freshness, never completeness. Checkpoints are keyed on item
 # ids, so a run that is late — or skipped for three days — still picks up everything since
@@ -19,7 +17,7 @@ app:
 # Refresh button pressed at any moment safe.
 collection:
   interval_hours: 4
-  # Sources are staggered so one run does not open four accounts in the same minute.
+  # The three collectors are staggered so they do not start in the same minute.
   stagger_minutes: 3
   # A manual refresh from the UI ignores the interval and collects from that moment.
   allow_manual_refresh: true
@@ -27,9 +25,3 @@ collection:
 briefing:
   morning_status_time: "07:00"
   evening_brief_time: "18:00"
-
-features:
-  share_capture: false
-  historical_import: false
-  linkedin_collector: false
-  local_model_enrichment: false

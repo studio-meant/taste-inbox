@@ -15,13 +15,13 @@ export const JobStateSchema = z.enum([
 
 export const JobStepStateSchema = z.enum(["waiting", "running", "done", "failed", "skipped"]);
 
+/**
+ * Mirrors `db/models.py::JOB_TYPES`. The inherited `build`/`run`/`price`/`cleanup` went on
+ * 2026-09-28 with the features that produced them.
+ */
 export const JobTypeSchema = z.enum([
   "collection",
   "enrichment",
-  "build",
-  "run",
-  "price",
-  "cleanup",
   /**
    * The pass that turns a user's question into a verification goal, acceptance criteria
    * and a trial plan (2026-09-28, `research/question.py`).

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { IsoDateTimeSchema } from "../host/host-profile";
-import { MediaRefSchema, SourcePlatformSchema, SourceRefSchema } from "./common";
+import { ItemKindSchema, SourcePlatformSchema, SourceRefSchema } from "./common";
 
 /**
  * `GET /api/today` payload.
@@ -18,18 +18,13 @@ import { MediaRefSchema, SourcePlatformSchema, SourceRefSchema } from "./common"
 /**
  * PAGE_SPECIFICATIONS.md §5.2 "Working Queue" — the allowed row kinds, in order.
  *
- * The last six were added with the research and trial runners (2026-09-28), after the
- * specification was changed first — the list is closed, and a seventh kind without a
- * document change is what `WorkingQueuePanel` forbids. `price_checking` has no producer in
- * this build and is kept so the inherited desktop bundle still parses.
+ * Every kind here has a producer (`api/today.py::_working_queue`). The inherited six —
+ * environment preparing/ready, token and review required, price checking and collector
+ * login — went on 2026-09-28 with the sandbox runner, the Style board and the browser
+ * collectors that produced them. The list is closed: a kind without a document change is
+ * what `WorkingQueuePanel` forbids.
  */
 export const QueueItemKindSchema = z.enum([
-  "environment_preparing",
-  "environment_ready",
-  "token_required",
-  "review_required",
-  "price_checking",
-  "collector_auth",
   "research_running",
   "research_ready",
   /**
@@ -46,22 +41,6 @@ export const QueueItemKindSchema = z.enum([
   "trial_blocked",
 ]);
 
-/** Which board a connection belongs to. */
-/**
- * The Browse modes an item can belong to.
- *
- * `trends` was called `ai` until the board's contents argued otherwise: of 25 items only
- * six are runnable artifacts, and the rest are posts to keep up with. The Instagram
- * collection the user created is still named `ai` — that is their word for it and is
- * stored unchanged; this is the product's name for the board.
- *
- * `places` — saved restaurants, cafés and travel spots — holds nothing yet. It is in the
- * union anyway because the union is what every board-shaped surface reads: a value the
- * boards can produce but this enum cannot represent is a runtime error at the API boundary,
- * which is the coupling these schemas exist for.
- */
-export const ItemDomainSchema = z.enum(["trends", "style", "music", "places", "none"]);
-
 /**
  * An editorial lead or a related item on Today.
  *
@@ -70,7 +49,7 @@ export const ItemDomainSchema = z.enum(["trends", "style", "music", "places", "n
  */
 export const DailyConnectionSchema = z.object({
   id: z.string().min(1),
-  domain: ItemDomainSchema,
+  kind: ItemKindSchema,
   title: z.string().min(1),
   /** The one-line summary of the item itself. */
   summary: z.string(),
@@ -84,7 +63,6 @@ export const DailyConnectionSchema = z.object({
   readiness: z.string().nullable(),
   /** Route to open. §5.2 "Primary actions → lead item open". */
   href: z.string().min(1),
-  media: MediaRefSchema.nullable(),
   /**
    * §5.2 Ranking: "낮은 confidence item은 lead보다 related slot에 둔다", so confidence
    * has to travel with the connection rather than be recomputed in the UI.
@@ -92,44 +70,15 @@ export const DailyConnectionSchema = z.object({
   confidence: z.number().min(0).max(1).nullable(),
 });
 
-/** §5.2 "New Saved Items": count, board split, source icons, and recent previews. */
+/** §5.2 "New Saved Items" — the card Today calls New signals. */
 export const SavedSummarySchema = z.object({
   newItemCount: z.number().int().nonnegative(),
   /**
-   * Today's arrivals by item kind (`repo`, `paper`, `dataset`, `space`, …), largest first.
-   * The split the card draws since 2026-09-28 — the same axis the Inbox rail counts. Defaults
-   * to empty so a payload from before it still parses; the card then falls back to boards.
+   * Today's arrivals by item kind (`repo`, `paper`, `dataset`, `space`, …), largest first —
+   * the same axis the Inbox rail counts, so a chip is one click from the list it counts.
    */
   kindCounts: z.record(z.string(), z.number().int().nonnegative()).default({}),
-  aiCount: z.number().int().nonnegative(),
-  styleCount: z.number().int().nonnegative(),
-  /**
-   * Today's music arrivals.
-   *
-   * Added because the product has three boards and the card was drawing two. The reference
-   * has exactly two chips, and porting that shape meant every saved Reel landed in the
-   * anonymous remainder the card computes as `newItemCount - ai - style` — present in the
-   * meter, named nowhere.
-   */
-  musicCount: z.number().int().nonnegative(),
-  /**
-   * Today's places arrivals.
-   *
-   * The same reason `musicCount` exists: the card divides `newItemCount` into named boards
-   * and computes the rest as `기타`. A board missing from the split is not absent from the
-   * meter — it is drawn as an anonymous segment, which is how a saved Reel used to appear
-   * before it was named. Zero while nothing is classified, and a zero draws no chip.
-   */
-  placesCount: z.number().int().nonnegative(),
   sources: z.array(SourcePlatformSchema),
-  /**
-   * Compatibility for an already-running desktop bundle. New surfaces use `previews`;
-   * keeping the first one here lets the old bundle finish its session without rejecting
-   * the response while the installed app is being replaced.
-   */
-  preview: MediaRefSchema.nullable(),
-  /** Up to three real, locally cached items from the day the card counts, newest first. */
-  previews: z.array(MediaRefSchema).max(3).default([]),
   href: z.string().min(1),
 });
 
@@ -143,9 +92,9 @@ export const QueueItemSchema = z.object({
   nextStep: z.string().min(1),
   href: z.string().min(1),
   /**
-   * Present only for rows with steps to count: `environment_preparing`, `price_checking`,
-   * `research_running` and `trial_running`. The last two are `JobStep` ordinals over the
-   * total, read from the job — never an estimate of time remaining.
+   * Present only for rows with steps to count — `research_running`, `plan_running` and
+   * `trial_running`: `JobStep` ordinals over the total, read from the job, never an
+   * estimate of time remaining.
    */
   progress: z.number().min(0).max(1).nullable(),
 });
@@ -158,25 +107,16 @@ export const DaySummarySchema = z.object({
   highlights: z.array(
     z.object({
       id: z.string().min(1),
-      domain: ItemDomainSchema,
+      kind: ItemKindSchema,
       /**
-       * Which account it came from.
-       *
-       * Carried so the cover can be tinted from the same per-platform colours the rail's
-       * source dots already use, rather than every card wearing one identical blob.
+       * Which account it came from, so the card can be tinted from the same per-platform
+       * colours the rail's source dots use. There is no picture of a starred repository,
+       * and a generated one would be a fake photo of a real thing.
        */
       platform: SourcePlatformSchema,
       title: z.string().min(1),
       meta: z.string(),
       href: z.string().min(1),
-      /**
-       * The item's own thumbnail, when one was cached.
-       *
-       * Null for GitHub, Threads and LinkedIn — the collectors cache Instagram media and
-       * nothing else, so there is no picture of a starred repository to show. A generated
-       * one would be a fake photo of a real thing, which is worse than an honest tint.
-       */
-      preview: z.string().min(1).nullable(),
     }),
   ),
 });
@@ -234,7 +174,6 @@ export const TodayPayloadSchema = z.object({
 });
 
 export type QueueItemKind = z.infer<typeof QueueItemKindSchema>;
-export type ItemDomain = z.infer<typeof ItemDomainSchema>;
 export type DailyConnection = z.infer<typeof DailyConnectionSchema>;
 export type SavedSummary = z.infer<typeof SavedSummarySchema>;
 export type QueueItem = z.infer<typeof QueueItemSchema>;

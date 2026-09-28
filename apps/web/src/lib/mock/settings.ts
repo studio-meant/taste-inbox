@@ -7,7 +7,6 @@ import {
   type CeremonialEntry,
   type SettingsDocument,
   type SettingsPatchRequest,
-  type SourcePlatform,
 } from "@taste-inbox/shared";
 
 /**
@@ -30,7 +29,7 @@ import {
  * hours while leaving the wrong string on screen as the explanation. (The live service does
  * offer it, guarded by `_reject_unknown_timezone`; this fixture is the stricter of the two on
  * purpose, so a screen test cannot lean on a control the mock cannot validate.) The remaining
- * eight are `false` because nothing anywhere reads them.
+ * three are `false` because nothing anywhere reads them.
  */
 
 /** `config/app.example.yaml`, verbatim. Changing a number here changes what the screen claims. */
@@ -45,14 +44,7 @@ const SHIPPED = {
 } as const;
 
 /**
- * `debug_retention_days` is absent from the shipped example, so it resolves to the field
- * default in `config/schema.py` — which is what makes it the one `origin: "default"` row on
- * the whole screen, and worth keeping as a fixture case.
- */
-const DEBUG_RETENTION_DEFAULT_DAYS = 7;
-
-/**
- * The other `origin: "default"` row, and the only one that is deliberate.
+ * The one `origin: "default"` row, and it is deliberate.
  *
  * `app.ceremonial_entry` is absent from the shipped example because this screen is where it
  * is meant to be written; the `full` below is the pydantic default, which is the journey the
@@ -66,25 +58,24 @@ const CEREMONIAL_ENTRY_DEFAULT: CeremonialEntry = "full";
  * The ceiling `staggerMinutes` may not cross, given the interval currently in effect.
  *
  * `CollectionSection._stagger_must_fit_inside_one_interval` rejects
- * `stagger_minutes × 5 >= interval_hours × 60` — five sources staggered behind each other
- * must all start inside one interval. Sending the static 60 as `max` would let the control
- * compose `interval=1, stagger=15`, which is inside both per-field ranges and still a 422.
+ * `stagger_minutes × 2 >= interval_hours × 60` — the three collectors, two gaps apart, must
+ * all start inside one interval. Sending the static 60 as `max` would let the control
+ * compose `interval=1, stagger=30`, which is inside both per-field ranges and still a 422.
  * Deriving it means the control physically cannot build the invalid pair.
  */
 export function staggerCeiling(intervalHours: number): number {
-  return Math.min(60, intervalHours * 12 - 1);
+  return Math.min(60, intervalHours * 30 - 1);
 }
 
 /** The pair check itself, so the mock refuses exactly what pydantic refuses. */
 function staggerFitsInterval(intervalHours: number, staggerMinutes: number): boolean {
-  return staggerMinutes * 5 < intervalHours * 60;
+  return staggerMinutes * 2 < intervalHours * 60;
 }
 
 export interface MockSettingRejection {
   /**
-   * Whatever the caller named. A dotted `SettingKey` for the document patch, a platform for
-   * the per-source one — and an unrecognised string when that is what arrived, since a key
-   * the screen cannot place is exactly the case worth reporting rather than narrowing away.
+   * Whatever the caller named — a dotted `SettingKey`, or an unrecognised string when that is
+   * what arrived, since a key the screen cannot place is exactly the case worth reporting.
    */
   readonly key: string;
   readonly message: string;
@@ -177,16 +168,6 @@ export class MockSettingsStore {
           editable: false,
         },
       },
-      privacy: {
-        debugRetentionDays: {
-          value: DEBUG_RETENTION_DEFAULT_DAYS,
-          min: 0,
-          max: 90,
-          origin: "default",
-          effect: "nextRun",
-          editable: false,
-        },
-      },
       general: {
         timezone: { value: SHIPPED.timezone, origin: "file", effect: "immediate", editable: false },
         locale: { value: SHIPPED.locale, origin: "file", effect: "immediate", editable: false },
@@ -203,48 +184,6 @@ export class MockSettingsStore {
           editable: true,
         },
       },
-      features: {
-        shareCapture: { value: false, origin: "file", effect: "nextRun", editable: false },
-        historicalImport: { value: false, origin: "file", effect: "nextRun", editable: false },
-        linkedinCollector: { value: false, origin: "file", effect: "nextRun", editable: false },
-        localModelEnrichment: { value: false, origin: "file", effect: "nextRun", editable: false },
-      },
-      // The same four accounts `MOCK_TODAY` reports on, in the same states, so the two
-      // screens cannot tell the user different stories about the same LinkedIn login.
-      sources: [
-        {
-          platform: "github",
-          label: "GitHub Star",
-          enabled: { value: true, origin: "default", effect: "nextRun", editable: false },
-          state: "collected",
-          connectedAt: "2026-07-02T09:12:00Z",
-          itemCount: 6,
-        },
-        {
-          platform: "instagram",
-          label: "Instagram Saved",
-          enabled: { value: true, origin: "default", effect: "nextRun", editable: false },
-          state: "collected",
-          connectedAt: "2026-07-02T09:31:00Z",
-          itemCount: 6,
-        },
-        {
-          platform: "threads",
-          label: "Threads Repost",
-          enabled: { value: true, origin: "default", effect: "nextRun", editable: false },
-          state: "collected",
-          connectedAt: "2026-07-04T11:02:00Z",
-          itemCount: 5,
-        },
-        {
-          platform: "linkedin",
-          label: "LinkedIn Reactions",
-          enabled: { value: true, origin: "default", effect: "nextRun", editable: false },
-          state: "auth_required",
-          connectedAt: "2026-07-11T08:45:00Z",
-          itemCount: 0,
-        },
-      ],
     });
   }
 
@@ -253,7 +192,7 @@ export class MockSettingsStore {
    *
    * Three refusals, all mirroring the backend rather than inventing a mock rule: a key whose
    * `editable` is `false` (writing it would persist a value nothing reads), an entry mode
-   * outside `AppSection.ceremonial_entry`'s `Literal`, and a `stagger × 5 >= interval × 60`
+   * outside `AppSection.ceremonial_entry`'s `Literal`, and a `stagger × 2 >= interval × 60`
    * pair, which is `CollectionSection`'s own cross-field validator. The pair is checked
    * *after* both values are staged, because a patch that moves the interval and the stagger
    * together is legal and each half looks wrong on its own.
@@ -310,7 +249,7 @@ export class MockSettingsStore {
     if (!staggerFitsInterval(interval, stagger)) {
       throw new MockSettingRejected({
         key: "collection.staggerMinutes",
-        message: `계정별 시차는 한 번의 수집 간격 안에 모두 들어가야 해요. ${String(interval)}시간 간격이면 ${String(staggerCeiling(interval))}분까지 넣을 수 있어요.`,
+        message: `세 수집기는 한 번의 수집 간격 안에 모두 시작해야 해요. ${String(interval)}시간 간격이면 ${String(staggerCeiling(interval))}분까지 넣을 수 있어요.`,
       });
     }
 
@@ -322,21 +261,6 @@ export class MockSettingsStore {
       this.changed.add(key);
     }
     return this.read();
-  }
-
-  /**
-   * `PATCH /api/settings/sources/{platform}`.
-   *
-   * Refused in every case, and that is the honest answer rather than a missing feature:
-   * `source_accounts.enabled` is written once as the literal `enabled=1`
-   * (`ingest/captures.py:174`) and read by nothing — collector selection walks a hardcoded
-   * `SOURCE_ORDER`. Storing a `false` here would produce a switch that turns off nothing.
-   */
-  applySource(platform: SourcePlatform, _enabled: boolean): SettingsDocument {
-    throw new MockSettingRejected({
-      key: platform,
-      message: `${platform} 계정은 아직 이 화면에서 켜고 끌 수 없어요.`,
-    });
   }
 }
 

@@ -18,36 +18,22 @@ import os
 import threading
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse, Response
-from sqlalchemy import create_engine, func, select
+from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from ..db.models import Item, MediaAsset
+from ..db.models import Item
 from ..paths import REPO_ROOT
-from .cards import (
-    BOARD_COLLECTIONS,
-    DECLINED_BOARD,
-    board_query,
-    count_no_board,
-    generated_at,
-    load_authors,
-    no_board_query,
-    to_ai_card,
-    to_item_detail,
-    to_music_card,
-    to_style_card,
-)
+from .cards import count_items, generated_at, inbox_query, to_ai_card, to_item_detail
 from .schedule import configured_zone
 
 # `_local_day` by name, rather than a second conversion written here. It is the function
-# Today already groups its per-day history with, and the boards' `?day=` has to answer for
+# Today already groups its per-day history with, and the Inbox's `?day=` has to answer for
 # the same rows: two independent UTC→local conversions would disagree the first time one of
-# them read a bare stamp differently, and a board that files an item on a different day than
-# Today does is worse than no calendar at all.
+# them read a bare stamp differently.
 from .today import _local_day
 
 DEFAULT_DATABASE_URL = f"sqlite:///{REPO_ROOT / 'var' / 'data' / 'taste-inbox.db'}"
@@ -90,7 +76,7 @@ def _collect_surface(surface: str, database_url: str) -> int:
     """Collect one surface and ingest it — the scheduled driver, called in-process."""
     from ..ingest.collect import main as collect_main
 
-    return collect_main(["--collector", surface, "--database-url", database_url, "--no-classify"])
+    return collect_main(["--collector", surface, "--database-url", database_url])
 
 
 def _start_collections(session: Session, platforms: list[str]) -> list[str]:
@@ -208,125 +194,19 @@ def _page(items: list[dict[str, Any]], *, origin: str) -> dict[str, Any]:
 
 @app.get("/api/health")
 def health(session: Session = Depends(get_session)) -> dict[str, Any]:
-    counts = {board: 0 for board in BOARD_COLLECTIONS}
-    for board in BOARD_COLLECTIONS:
-        counts[board] = len(list(session.scalars(board_query(board))))
-    # None is the visible inbox for both explicit "no board" decisions and Instagram Likes
-    # still waiting for classification. Browse > All includes the same count, so the rail
-    # never promises fewer cards than the merged page renders.
-    counts[DECLINED_BOARD] = count_no_board(session)
-    return {"data": {"status": "ok", "boards": counts}}
+    return {"data": {"status": "ok", "itemCount": count_items(session)}}
 
 
-@app.get("/api/trends/items")
-def trends_items(
+@app.get("/api/items")
+def inbox_items(
     session: Session = Depends(get_session),
     kind: str | None = Query(default=None),
     source: str | None = Query(default=None),
     day: str | None = Query(default=None),
 ) -> dict[str, Any]:
-    # No `status`. The parameter outlived the field: `AIItemCardModel` lost `status` when
-    # the sandbox runner was removed (docs/DECISIONS.md, 2026-08-09), and the filter kept
-    # reading `card["status"]` — so `?status=anything` raised `KeyError` and answered 500.
-    # It survived because nothing in the frontend has sent it since the day it was removed.
-    items = [to_ai_card(session, item) for item in session.scalars(board_query("trends"))]
+    """Every collected item — the Inbox — narrowed by kind, source and day."""
+    items = [to_ai_card(session, item) for item in session.scalars(inbox_query())]
     items = _apply(items, "kind", kind, lambda card: card["kind"])
-    items = _apply(items, "source", source, lambda card: card["source"]["platform"])
-    items = _on_day(session, items, day)
-    return _page(items, origin="collected")
-
-
-@app.get("/api/style/items")
-def style_items(
-    session: Session = Depends(get_session),
-    source: str | None = Query(default=None),
-    day: str | None = Query(default=None),
-) -> dict[str, Any]:
-    # No `match` or `stock`. They filtered on a resolved product, and the board will never
-    # resolve one (docs/DECISIONS.md, 2026-08-09) — a filter over a field nothing produces
-    # is a control that always returns everything or nothing.
-    rows = list(session.scalars(board_query("style")))
-    # Before the loop, not inside it: 61 accounts stand behind these 76 posts, and asking
-    # per card would re-read the same profile once per post it wrote.
-    load_authors(session, rows)
-    items = [to_style_card(session, item) for item in rows]
-    items = _apply(items, "source", source, lambda card: card["source"]["platform"])
-    items = _on_day(session, items, day)
-    return _page(items, origin="collected")
-
-
-@app.get("/api/music/items")
-def music_items(
-    session: Session = Depends(get_session),
-    handled: str = Query(default="hidden"),
-    source: str | None = Query(default=None),
-    day: str | None = Query(default=None),
-) -> dict[str, Any]:
-    # `source` is here for `/library`, not for `/music`. The music board is entirely
-    # Instagram, so the facet cannot narrow it and is never rendered there — but the merged
-    # board applies one `?source=` across all three lists, and a parameter this endpoint
-    # accepted and ignored would answer `?source=github` with Instagram Reels.
-    items = [to_music_card(session, item) for item in session.scalars(board_query("music"))]
-    if handled != "shown":
-        items = [card for card in items if card["handledAt"] is None]
-    items = _apply(items, "source", source, lambda card: card["source"]["platform"])
-    items = _on_day(session, items, day)
-    return _page(items, origin="collected")
-
-
-@app.get("/api/places/items")
-def places_items(
-    session: Session = Depends(get_session),
-    source: str | None = Query(default=None),
-    day: str | None = Query(default=None),
-) -> dict[str, Any]:
-    """Saved restaurants, cafés and travel spots — served as AI cards, deliberately.
-
-    A place the user saved is an Instagram post: a caption, a photo and whatever the account
-    linked. `to_ai_card` already builds exactly that, so this board reuses it rather than
-    mint a fourth card model. The fields a "place card" would seem to want — a rating, an
-    address, a map — are things nothing here collected and nothing here will produce, and a
-    field with no honest producer is removed rather than shipped as a null
-    (docs/DECISIONS.md, 2026-08-09).
-
-    `source` and `day` for the same reason `/api/music/items` takes them. `/places` renders
-    neither facet, but `/library` applies one filter across every board's list at once, and
-    a parameter this endpoint accepted and ignored would answer `?source=github` with
-    Instagram posts.
-
-    Filled by `enrich/classify.py`, which gained this board on 2026-08-12, and by
-    `PATCH /api/items/{id}/board` when a person moves something here. No platform routes to
-    it by rule, so those two are the only ways onto it.
-    """
-    items = [to_ai_card(session, item) for item in session.scalars(board_query("places"))]
-    items = _apply(items, "source", source, lambda card: card["source"]["platform"])
-    items = _on_day(session, items, day)
-    return _page(items, origin="collected")
-
-
-@app.get("/api/none/items")
-def declined_items(
-    session: Session = Depends(get_session),
-    source: str | None = Query(default=None),
-    day: str | None = Query(default=None),
-) -> dict[str, Any]:
-    """Items with no visible board yet, including pending Instagram Likes.
-
-    Pending Likes remain null in the database so the classifier can resume later; explicit
-    None decisions remain `collection_name = "none"`. Both are visible here and in Browse >
-    All, which prevents a successfully collected item from disappearing while enrichment is
-    unavailable.
-
-    Served as AI cards, for the same reason `/places` is: the card shows a caption, a photo,
-    the hashtags and the outbound links, which is the whole of what was collected. There is
-    no honest extra field a "declined card" could carry — least of all a reason, which the
-    classifier does not produce and this product will not invent.
-
-    `source` and `day` because every board list takes them and a filter that some lists
-    honour and others ignore is the failure `docs/DECISIONS.md` (2026-08-08) calls worse
-    than not offering the filter. Nothing renders them here today.
-    """
-    items = [to_ai_card(session, item) for item in session.scalars(no_board_query())]
     items = _apply(items, "source", source, lambda card: card["source"]["platform"])
     items = _on_day(session, items, day)
     return _page(items, origin="collected")
@@ -341,7 +221,7 @@ def _apply(
     """Filter on a comma-separated multi-value, the URL grammar the frontend already uses.
 
     An unrecognised value simply matches nothing rather than raising: a stale bookmark
-    should open the board, and the frontend already tells the user which value it dropped.
+    should open the Inbox, and the frontend already tells the user which value it dropped.
     """
     if not raw:
         return items
@@ -354,7 +234,7 @@ def _on_day(
     items: list[dict[str, Any]],
     day: str | None,
 ) -> list[dict[str, Any]]:
-    """Narrow a board to one **local** calendar day — `?day=2026-08-08`.
+    """Narrow the Inbox to one **local** calendar day — `?day=2026-08-08`.
 
     Single-valued, unlike `_apply`: the rail's calendar selects one day, and a comma-separated
     list of days is not a shape any control here produces.
@@ -368,7 +248,7 @@ def _on_day(
 
     A row whose stamp cannot be read is left out rather than guessed onto a day, which is
     what `_local_day` already decided for Today. An unrecognised day simply matches nothing:
-    a stale bookmark opens the board, and the frontend says which value it dropped.
+    a stale bookmark opens the Inbox, and the frontend says which value it dropped.
     """
     if not day:
         return items
@@ -393,88 +273,6 @@ def manual_item_create(
     from .manual_items import create_manual_item
 
     return {"data": create_manual_item(session, payload)}
-
-
-@app.patch("/api/items/{item_id}/board")
-def item_board_patch(
-    item_id: str, payload: dict[str, Any] | None = None, session: Session = Depends(get_session)
-) -> dict[str, Any]:
-    """Move one item onto another board, or onto none.
-
-    The body is `{"board": "music"}` — one value, unlike `PATCH /api/settings`'s dotted
-    `changes` map, because there is exactly one field here and a map of one key would be
-    ceremony. The failure contract is the settings endpoint's: 422 with the offending value
-    named in Korean, and the write is all-or-nothing.
-
-    The response is the refreshed item, not an acknowledgement. `board` in it is read back
-    out of the database through `board_of`, so a caller learns where the item actually ended
-    up rather than what it asked for — which is the only way a screen can tell a change that
-    was accepted from one that had no effect.
-    """
-    from .boards import set_item_board
-
-    return {"data": set_item_board(session, item_id, payload)}
-
-
-#: How long a client may reuse a thumbnail before it has to ask again.
-#:
-#: One hour, and deliberately **not** `immutable`. The URL is `/api/media/{asset_id}` where
-#: `asset_id` is an integer rowid, and re-collection can point that same rowid at different
-#: bytes — the orphaned-file sweep in `ingest/media.py` exists precisely because a new
-#: capture mints a new file for an item. `immutable` would tell the browser never to
-#: revalidate, and the stale image would survive a reload.
-MEDIA_MAX_AGE_SECONDS = 3600
-
-
-def _etag_matches(header: str | None, etag: str) -> bool:
-    """Does an `If-None-Match` header name this etag?
-
-    The header is a list, and a cache is allowed to weaken an entity tag it stores, so
-    `W/"abc"` has to match `"abc"`.
-    """
-    if not header:
-        return False
-    return any(
-        candidate.strip() == "*" or candidate.strip().removeprefix("W/") == etag
-        for candidate in header.split(",")
-    )
-
-
-@app.get("/api/media/{asset_id}")
-def media(asset_id: int, request: Request, session: Session = Depends(get_session)) -> Response:
-    """Serve a cached thumbnail from disk, or confirm the client's copy is still good.
-
-    Only ever a row this service wrote: the path comes from `media_assets.local_path`, not
-    from the request, so a crafted id cannot reach outside the cache. The extra
-    containment check below is belt-and-braces against a bad row rather than a bad request.
-
-    Before the conditional path existed, `If-None-Match` with the right etag still returned
-    200 and the whole body — measured at 207,876 bytes for one thumbnail — so every board
-    render re-read every image off disk and back down the socket.
-    """
-    asset = session.get(MediaAsset, asset_id)
-    if asset is None or not asset.local_path:
-        raise ApiError(404, "media_not_cached", "이미지가 캐시에 없어요.", recoverable=True)
-
-    path = (REPO_ROOT / asset.local_path).resolve()
-    cache_root = (REPO_ROOT / "var" / "media").resolve()
-    if not path.is_relative_to(cache_root) or not path.exists():
-        raise ApiError(404, "media_missing", "캐시된 파일이 없어요.", recoverable=True)
-
-    # The bytes' own digest when the cache recorded one; otherwise the file's identity on
-    # disk, which is what a re-download changes. Either way the etag follows the content,
-    # never the row id.
-    stat = path.stat()
-    etag = f'"{asset.checksum or f"{stat.st_mtime_ns:x}-{stat.st_size:x}"}"'
-    headers = {
-        "ETag": etag,
-        # `private` because this is one person's collected media on their own machine.
-        "Cache-Control": f"private, max-age={MEDIA_MAX_AGE_SECONDS}, must-revalidate",
-    }
-
-    if _etag_matches(request.headers.get("if-none-match"), etag):
-        return Response(status_code=304, headers=headers)
-    return FileResponse(path, media_type="image/jpeg", headers=headers)
 
 
 @app.get("/api/focus/{item_id}")
@@ -809,28 +607,14 @@ def collection_schedule(session: Session = Depends(get_session)) -> dict[str, An
     return {"data": describe(session=session)}
 
 
-#: Thumbnails downloaded per manual refresh.
-#:
-#: `cache_pending` has always accepted a limit and this endpoint never passed one, so the
-#: button downloaded the entire backlog inside the request. Each asset carries a 20 s
-#: socket timeout, which put the worst case for the 126 collected thumbnails at 42 minutes
-#: of a held-open POST. Twelve bounds it at four minutes, and the response says how many
-#: are still waiting so the UI can offer the button again rather than pretending the cache
-#: is complete.
-REFRESH_MEDIA_BATCH = 12
-
-
 @app.post("/api/collection/refresh")
 def collection_refresh(session: Session = Depends(get_session)) -> dict[str, Any]:
     """Re-read the capture files now, outside the schedule.
 
-    Deliberately *not* a collector run: starting a browser session against four accounts
-    from a web request is the kind of thing that should need a person present, and
-    CLAUDE.md §10 keeps account access behind explicit approval. This picks up whatever
-    the collectors have already written and refreshes the media cache — which is what
-    makes the boards current, and what the button in the UI can honestly promise.
+    Not a collector run — that is `POST /api/accounts/{platform}/collect`, which Settings
+    offers per account. This picks up whatever the collectors have already written.
     """
-    from ..ingest import cache_pending, ingest_all
+    from ..ingest import ingest_all
     from .schedule import effective_document
 
     if not effective_document(session).collection.allow_manual_refresh:
@@ -839,38 +623,21 @@ def collection_refresh(session: Session = Depends(get_session)) -> dict[str, Any
         )
 
     ingest = ingest_all(session)
-    media = cache_pending(session, limit=REFRESH_MEDIA_BATCH)
-    pending = (
-        session.scalar(
-            select(func.count()).select_from(MediaAsset).where(MediaAsset.local_path.is_(None))
-        )
-        or 0
-    )
-    return {
-        "data": {
-            "refreshedAt": generated_at(),
-            "ingest": ingest.as_dict(),
-            "media": media.as_dict(),
-            # Includes the ones no download can recover — an expired signature needs a new
-            # collector run — so this is "not on disk", not "will arrive next press".
-            "mediaPending": pending,
-        }
-    }
+    return {"data": {"refreshedAt": generated_at(), "ingest": ingest.as_dict()}}
 
 
 @app.get("/api/collection/launchd")
 def collection_launchd(session: Session = Depends(get_session)) -> dict[str, Any]:
     """The scheduled jobs, written to disk but never installed.
 
-    Loading a job that opens four logged-in accounts on a timer has consequences for those
-    accounts, so this writes the plists and hands back the commands. A person runs them,
-    having seen what they do (CLAUDE.md §10).
+    Loading a job that runs on a timer is a person's decision, so this writes the plists and
+    hands back the commands. A person runs them, having seen what they do (CLAUDE.md §10).
     """
     from .launchd import install_commands, plan
 
     # `plan`, not `generate`: describing the jobs must not write them. This is a GET, and
-    # since the System screen started rendering it, a write here meant that opening a page
-    # rewrote six files. The install block's first line does the writing instead.
+    # since Settings renders it, a write here would mean that opening a page rewrote files.
+    # The install block's first line does the writing instead.
     jobs = plan(session=session)
     return {
         "data": {
@@ -1191,23 +958,3 @@ def onboarding(
             "jobIds": job_ids,
         }
     }
-
-
-@app.patch("/api/settings/sources/{platform}")
-def source_setting_patch(
-    platform: str, payload: dict[str, Any] | None = None, session: Session = Depends(get_session)
-) -> dict[str, Any]:
-    """Record that the user turned a source off — which stops no collection today.
-
-    `source_accounts.enabled` has no reader anywhere, so this writes a value nothing acts
-    on. That is deliberate rather than overlooked: the switch ships `editable: false` and
-    the payload never claims an effect, so the record exists without the screen pretending
-    it did something.
-    """
-    from .settings import set_source_enabled
-
-    return {"data": set_source_enabled(session, platform, payload)}
-
-
-def cache_root() -> Path:
-    return REPO_ROOT / "var" / "media"
