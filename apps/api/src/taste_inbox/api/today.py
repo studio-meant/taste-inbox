@@ -1,8 +1,13 @@
 """Today, assembled from what the database actually knows.
 
-Part of this payload describes work that does not exist yet. `leadConnection` is a
-relationship between two items that something has to find, and `suggestedQueries` need
-the Focus engine. Both come back empty rather than populated with plausible filler.
+Part of this payload describes work that does not exist yet. `suggestedQueries` needs the
+Focus engine and comes back empty rather than populated with plausible filler.
+
+`leadConnection` and `relatedConnections` are real since 2026-09-28: a **connected
+bundle** is a paper and the code, models, datasets and demos the Hugging Face paper page
+states for it (`api_sources/huggingface/papers.py` writes them as `paper.*` evidence, and
+`api/focus.py::_bundle` draws the same rows in the Lab). Nothing is inferred here — every
+arm of a bundle is a row the Hub said, and a paper with no such rows produces no bundle.
 
 `workingQueue` is real since 2026-09-28: one row per item that has a research or trial
 job, read from the `jobs` table and the evidence those runs left
@@ -32,8 +37,8 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..db.models import Checkpoint, CollectorRun, Item, Job, JobStep
-from .cards import PLATFORM_LABEL
+from ..db.models import Checkpoint, CollectorRun, Evidence, Item, Job, JobStep
+from .cards import PLATFORM_LABEL, _source_ref
 from .schedule import configured_zone
 
 #: Which collector entry belongs to which platform, for the source-status list.
@@ -131,6 +136,7 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
     # for a person, and so does a blocked trial below.
     attention = sum(1 for row in checkpoints if row.last_outcome in _NEEDS_A_PERSON)
     queue = _working_queue(session)
+    connections = _connections(session, today_start, today_end)
     attention += sum(1 for row in queue if row["kind"] == "trial_blocked")
 
     return {
@@ -144,8 +150,8 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
             "readyActions": sum(1 for row in queue if row["kind"] == "approval_required"),
             "attention": attention,
         },
-        "leadConnection": None,
-        "relatedConnections": [],
+        "leadConnection": connections[0] if connections else None,
+        "relatedConnections": connections[1:],
         "savedSummary": _saved_summary(
             session, per_day.get(today, 0), today, today_start, today_end
         ),
@@ -154,6 +160,109 @@ def build_today(session: Session, *, now: datetime | None = None) -> dict[str, A
         "suggestedQueries": [],
         "sourceStatusSummary": {"sources": _source_status(session, checkpoints)},
     }
+
+
+#: How many bundles the card shows: one lead plus the related items §5.2 asks for
+#: ("related item 2-4개"). Beyond that the card stops being a glance.
+BUNDLE_LIMIT = 5
+
+#: The arms of a bundle, in the order a person reads them, and what each one is called.
+#:
+#: `github_repo` leads because it is the arm that decides whether the rest can be tried at
+#: all — the Lab's whole question is whether the code runs. The counts under it are the
+#: `linked_*` rows the Hub stated, not the `total_*` ceilings: a bundle says what it can
+#: name, and "521 models cite this" is a fact about the paper rather than a thing to open.
+_BUNDLE_ARMS: tuple[tuple[str, str], ...] = (
+    ("paper.github_repo", "코드"),
+    ("paper.linked_model", "모델"),
+    ("paper.linked_dataset", "데이터셋"),
+    ("paper.linked_space", "데모"),
+)
+
+
+def _connections(session: Session, today_start: str, today_end: str) -> list[dict[str, Any]]:
+    """Today's connected bundles — a paper, and what the Hub says implements it.
+
+    **Scoped to today, like every other number on this screen.** The card is headed
+    "오늘의 연결" and sits beside a count of today's arrivals; a bundle from three weeks ago
+    would be true and would make the card mean something different from its own heading.
+
+    Ranked by how much of the bundle is actually openable, then by a linked repository's
+    provenance: a repository a person put on the paper page (`confidence` 1.0) leads one
+    the Hub matched automatically (0.9). That is the same distinction `PaperBundleCard`
+    draws in the Lab, and §5.2 asks for exactly it — "낮은 confidence item은 lead보다
+    related slot에 둔다".
+    """
+
+    papers = list(
+        session.scalars(
+            select(Item).where(
+                Item.kind == "paper",
+                Item.first_seen_at >= today_start,
+                Item.first_seen_at < today_end,
+            )
+        )
+    )
+    if not papers:
+        return []
+
+    rows = session.scalars(
+        select(Evidence)
+        .where(Evidence.item_id.in_([paper.id for paper in papers]))
+        .where(Evidence.type.in_([arm for arm, _ in _BUNDLE_ARMS]))
+        .order_by(Evidence.id)
+    ).all()
+
+    by_item: dict[str, list[Evidence]] = {}
+    for row in rows:
+        by_item.setdefault(row.item_id, []).append(row)
+
+    built: list[tuple[int, float, str, dict[str, Any]]] = []
+    for paper in papers:
+        arms = by_item.get(paper.id)
+        if not arms:
+            # A paper the Hub states nothing about is not a bundle. It is still in the
+            # Inbox and still opens in the Lab; it simply has no connection to draw.
+            continue
+
+        counts = Counter(row.type for row in arms)
+        note = " · ".join(
+            label if counts[arm] == 1 and arm == "paper.github_repo" else f"{label} {counts[arm]}"
+            for arm, label in _BUNDLE_ARMS
+            if counts[arm]
+        )
+        repo = next((row for row in arms if row.type == "paper.github_repo"), None)
+        # The repository's own confidence, because it is the only arm whose provenance
+        # differs: 1.0 a person linked it, 0.9 the Hub matched it. The other arms are the
+        # Hub's own listings and carry no such distinction.
+        confidence = repo.confidence if repo is not None else None
+
+        built.append(
+            (
+                len(arms),
+                confidence or 0.0,
+                paper.first_seen_at,
+                {
+                    "id": paper.id,
+                    "kind": paper.kind,
+                    "title": paper.title or paper.canonical_url,
+                    "summary": (paper.body_text or "").strip(),
+                    "relationNote": note or None,
+                    "source": _source_ref(
+                        session, paper, PLATFORM_LABEL.get(paper.platform, paper.platform)
+                    ),
+                    # No readiness. It meant a prepared execution environment, which went
+                    # with the sandbox runner on 2026-08-09 and has no way back.
+                    "readiness": None,
+                    # The Lab, not the item page: a bundle is a thing to investigate.
+                    "href": f"/focus/{paper.id}",
+                    "confidence": confidence,
+                },
+            )
+        )
+
+    built.sort(key=lambda row: (-row[0], -row[1], row[2]))
+    return [row[3] for row in built[:BUNDLE_LIMIT]]
 
 
 #: Row order: what is moving, then what needs a person, then what is ready for one.

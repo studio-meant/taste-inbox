@@ -140,6 +140,14 @@ def write_captures(directory: Path, captures: dict[str, list[dict[str, Any]]]) -
     return directory
 
 
+#: The `client` fixture's session factory, for the tests that write a row directly.
+#:
+#: A module global rather than a second fixture because the two have to be the same
+#: database: `client` builds an in-memory engine per test, and a fixture that made its own
+#: would be a different, empty one.
+_session_factory: sessionmaker[Session]
+
+
 @pytest.fixture
 def client(tmp_path: Path) -> Iterator[TestClient]:
     # One shared connection for the whole test. The default in-memory pool hands each
@@ -156,6 +164,10 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
     with factory() as session:
         report = ingest_all(session, write_captures(tmp_path / "captures", CAPTURES))
         assert report.skipped == []
+
+    # Published for the few tests that have to change a row and re-read through the API.
+    global _session_factory
+    _session_factory = factory
 
     # FastAPI's own seam, rather than reaching into a module global: the app keeps its
     # production wiring and only the session is swapped for this test.
@@ -456,10 +468,52 @@ class TestToday:
             }
         ]
 
-    def test_invents_no_connection_and_no_queue(self, client: TestClient) -> None:
+    def test_a_connected_bundle_is_the_paper_and_what_the_hub_stated(
+        self, client: TestClient
+    ) -> None:
+        """Every arm is a row the Hub said. Nothing here is inferred.
+
+        The fixture paper carries exactly one `paper.github_repo`, so the bundle is a
+        paper with code and says so — `코드` and nothing else.
+        """
         data = client.get("/api/today").json()["data"]
-        assert data["leadConnection"] is None
+
+        lead = data["leadConnection"]
+        assert lead is not None
+        assert lead["title"] == "A Sample Paper"
+        assert lead["kind"] == "paper"
+        assert lead["relationNote"] == "코드"
+        # A bundle is a thing to investigate, so it opens in the Lab.
+        assert lead["href"] == f"/focus/{lead['id']}"
+        assert lead["source"]["actionType"] == "upvote"
+        # Only one paper in the fixture library has stated arms.
         assert data["relatedConnections"] == []
+
+    def test_a_paper_the_hub_states_nothing_about_is_not_a_bundle(self, client: TestClient) -> None:
+        """No arms, no bundle — not a bundle drawn with nothing in it.
+
+        A paper is perfectly ordinary without a stated implementation: the Hub has no
+        `githubRepo` for a large share of them, and finding one is the research step's job
+        (`research/brief.py::REPO_DISCOVERY_QUESTION`). The card says the day made no
+        connections rather than listing a paper and leaving the relation blank.
+        """
+        from sqlalchemy import delete
+
+        from taste_inbox.db.models import Evidence
+
+        before = client.get("/api/today").json()["data"]
+        assert before["leadConnection"] is not None
+
+        with _session_factory() as session:
+            session.execute(delete(Evidence).where(Evidence.type.like("paper.%")))
+            session.commit()
+
+        after = client.get("/api/today").json()["data"]
+        assert after["leadConnection"] is None
+        assert after["relatedConnections"] == []
+
+    def test_invents_no_queue_and_no_queries(self, client: TestClient) -> None:
+        data = client.get("/api/today").json()["data"]
         assert data["workingQueue"] == []
         assert data["suggestedQueries"] == []
 
