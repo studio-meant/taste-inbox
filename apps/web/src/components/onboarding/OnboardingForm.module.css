@@ -1,7 +1,18 @@
+/*
+ * The card, in the middle of the frame.
+ *
+ * `min-height: 100%` only centres inside whatever height the parent happens to have, and
+ * the workspace shell gives this one its content height — so the card sat wherever the
+ * form ended, which on a tall window is above the middle. `100%` of a flex child that is
+ * already stretched to the viewport is the height to centre in, and `align-content`
+ * centres the grid's own track rather than each item inside its cell.
+ */
 .page {
   display: grid;
   place-items: center;
+  align-content: center;
   min-height: 100%;
+  height: 100%;
   padding: var(--space-8) var(--space-4);
 }
 

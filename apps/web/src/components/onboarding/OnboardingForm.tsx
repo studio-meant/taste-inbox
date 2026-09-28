@@ -9,41 +9,38 @@ import { SourceMark } from "@/components/today/SourceMark";
 import styles from "./OnboardingForm.module.css";
 
 /**
- * First-run setup: four answers, one submit.
+ * First-run setup: a name, an account, one submit.
  *
  * The rules are checked here so a person hears about a missing name before a round trip,
- * and checked again by the service, which is the one that decides (`api/profile.py`): a name
- * is required, a GitHub or a Hugging Face name — at least one — and an interval in hours.
- * Whatever the service refuses comes back with its field, and lands under that input.
+ * and checked again by the service, which is the one that decides (`api/profile.py`): a
+ * name is required and at least one of GitHub or Hugging Face. Whatever the service
+ * refuses comes back with its field, and lands under that input.
+ *
+ * **The collection interval is not asked here** (2026-09-28). It has a sensible default
+ * the service applies when the field is absent (`profile.py::DEFAULT_INTERVAL_HOURS`,
+ * four hours), it is the one answer of the four that nobody can have an opinion about
+ * before seeing the product work, and it is a control on the Settings screen the moment
+ * they do. A first run should ask only what it cannot proceed without.
  */
 
-type Values = Omit<OnboardingRequest, "intervalHours"> & { readonly intervalHours: number };
+type Values = Omit<OnboardingRequest, "intervalHours">;
 type Errors = Partial<Record<OnboardingField, string>>;
 
-function check(values: Values, bounds: { min: number; max: number }): Errors {
+function check(values: Values): Errors {
   const errors: Errors = {};
   if (values.name.trim() === "") errors.name = "이름을 입력해 주세요.";
   if (values.github.trim() === "" && values.huggingface.trim() === "") {
     errors.accounts = "GitHub와 Hugging Face 중 하나 이상의 계정명을 입력해 주세요.";
-  }
-  if (
-    !Number.isInteger(values.intervalHours) ||
-    values.intervalHours < bounds.min ||
-    values.intervalHours > bounds.max
-  ) {
-    errors.intervalHours = `${String(bounds.min)}–${String(bounds.max)}시간 사이로 입력해 주세요.`;
   }
   return errors;
 }
 
 export function OnboardingForm({
   initial,
-  intervalBounds,
   returning,
   onSubmit,
 }: {
   readonly initial: Values;
-  readonly intervalBounds: { readonly min: number; readonly max: number };
   /** Already set up: the same form, showing what is saved. */
   readonly returning: boolean;
   readonly onSubmit: (
@@ -59,15 +56,12 @@ export function OnboardingForm({
 
   const set = (key: keyof Values) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const raw = event.target.value;
-    setValues((previous) => ({
-      ...previous,
-      [key]: key === "intervalHours" ? Number(raw) : raw,
-    }));
+    setValues((previous) => ({ ...previous, [key]: raw }));
   };
 
   const submit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const found = check(values, intervalBounds);
+    const found = check(values);
     setErrors(found);
     setGeneral(null);
     if (Object.keys(found).length > 0) return;
@@ -87,15 +81,23 @@ export function OnboardingForm({
   return (
     <div className={styles.page}>
       <form className={styles.card} onSubmit={submit} noValidate aria-labelledby={`${id}-title`}>
+        {/*
+          `Taste Inbox`, without the `R&D`.
+
+          The scope suffix earns its place on the splash and in the document title, where
+          it says which Taste Inbox this is. Over a first-run form it is the first thing a
+          person reads about a product they have not used, and it narrows before it
+          welcomes — the sentence below already says what the scope is.
+        */}
         <p className={styles.eyebrow} lang="en">
-          Taste Inbox R&amp;D
+          Taste Inbox
         </p>
         <h1 id={`${id}-title`} className={styles.title}>
           {returning ? "시작 설정" : "시작하기"}
         </h1>
         <p className={styles.lead}>
-          GitHub와 Hugging Face에 남긴 관심 신호를 모아 조사하고, 안전하게 시험해 봐요. 네 가지만
-          알려주세요.
+          GitHub와 Hugging Face에 흩어진 관심을 모아, “나중에 써봐야지” 했던 것들을 하나씩 함께
+          확인해봐요. 시작을 위해 몇 가지만 알려주세요.
         </p>
 
         <div className={styles.row}>
@@ -113,7 +115,7 @@ export function OnboardingForm({
             aria-describedby={`${field("name")}-help`}
           />
           <p id={`${field("name")}-help`} className={errors.name ? styles.error : styles.help}>
-            {errors.name ?? "화면 왼쪽 위와 인사말에 쓰여요. 이 Mac 밖으로 나가지 않아요."}
+            {errors.name ?? "화면 왼쪽 위와 인사말에 쓰여요."}
           </p>
         </div>
 
@@ -166,43 +168,15 @@ export function OnboardingForm({
               </p>
             </div>
           ))}
-          <p
-            id={`${field("accounts")}-help`}
-            className={errors.accounts ? styles.error : styles.help}
-          >
-            {errors.accounts ??
-              "로그인은 필요 없어요. 모두 공개 정보라 계정명만으로 읽어요. 프로필 주소를 붙여 넣어도 돼요."}
-          </p>
+          {/* Only when something is wrong. The two lines that used to sit here —
+              "no login needed" and "a profile URL works too" — answered questions nobody
+              had yet, under two fields that already say what they take. */}
+          {errors.accounts === undefined ? null : (
+            <p id={`${field("accounts")}-help`} className={styles.error}>
+              {errors.accounts}
+            </p>
+          )}
         </fieldset>
-
-        <div className={styles.row}>
-          <label htmlFor={field("intervalHours")} className={styles.label}>
-            수집 주기
-          </label>
-          <div className={styles.interval}>
-            <input
-              id={field("intervalHours")}
-              className={styles.number}
-              type="number"
-              inputMode="numeric"
-              min={intervalBounds.min}
-              max={intervalBounds.max}
-              step={1}
-              value={Number.isNaN(values.intervalHours) ? "" : values.intervalHours}
-              onChange={set("intervalHours")}
-              aria-invalid={errors.intervalHours === undefined ? undefined : true}
-              aria-describedby={`${field("intervalHours")}-help`}
-            />
-            <span>시간마다</span>
-          </div>
-          <p
-            id={`${field("intervalHours")}-help`}
-            className={errors.intervalHours ? styles.error : styles.help}
-          >
-            {errors.intervalHours ??
-              "마지막 수집 이후 새로 생긴 것만 가져와요. 설정에서 언제든 바꿀 수 있어요."}
-          </p>
-        </div>
 
         {general === null ? null : (
           <p className={styles.error} role="alert">

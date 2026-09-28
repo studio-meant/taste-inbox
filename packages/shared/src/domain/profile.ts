@@ -12,12 +12,19 @@ export const ProfileSchema = z.object({
   onboarded: z.boolean(),
 });
 
-/** `POST /api/onboarding` — the four first-run answers, validated whole by the service. */
+/**
+ * `POST /api/onboarding` — the first-run answers, validated whole by the service.
+ *
+ * `intervalHours` is optional (2026-09-28): the first screen stopped asking for it, and
+ * the service applies `DEFAULT_INTERVAL_HOURS` when it is absent. It stays in the schema
+ * because the same endpoint serves a returning visit from Settings, where the interval is
+ * a control and the value is real.
+ */
 export const OnboardingRequestSchema = z.object({
   name: z.string(),
   github: z.string(),
   huggingface: z.string(),
-  intervalHours: z.number().int(),
+  intervalHours: z.number().int().optional(),
 });
 
 export const OnboardingResponseSchema = z.object({

@@ -14,29 +14,27 @@ beforeEach(() => {
   router.replace.mockReset();
 });
 
-const blank = { name: "", github: "", huggingface: "", intervalHours: 4 };
+const blank = { name: "", github: "", huggingface: "" };
 
 function form(submit = vi.fn().mockResolvedValue({ ok: true, message: "" })) {
-  render(
-    <OnboardingForm
-      initial={blank}
-      intervalBounds={{ min: 1, max: 24 }}
-      returning={false}
-      onSubmit={submit}
-    />,
-  );
+  render(<OnboardingForm initial={blank} returning={false} onSubmit={submit} />);
   return submit;
 }
 
 describe("first-run onboarding", () => {
-  it("asks four things, with four hours already filled in", () => {
+  it("asks a name and an account, and nothing else", () => {
     form();
 
     expect(screen.getByRole("heading", { level: 1, name: "시작하기" })).toBeInTheDocument();
     expect(screen.getByLabelText(/이름/)).toHaveValue("");
     expect(screen.getByLabelText("GitHub")).toBeInTheDocument();
     expect(screen.getByLabelText("Hugging Face")).toBeInTheDocument();
-    expect(screen.getByLabelText("수집 주기")).toHaveValue(4);
+    /*
+     * The collection interval is not asked on a first run (2026-09-28). The service
+     * applies its default when the field is absent, and it is a control on Settings from
+     * the first minute — a first screen should ask only what it cannot proceed without.
+     */
+    expect(screen.queryByLabelText("수집 주기")).toBeNull();
   });
 
   it("needs a name before anything is sent", async () => {
@@ -65,23 +63,8 @@ describe("first-run onboarding", () => {
       name: "Suzie",
       github: "",
       huggingface: "ohsuz",
-      intervalHours: 4,
     } satisfies OnboardingRequest);
     expect(router.replace).toHaveBeenCalledWith("/today");
-  });
-
-  it("keeps the interval inside its bounds", async () => {
-    const submit = form();
-
-    await userEvent.type(screen.getByLabelText(/이름/), "Suzie");
-    await userEvent.type(screen.getByLabelText("GitHub"), "ohsuz");
-    const interval = screen.getByLabelText("수집 주기");
-    await userEvent.clear(interval);
-    await userEvent.type(interval, "30");
-    await userEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-
-    expect(submit).not.toHaveBeenCalled();
-    expect(screen.getByText("1–24시간 사이로 입력해 주세요.")).toBeInTheDocument();
   });
 
   it("puts the service's refusal under the field it belongs to", async () => {
@@ -111,7 +94,6 @@ describe("mock onboarding", () => {
       name: "수지",
       github: "ohsuz",
       huggingface: "",
-      intervalHours: 4,
     });
 
     expect(result.profile).toEqual({ name: "수지", onboarded: true });
@@ -125,7 +107,6 @@ describe("mock onboarding", () => {
         name: "수지",
         github: " ",
         huggingface: "",
-        intervalHours: 4,
       }),
     ).rejects.toThrow(/하나 이상의 계정명/);
   });

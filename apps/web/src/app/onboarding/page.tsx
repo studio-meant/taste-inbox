@@ -8,20 +8,21 @@ export const metadata: Metadata = { title: "시작하기 · Taste Inbox R&D" };
 /**
  * `/onboarding` — the first screen of a fresh install (2026-09-28).
  *
- * Four answers: a name (required), a GitHub name and a Hugging Face name (at least one),
- * and how often to collect (4 hours, filled in and changeable). Revisiting it after setup
- * shows the saved answers, so it doubles as the one place all four sit together.
+ * A name (required) and an account name, GitHub or Hugging Face, at least one.
+ *
+ * The collection interval is **not** asked here. The service applies its default when the
+ * field is absent (`api/profile.py::DEFAULT_INTERVAL_HOURS`), and it is a control on the
+ * Settings screen from the first minute — a first run should ask only what it cannot
+ * proceed without. Revisiting after setup shows the saved answers.
  */
 export default async function OnboardingPage() {
   const repository = getRepository();
-  const [profile, accounts, settings] = await Promise.all([
+  const [profile, accounts] = await Promise.all([
     repository.getProfile(),
     repository.getAccounts(),
-    repository.getSettings(),
   ]);
   const handle = (platform: "github" | "huggingface") =>
     accounts.accounts.find((row) => row.platform === platform)?.handle ?? "";
-  const interval = settings.collection.intervalHours;
 
   return (
     <OnboardingForm
@@ -29,10 +30,7 @@ export default async function OnboardingPage() {
         name: profile.name ?? "",
         github: handle("github"),
         huggingface: handle("huggingface"),
-        // Four hours for a first run, as asked; a returning visit shows what is saved.
-        intervalHours: profile.onboarded ? interval.value : 4,
       }}
-      intervalBounds={{ min: interval.min, max: interval.max }}
       returning={profile.onboarded}
       onSubmit={completeOnboarding}
     />
