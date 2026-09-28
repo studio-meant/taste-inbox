@@ -63,12 +63,11 @@ __screenshots__/
 *auth-state*.json
 
 # Documentation. The published repository carries only what someone needs to *run* this:
-# README, plus BOOTSTRAP (install), FEASIBILITY (what this host actually verified),
+# README (install and use), plus FEASIBILITY (what this host actually verified),
 # SECURITY_BOUNDARIES (read before letting an agent run on your machine) and
 # SYSTEM_ARCHITECTURE (what connects to what). Design specs and the decision log are for
 # continuing development, not for using the product, and stay on the machine.
 docs/*
-!docs/BOOTSTRAP.md
 !docs/FEASIBILITY.md
 !docs/SECURITY_BOUNDARIES.md
 !docs/SYSTEM_ARCHITECTURE.md

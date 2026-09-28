@@ -97,7 +97,7 @@ export const DESTINATIONS: readonly Destination[] = [
  * (`Today / AI Lab / Style / Library`). That line contradicts DESIGN.md's own
  * "Primary destinations" in the same section, every wireframe in IA §7, and frontend
  * architecture §7.1 and §22 — all of which specify Today / Browse. Treated as a stale
- * remnant; see the note in docs/BOOTSTRAP.md.
+ * remnant.
  */
 export const PILL_DESTINATIONS: readonly Destination[] = DESTINATIONS.filter(
   (destination) => destination.id !== "system",
