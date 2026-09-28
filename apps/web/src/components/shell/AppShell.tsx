@@ -33,6 +33,15 @@ export interface AppShellProps {
    * node to override, or `null` to render none.
    */
   readonly dock?: React.ReactNode;
+  /**
+   * Centre one thing in the frame instead of scrolling a column.
+   *
+   * The content column is built for boards: a small top padding and a large bottom
+   * clearance for what used to float over it. Those are right for a screen you scroll and
+   * wrong for a screen that is a single card — centring inside them puts the card above
+   * the middle by half the difference, which is what the first-run screen did.
+   */
+  readonly fill?: boolean;
   readonly ambient?: AmbientIntensity;
 }
 
@@ -41,6 +50,7 @@ export function AppShell({
   contextBar,
   bottomNav,
   dock,
+  fill = false,
   ambient = "tonal",
 }: AppShellProps) {
   return (
@@ -55,7 +65,7 @@ export function AppShell({
         ) : null}
         {/* The single `main` landmark for the workspace (architecture §23). */}
         <div className={styles.viewport}>
-          <main id="main" className={styles.content}>
+          <main id="main" className={cx(styles.content, fill ? styles.contentFill : null)}>
             {children}
           </main>
         </div>

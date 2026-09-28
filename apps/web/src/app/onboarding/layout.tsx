@@ -8,5 +8,9 @@ import { AppShell } from "@/components/shell";
 export const dynamic = "force-dynamic";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell ambient="scenic">{children}</AppShell>;
+  return (
+    <AppShell ambient="scenic" fill>
+      {children}
+    </AppShell>
+  );
 }

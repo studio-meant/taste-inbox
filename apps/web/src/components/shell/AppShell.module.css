@@ -141,6 +141,23 @@
   padding: var(--space-8) var(--content-padding-mobile) var(--space-20);
 }
 
+/*
+ * One card, centred in the frame — the first-run screen.
+ *
+ * Two changes, and both matter. The padding becomes **symmetric**: the column's 32/144
+ * split is clearance for a scrolling board, and centring inside it lands half the
+ * difference above the middle. And the column takes the viewport's height, which is what
+ * gives a percentage height inside it something definite to resolve against — without it
+ * `min-height: 100%` on the page below is measured against a box that is only as tall as
+ * its own contents, and means nothing.
+ */
+.contentFill {
+  min-height: 100%;
+  display: grid;
+  align-content: center;
+  padding-block: var(--space-6);
+}
+
 @media (min-width: 768px) {
   .content {
     padding-inline: var(--content-padding-desktop);
@@ -170,6 +187,26 @@
   .content,
   .withBottomNav .content {
     padding-bottom: calc(var(--space-20) + max(64px, 4.8cqw));
+  }
+}
+
+/*
+ * …except when the frame holds one centred thing.
+ *
+ * Written after the clearance rules and with the same two-class shape, because that is
+ * what it has to beat: `.withBottomNav .content` outweighs a single `.contentFill`, and
+ * the media query above re-parks the bottom padding on every screen wider than a tablet.
+ * Reserving space for a dock under a card that is supposed to be centred is how the
+ * first-run screen ended up 31px high.
+ */
+.withBottomNav .contentFill {
+  padding-bottom: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .contentFill,
+  .withBottomNav .contentFill {
+    padding-bottom: var(--space-6);
   }
 }
 
