@@ -23,7 +23,7 @@ The redaction pass at the bottom is the backstop, in the spirit of
 catches the day someone widens a field without noticing what rides along.
 
 `aiq-research/SKILL.md` adds its own rule that this module obeys — never put credentials
-or secret values in query text. `_scrub` drops anything token-shaped rather than trusting
+or secret values in query text. `scrub` drops anything token-shaped rather than trusting
 that no caller ever will.
 """
 
@@ -89,8 +89,12 @@ class ResearchBrief:
         }
 
 
-def _scrub(text: str) -> str:
-    """Remove token- and handle-shaped strings. The backstop, not the boundary."""
+def scrub(text: str) -> str:
+    """Remove token- and handle-shaped strings. The backstop, not the boundary.
+
+    Public since 2026-09-28: `research/nim.py` sends prompts this module did not build,
+    and a second copy of these patterns would be a second answer to one question.
+    """
 
     cleaned = _SECRET_SHAPES.sub("[redacted]", text)
     return _HANDLE.sub("[handle]", cleaned)
@@ -178,11 +182,11 @@ def build(context: TasteContext, *, max_terms: int = 8, max_neighbours: int = 5)
     )
 
     return ResearchBrief(
-        query=_scrub("\n".join(lines)),
-        disclosed=[_scrub(entry) for entry in disclosed],
+        query=scrub("\n".join(lines)),
+        disclosed=[scrub(entry) for entry in disclosed],
         subject_id=context.item_id,
         wants_repo_discovery=wants_discovery,
     )
 
 
-__all__ = ["QUESTIONS", "REPO_DISCOVERY_QUESTION", "ResearchBrief", "build"]
+__all__ = ["QUESTIONS", "REPO_DISCOVERY_QUESTION", "ResearchBrief", "build", "scrub"]

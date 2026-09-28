@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from taste_inbox.api import focus
 from taste_inbox.api.app import app, get_session
-from taste_inbox.research import aiq_client
+from taste_inbox.research import aiq_client, nim
 from taste_inbox.research import runner as research_runner
 from taste_inbox.sandbox import nemoclaw
 from taste_inbox.sandbox import trial as trial_runner
@@ -62,6 +62,10 @@ def _normalise(value: Any, key: str | None = None) -> Any:
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     factory = library(tmp_path)
     monkeypatch.setenv("AIQ_SERVER_URL", "http://localhost:8010")
+    # No Nemotron in a golden: these files are a contract between two languages, and a
+    # hosted model's wording is neither fixed nor ours. The widening step fails for want
+    # of a key, which is exactly the state a machine without one is in.
+    monkeypatch.delenv(nim.KEY_ENV, raising=False)
     status = {"text": READY_STATUS}
     monkeypatch.setattr(
         nemoclaw, "status", lambda **_: nemoclaw.parse_status("taste-inbox", status["text"])

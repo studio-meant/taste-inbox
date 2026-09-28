@@ -148,7 +148,7 @@ def build_query(context: Any, question: str, report: str | None) -> str:
         "question cannot be settled inside those limits, say which part cannot and plan "
         "the part that can."
     )
-    return brief._scrub("\n".join(lines))
+    return brief.scrub("\n".join(lines))
 
 
 #: How much of the first report travels into the second pass.

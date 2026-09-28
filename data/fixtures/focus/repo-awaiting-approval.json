@@ -138,17 +138,20 @@
     {
       "id": "runs-here",
       "text": "이 코드가 내 환경에서 실제로 설치되고 돌아가나요?",
-      "because": "실행할 코드가 있어요 — debpalash/VoiceStudio"
+      "because": "실행할 코드가 있어요 — debpalash/VoiceStudio",
+      "origin": "rule"
     },
     {
       "id": "claims-published",
       "text": "문서가 말하는 기능이 실제로 전부 공개돼 있나요?",
-      "because": "AI-Q 조사 리포트가 있어서 문서의 주장과 실제 공개 범위를 맞춰볼 수 있어요"
+      "because": "AI-Q 조사 리포트가 있어서 문서의 주장과 실제 공개 범위를 맞춰볼 수 있어요",
+      "origin": "rule"
     },
     {
       "id": "versus-saved",
       "text": "이미 저장한 jamiepine/voicebox와 무엇이 다른가요?",
-      "because": "같은 주제를 공유해요 — mcp"
+      "because": "같은 주제를 공유해요 — mcp",
+      "origin": "rule"
     }
   ],
   "suggestion": {
@@ -186,7 +189,7 @@
     "research": {
       "id": "research-00000000-0000-0000-0000-000000000000",
       "state": "succeeded",
-      "currentStep": "행동 제안과 실행 계획을 만든다",
+      "currentStep": "Nemotron이 확인해볼 질문을 넓힌다",
       "createdAt": "2026-09-28T00:00:00Z",
       "startedAt": "2026-09-28T00:00:00Z",
       "finishedAt": "2026-09-28T00:00:00Z",
@@ -210,6 +213,11 @@
           "label": "행동 제안과 실행 계획을 만든다",
           "state": "done",
           "message": null
+        },
+        {
+          "label": "Nemotron이 확인해볼 질문을 넓힌다",
+          "state": "failed",
+          "message": "NVIDIA_API_KEY가 설정되지 않아 Nemotron을 부르지 않았습니다. `.env`에 넣어주세요."
         }
       ]
     },

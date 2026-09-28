@@ -575,6 +575,24 @@ function TrialPanel({ payload }: { readonly payload: FocusPayload }) {
       {job === null ? null : <JobSteps job={job} />}
       {trial === null || isActive(job) ? null : (
         <>
+          {/*
+            An interpretation, above the observations and never instead of them.
+
+            Everything below this block is what the sandbox reported; this is what a model
+            made of it, so it says which model and it sits in its own frame. `DESIGN.md`
+            §3.5 — the observed string stays beside anything guessed from it. When
+            Nemotron was unreachable the block is simply absent and the facts read exactly
+            as they always did.
+          */}
+          {trial.reading === null ? null : (
+            <div className={styles.reading}>
+              <p className={styles.readingLabel}>
+                <span lang="en">Nemotron이 읽은 것</span>
+                <code className={styles.readingModel}>{trial.reading.model}</code>
+              </p>
+              <ReportText text={trial.reading.text} className={styles.readingText} />
+            </div>
+          )}
           <dl className={styles.facts}>
             {rows
               .filter(([, value]) => value !== undefined)

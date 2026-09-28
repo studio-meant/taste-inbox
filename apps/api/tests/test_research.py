@@ -15,9 +15,9 @@ from typing import Any
 import pytest
 from sqlalchemy import select
 
-from taste_inbox.action import proposal
+from taste_inbox.action import proposal, questions
 from taste_inbox.db.models import Evidence, Job, JobStep
-from taste_inbox.research import aiq_client, brief, runner
+from taste_inbox.research import aiq_client, brief, nim, runner
 from taste_inbox.taste import context
 
 from .library import item_id, library, recorded_report
@@ -168,6 +168,10 @@ def test_a_report_without_a_step_offers_no_trial() -> None:
 @pytest.fixture
 def recorded_aiq(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     seen: dict[str, Any] = {}
+    # No NVIDIA key in the test environment, so the widening step takes its failure path
+    # every time. Deterministic on purpose: a suite whose shape depends on whether a
+    # developer happens to have exported a key is a suite that fails in one place only.
+    monkeypatch.delenv(nim.KEY_ENV, raising=False)
 
     def research(query: str, **kwargs: Any) -> aiq_client.AiqReport:
         seen["query"] = query
@@ -216,7 +220,98 @@ def test_a_run_stores_the_report_verbatim(tmp_path: Path, recorded_aiq: dict[str
                 select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.ordinal)
             )
         ]
-        assert states == ["done", "done", "done", "done"]
+        # Four steps done and the fifth — widening the questions with Nemotron — failed
+        # for want of a key. The run is still a success: the report and the plan are its
+        # product, and `CLAUDE.md` §7 is explicit that a failed enrichment must not
+        # invalidate what did succeed.
+        assert states == ["done", "done", "done", "done", "failed"]
+
+
+def test_nemotron_widens_the_questions_and_every_one_names_its_ground(
+    tmp_path: Path, recorded_aiq: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The model's half of the hybrid, including the two answers that must be dropped."""
+
+    monkeypatch.setenv(nim.KEY_ENV, "nvapi-" + "x" * 20)
+    asked: dict[str, str] = {}
+
+    def complete(prompt: str, **kwargs: Any) -> nim.NimAnswer:
+        asked["prompt"] = prompt
+        return nim.NimAnswer(
+            text=(
+                "Here you go:\n[\n"
+                '{"text": "CUDA 없이 CPU만으로 추론이 되나요?",'
+                ' "because": "리포트가 CUDA/ROCm GPU 경로만 문서화했다고 적었어요"},\n'
+                '{"text": "설명이 없는 질문", "because": ""},\n'
+                '{"text": "이 코드가 내 환경에서 실제로 설치되고 돌아가나요?",'
+                ' "because": "규칙이 이미 제안한 것과 같은 질문"}\n]'
+            ),
+            model="nvidia/nemotron-3-super-120b-a12b",
+            base_url=nim.DEFAULT_BASE_URL,
+            latency_seconds=0.7,
+            purpose="suggested_questions",
+        )
+
+    monkeypatch.setattr(nim, "complete", complete)
+
+    factory = library(tmp_path)
+    with factory() as session:
+        subject = item_id(session, VOICESTUDIO)
+        outcome = runner.run(session, subject)
+        assert outcome.state == "succeeded"
+
+        stored = runner.model_questions(session, subject)
+        # One kept. The empty `because` is dropped — a reason too short to name anything
+        # is not a reason — and the duplicate of a rule's question is dropped as well.
+        assert [row["text"] for row in stored] == ["CUDA 없이 CPU만으로 추론이 되나요?"]
+
+        # The rules were handed over, so the model was asked to widen rather than repeat.
+        assert "do not repeat them" in asked["prompt"]
+        assert "이 코드가 내 환경에서 실제로 설치되고 돌아가나요?" in asked["prompt"]
+
+        merged = questions.build(
+            kind="repo",
+            title="debpalash/VoiceStudio",
+            platform="github",
+            has_research=True,
+            extra=stored,
+        )
+        origins = {row.text: row.origin for row in merged}
+        assert origins["CUDA 없이 CPU만으로 추론이 되나요?"] == "model"
+        assert origins["이 코드가 내 환경에서 실제로 설치되고 돌아가나요?"] == "rule"
+
+
+def test_a_secret_pasted_into_a_report_does_not_reach_nemotron(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every prompt this module sends goes through the same scrub the brief does."""
+
+    monkeypatch.setenv(nim.KEY_ENV, "nvapi-" + "x" * 20)
+    sent: dict[str, str] = {}
+
+    def complete(prompt: str, **kwargs: Any) -> nim.NimAnswer:
+        sent["prompt"] = prompt
+        return nim.NimAnswer(
+            text="[]",
+            model="m",
+            base_url=nim.DEFAULT_BASE_URL,
+            latency_seconds=0.1,
+            purpose="suggested_questions",
+        )
+
+    monkeypatch.setattr(nim, "complete", complete)
+    leaked = "hf_" + "b" * 20
+
+    questions.propose_more(
+        title="a/b",
+        kind="repo",
+        canonical_url="https://github.com/a/b",
+        report=f"Set your token: {leaked} and run it.",
+        existing=[],
+    )
+
+    assert leaked not in sent["prompt"]
+    assert "[redacted]" in sent["prompt"]
 
 
 def test_a_second_run_replaces_the_first(tmp_path: Path, recorded_aiq: dict[str, Any]) -> None:

@@ -821,3 +821,50 @@
   margin-top: 2px;
   color: var(--accent-deep);
 }
+
+/* ───────────────────────────────────────────── what a model made of the run */
+
+/*
+ * Nemotron's reading, above the facts it was given.
+ *
+ * Framed rather than blended: the panel it sits in is headed `OBSERVED EVIDENCE · what
+ * happened when we tried`, and every other thing in it is something a sandbox reported.
+ * This is not — so it carries its own border, its own label and the model's id, and the
+ * exit code, transcript and refusal list stay untouched beneath it.
+ */
+.reading {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px dashed color-mix(in srgb, var(--orchid) 45%, var(--border));
+  border-radius: var(--radius-utility);
+  background: color-mix(in srgb, var(--orchid) 7%, var(--surface));
+}
+
+.readingLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--subtle);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.readingModel {
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--accent-deep);
+  overflow-wrap: anywhere;
+}
+
+.readingText {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body-small-size);
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

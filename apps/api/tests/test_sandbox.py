@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 from taste_inbox.action import proposal
 from taste_inbox.db.models import Evidence, Job, JobStep
+from taste_inbox.research import nim
 from taste_inbox.sandbox import nemoclaw, policy, transcript, trial
 
 from .library import item_id, library, recorded_report, recorded_status
@@ -461,3 +462,79 @@ def test_a_stored_denial_reads_back() -> None:
         "reason": "r · s",
     }
     assert trial.denial_parts("voicestudio.sh")["binary"] is None
+
+
+# --- Nemotron's reading of the run ----------------------------------------------------
+
+
+def test_nemotron_reads_the_run_and_is_marked_as_an_interpretation(
+    tmp_path: Path, patched_sandbox: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """It sits above the facts, never instead of them, and says which model wrote it."""
+
+    monkeypatch.setenv(nim.KEY_ENV, "nvapi-" + "x" * 20)
+    seen: dict[str, str] = {}
+
+    def complete(prompt: str, **kwargs: Any) -> nim.NimAnswer:
+        seen["prompt"] = prompt
+        seen["purpose"] = str(kwargs.get("purpose"))
+        return nim.NimAnswer(
+            text="프론트엔드는 설치됐고 백엔드는 네트워크 차단으로 실패했습니다.",
+            model="nvidia/nemotron-3-super-120b-a12b",
+            base_url=nim.DEFAULT_BASE_URL,
+            latency_seconds=2.4,
+            purpose="evidence_interpretation",
+        )
+
+    monkeypatch.setattr(nim, "complete", complete)
+
+    factory = library(tmp_path)
+    with factory() as session:
+        plan = _plan(session, "https://github.com/debpalash/VoiceStudio")
+        outcome = trial.run(session, plan, approved=True)
+        assert outcome.state == "succeeded"
+
+        latest = trial.latest(session, plan.subject_id)
+        assert latest is not None
+        assert latest["reading"]["model"] == "nvidia/nemotron-3-super-120b-a12b"
+        assert "백엔드는 네트워크 차단" in latest["reading"]["text"]
+        # The observations it read are untouched underneath it.
+        assert latest["facts"]["tools"] == "7"
+        assert latest["result"] is not None
+
+        row = session.scalars(select(Evidence).where(Evidence.type == trial.READING_EVIDENCE)).one()
+        # An interpretation, never `sandbox`: the sandbox did not say this.
+        assert row.provenance == "inference"
+
+    # It is judged against what was agreed before the run, not on its own terms.
+    assert seen["purpose"] == "evidence_interpretation"
+    assert "What was agreed would count as an answer, before the run" in seen["prompt"]
+    assert "Do not estimate memory, disk, or a percentage" in seen["prompt"]
+
+
+def test_an_unreachable_nemotron_leaves_the_trial_succeeded(
+    tmp_path: Path, patched_sandbox: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The evidence is the run's product; reading it is enrichment (`CLAUDE.md` §7)."""
+
+    monkeypatch.delenv(nim.KEY_ENV, raising=False)
+
+    factory = library(tmp_path)
+    with factory() as session:
+        plan = _plan(session, "https://github.com/debpalash/VoiceStudio")
+        outcome = trial.run(session, plan, approved=True)
+
+        assert outcome.state == "succeeded"
+        latest = trial.latest(session, plan.subject_id)
+        assert latest is not None
+        # No reading, and no invented one.
+        assert latest["reading"] is None
+        assert latest["facts"]["tools"] == "7"
+
+        states = [
+            step.state
+            for step in session.scalars(
+                select(JobStep).where(JobStep.job_id == outcome.job_id).order_by(JobStep.ordinal)
+            )
+        ]
+        assert states == ["done", "done", "done", "failed"]

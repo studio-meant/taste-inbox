@@ -36,6 +36,14 @@ BLOCKED_EVIDENCE = "trial.blocked_endpoint"
 ARTIFACT_EVIDENCE = "trial.artifact"
 ERROR_EVIDENCE = "trial.error_output"
 
+#: Nemotron's reading of the run — what was and was not established.
+#:
+#: `provenance="inference"` and never `sandbox`. The exit code, the transcript and the
+#: refusal list are what happened; this is what a model made of them, and `DESIGN.md` §3.5
+#: is that the observed string must stay beside anything guessed from it. It is stored
+#: last, shown above the facts, and labelled with the model that wrote it.
+READING_EVIDENCE = "trial.reading"
+
 #: How much of a failed run's own output is kept. The tail, because that is where a CLI
 #: prints why it stopped.
 ERROR_TAIL_CHARS = 4000
@@ -46,6 +54,10 @@ STEPS = (
     "샌드박스 경계를 확인한다",
     "OpenShell 안에서 에이전트를 실행한다",
     "결과와 차단된 요청을 증거로 남긴다",
+    # Last, and allowed to fail. The evidence is the run's product; reading it is
+    # enrichment, and a model being unreachable must not turn a finished trial into a
+    # failed one (`CLAUDE.md` §7).
+    "Nemotron이 결과를 읽는다",
 )
 
 
@@ -366,6 +378,27 @@ def run(
                 )
             )
         _step(session, job, 2, "done")
+        session.commit()
+
+        _read_evidence(
+            session,
+            job,
+            plan,
+            state=state,
+            facts={
+                "exit": str(run_result.exit_code),
+                "tools": str(parsed.tool_calls),
+                "failures": str(parsed.tool_failures),
+                "stop": parsed.stop_reason or "n/a",
+                "sandbox": name,
+            },
+            transcript=parsed.final_text,
+            # Built here rather than reused: the variable above only exists on a run that
+            # did not succeed, and a clean run's tail is worth reading too.
+            error_output=error_tail(run_result.stdout, run_result.stderr),
+            denials=[denial_parts(denial_value(row)) for row in refused],
+            observed=observed,
+        )
         _finish(session, job, state)
         session.commit()
 
@@ -401,6 +434,94 @@ def run(
             artifacts=[],
             error=str(error),
         )
+
+
+def _read_evidence(
+    session: Session,
+    job: Job,
+    plan: Any,
+    *,
+    state: str,
+    facts: dict[str, str],
+    transcript: str | None,
+    error_output: str | None,
+    denials: list[dict[str, Any]],
+    observed: str,
+) -> None:
+    """Turn the run into two or three sentences. Never fails the trial.
+
+    The one thing this may not do is decide the answer on its own terms. It is given the
+    user's question and the acceptance criteria that were agreed *before* the run, and it
+    is asked whether those were met — so the verdict is a comparison against something the
+    person approved, not a fresh opinion about a repository.
+
+    Everything it reads is already on this screen: exit code, tool counts, the agent's own
+    report, the tail of stderr, the hosts the policy refused. Nothing is summarised away —
+    the raw rows stay exactly where they were and this sits above them.
+    """
+
+    from ..research import brief, nim
+
+    _step(session, job, 3, "running")
+
+    measured = " · ".join(f"{key}={value}" for key, value in sorted(facts.items()) if value)
+    refused_line = (
+        ", ".join(f"{row.get('host')} ({row.get('count') or 1}회)" for row in denials[:6]) or "없음"
+    )
+    question = getattr(plan, "question", None)
+    criteria = getattr(plan, "acceptance_criteria", None) or getattr(plan, "success_criteria", "")
+
+    prompt = brief.scrub(
+        f"A sandboxed trial of {plan.subject_url} has finished.\n\n"
+        + (f"The person asked:\n    {question}\n\n" if question else "")
+        + f"What was agreed would count as an answer, before the run:\n{criteria}\n\n"
+        f"Measured: {measured or '(nothing recorded)'}\n"
+        f"Outcome state: {state}\n"
+        f"Hosts the network policy refused: {refused_line}\n\n"
+        f"What the agent reported:\n{(transcript or '(nothing)')[:2500]}\n\n"
+        f"Tail of the sandbox output:\n{(error_output or '(nothing)')[-1500:]}\n\n"
+        "Write 2-4 short sentences in Korean, as plain prose with no headings or bullets:\n"
+        "1. What was actually established.\n"
+        "2. What was not, and why — a refused host and a missing dependency are different "
+        "reasons and the difference matters.\n"
+        "3. Whether the agreed criteria were met, partly met, or not met. Say which.\n\n"
+        "Only use the facts above. Do not estimate memory, disk, or a percentage. Do not "
+        "recommend a next step. If the run establishes nothing, say that plainly."
+    )
+
+    try:
+        answer = nim.complete(
+            prompt,
+            purpose="evidence_interpretation",
+            system=(
+                "You read the output of one sandboxed software trial and say what it "
+                "established. You never invent a measurement."
+            ),
+            max_tokens=500,
+            temperature=0.2,
+        )
+    except nim.NimUnavailable as error:
+        _step(session, job, 3, "failed", message=str(error))
+        session.commit()
+        return
+    except Exception as error:  # reading must not take the trial down with it
+        _step(session, job, 3, "failed", message=f"{type(error).__name__}: {error}")
+        session.commit()
+        return
+
+    session.add(
+        Evidence(
+            item_id=plan.subject_id,
+            type=READING_EVIDENCE,
+            label=answer.model,
+            value=answer.text,
+            provenance="inference",
+            source_url=answer.base_url,
+            observed_at=observed,
+        )
+    )
+    _step(session, job, 3, "done", message=answer.trace())
+    session.commit()
 
 
 #: Separator inside a stored denial: `host · program · N회 · reason`.
@@ -468,6 +589,7 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
                     BLOCKED_EVIDENCE,
                     ARTIFACT_EVIDENCE,
                     ERROR_EVIDENCE,
+                    READING_EVIDENCE,
                 )
             )
         )
@@ -488,6 +610,16 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
         ],
         "denials": [denial_parts(row.value) for row in rows if row.type == BLOCKED_EVIDENCE],
         "artifacts": [row.value for row in rows if row.type == ARTIFACT_EVIDENCE],
+        # What a model made of all of the above. Null when Nemotron was unreachable, and
+        # the panel then shows the facts alone exactly as it always has.
+        "reading": next(
+            (
+                {"text": row.value, "model": row.label, "observedAt": row.observed_at}
+                for row in rows
+                if row.type == READING_EVIDENCE
+            ),
+            None,
+        ),
     }
 
 
@@ -495,6 +627,7 @@ __all__ = [
     "ARTIFACT_EVIDENCE",
     "BLOCKED_EVIDENCE",
     "ERROR_EVIDENCE",
+    "READING_EVIDENCE",
     "RESULT_EVIDENCE",
     "STEPS",
     "TRANSCRIPT_EVIDENCE",

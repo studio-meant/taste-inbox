@@ -47,6 +47,23 @@ export const TrialResultSchema = z.object({
   denials: z.array(TrialDenialSchema),
   /** File names the run left in its working directory — evidence something ran. */
   artifacts: z.array(z.string()),
+  /**
+   * What Nemotron made of everything above — **an interpretation, not an observation.**
+   *
+   * Null when the model was unreachable, and the panel then shows the facts alone exactly
+   * as it always has. When present it is drawn above them and labelled with the model
+   * that wrote it, because `DESIGN.md` §3.5 is that the observed string stays beside
+   * anything guessed from it. It never replaces a row: the exit code, the transcript and
+   * the refusal list are all still there underneath.
+   */
+  reading: z
+    .object({
+      text: z.string().min(1),
+      /** The model id the endpoint reported, e.g. `nvidia/nemotron-3-super-120b-a12b`. */
+      model: z.string().min(1),
+      observedAt: IsoDateTimeSchema.nullable(),
+    })
+    .nullable(),
 });
 
 /**

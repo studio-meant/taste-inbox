@@ -168,7 +168,7 @@ def test_the_planning_brief_carries_the_question_and_asks_for_three_headings(
 def test_the_planning_brief_scrubs_a_secret_a_user_pasted_into_a_question(
     tmp_path: Path,
 ) -> None:
-    """The question is free text the user wrote. `_scrub` is the net under that."""
+    """The question is free text the user wrote. `scrub` is the net under that."""
 
     factory = library(tmp_path)
     with factory() as session:

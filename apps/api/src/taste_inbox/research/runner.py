@@ -16,6 +16,7 @@ money on a question the user might not want asked again.
 
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -36,11 +37,21 @@ REPORT_EVIDENCE = "research.report"
 BRIEF_EVIDENCE = "research.brief"
 SUGGESTION_EVIDENCE = "research.suggestion"
 
+#: Questions Nemotron read out of the report, as JSON. `provenance="inference"` and not
+#: `aiq`: a model wrote these, and the rules beside them were read off columns.
+MODEL_QUESTIONS_EVIDENCE = "lab.model_questions"
+
 STEPS = (
     ("context", "저장 이력에서 관심 맥락을 만든다"),
     ("brief", "조사 질문을 구성한다"),
     ("research", "NVIDIA AI-Q에 조사를 맡긴다"),
     ("propose", "행동 제안과 실행 계획을 만든다"),
+    # Last, and allowed to fail. The run's product is the report and the plan; widening
+    # the questions is enrichment, and `CLAUDE.md` §7 is explicit that a failed enrichment
+    # must not invalidate a successful collection. Done here rather than when the Lab
+    # renders because the Lab is a Server Component — a 0.7 s call on every navigation is
+    # 0.7 s the reader waits for, and this run already takes minutes.
+    ("widen", "Nemotron이 확인해볼 질문을 넓힌다"),
 )
 
 
@@ -114,13 +125,15 @@ def _claim(session: Session, job_id: str | None) -> Job | None:
     return job
 
 
-def _step(session: Session, job: Job, ordinal: int, state: str) -> None:
+def _step(session: Session, job: Job, ordinal: int, state: str, message: str | None = None) -> None:
     row = session.scalar(
         select(JobStep).where(JobStep.job_id == job.id, JobStep.ordinal == ordinal)
     )
     if row is None:
         return
     row.state = state
+    if message is not None:
+        row.message = message[:500]
     if state == "running":
         row.started_at = _now()
         job.current_step = row.label
@@ -137,7 +150,14 @@ def _finish(session: Session, job: Job, state: str) -> None:
 
 
 def _replace_evidence(
-    session: Session, *, item_id: str, kind: str, label: str, value: str, source_url: str | None
+    session: Session,
+    *,
+    item_id: str,
+    kind: str,
+    label: str,
+    value: str,
+    source_url: str | None,
+    provenance: str = "aiq",
 ) -> None:
     """One row per kind per item — the newest research answers, the older one goes.
 
@@ -156,7 +176,7 @@ def _replace_evidence(
             type=kind,
             label=label,
             value=value,
-            provenance="aiq",
+            provenance=provenance,
             source_url=source_url,
             observed_at=_now(),
         )
@@ -255,6 +275,9 @@ def run(
             source_url=subject.canonical_url,
         )
         _step(session, job, 3, "done")
+        session.commit()
+
+        _widen_questions(session, job, subject, report.report, suggestion)
         _finish(session, job, "succeeded")
         session.commit()
 
@@ -285,6 +308,87 @@ def run(
         )
 
 
+def _widen_questions(
+    session: Session, job: Job, subject: Any, report: str, suggestion: SuggestedAction
+) -> None:
+    """Ask Nemotron for questions the rules have no field for. Never fails the run.
+
+    The rules are computed first and handed over, so the model is asked to widen rather
+    than to repeat — and so a model that returns nothing usable leaves exactly the list
+    the product shipped with.
+
+    A failure is written onto the step with the endpoint's own words and the job still
+    succeeds. `docs/next_step/next_step_nemotron` §10: no silent fallback, and nothing may
+    report Nemotron as used when it was not.
+    """
+
+    from ..action import questions
+    from . import nim
+
+    _step(session, job, 4, "running")
+    try:
+        rules = questions.build(
+            kind=subject.kind,
+            title=subject.title,
+            platform=subject.platform,
+            context=subject.as_dict(),
+            has_research=True,
+            actionable=suggestion.actionable,
+        )
+        proposed = questions.propose_more(
+            title=subject.title,
+            kind=subject.kind,
+            canonical_url=subject.canonical_url,
+            report=report,
+            existing=rules,
+            terms=[term for term, _ in subject.recurring_terms],
+        )
+    except nim.NimUnavailable as error:
+        _step(session, job, 4, "failed", str(error))
+        session.commit()
+        return
+    except Exception as error:  # enrichment must not take the run down with it
+        _step(session, job, 4, "failed", f"{type(error).__name__}: {error}")
+        session.commit()
+        return
+
+    if not proposed:
+        _step(session, job, 4, "skipped", "Nemotron이 근거를 댄 질문을 내지 않았어요")
+        session.commit()
+        return
+
+    _replace_evidence(
+        session,
+        item_id=subject.item_id,
+        kind=MODEL_QUESTIONS_EVIDENCE,
+        label="Nemotron이 제안한 질문",
+        value=json.dumps(proposed, ensure_ascii=False),
+        source_url=None,
+        provenance="inference",
+    )
+    _step(session, job, 4, "done", f"{len(proposed)}개 추가")
+    session.commit()
+
+
+def model_questions(session: Session, item_id: str) -> list[dict[str, Any]]:
+    """What Nemotron proposed for this item, or nothing. Read on every Lab render."""
+
+    row = session.scalar(
+        select(Evidence).where(
+            Evidence.item_id == item_id, Evidence.type == MODEL_QUESTIONS_EVIDENCE
+        )
+    )
+    if row is None:
+        return []
+    try:
+        parsed = json.loads(row.value)
+    except json.JSONDecodeError:
+        return []
+    return (
+        [entry for entry in parsed if isinstance(entry, dict)] if isinstance(parsed, list) else []
+    )
+
+
 def latest(session: Session, item_id: str) -> dict[str, Any] | None:
     """What the last research run left on this item, for the Focus Canvas."""
 
@@ -310,11 +414,13 @@ def latest(session: Session, item_id: str) -> dict[str, Any] | None:
 
 __all__ = [
     "BRIEF_EVIDENCE",
+    "MODEL_QUESTIONS_EVIDENCE",
     "REPORT_EVIDENCE",
     "STEPS",
     "SUGGESTION_EVIDENCE",
     "ResearchOutcome",
     "latest",
+    "model_questions",
     "new_job_id",
     "open_job",
     "run",

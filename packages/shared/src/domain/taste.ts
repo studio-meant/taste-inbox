@@ -165,6 +165,16 @@ export const SuggestedQuestionSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
   because: z.string().min(1),
+  /**
+   * Which half of the hybrid wrote it.
+   *
+   * `rule` — a deterministic rule over the item's own fields (`action/questions.py`).
+   * A rule can only ask what a column supports, which is both its guarantee and its ceiling.
+   * `model` — Nemotron, reading the AI-Q report. It reaches questions no column implies,
+   * and it is held to the same `because` by a filter rather than by construction — so the
+   * screen says which one it is.
+   */
+  origin: z.enum(["rule", "model"]),
 });
 
 /**

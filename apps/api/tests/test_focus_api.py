@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from taste_inbox.api import background, focus
 from taste_inbox.api.app import app, get_session
 from taste_inbox.db.models import Job
-from taste_inbox.research import aiq_client
+from taste_inbox.research import aiq_client, nim
 from taste_inbox.sandbox import nemoclaw
 
 from .library import item_id, library, recorded_report, recorded_status
@@ -100,6 +100,10 @@ def sandbox(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 
 @pytest.fixture
 def recorded_aiq(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The widening step is deterministic here for the same reason it is in
+    # `test_research.py`: with no key it always takes its failure path, so the step list
+    # this file asserts does not depend on a developer's environment.
+    monkeypatch.delenv(nim.KEY_ENV, raising=False)
     monkeypatch.setattr(
         aiq_client,
         "research",
@@ -192,7 +196,9 @@ def test_research_answers_with_a_job_and_the_job_finishes(
     job = client.get(f"/api/jobs/{started['jobId']}").json()["data"]
     assert job["type"] == "research"
     assert job["state"] == "succeeded"
-    assert [step["state"] for step in job["steps"]] == ["done"] * 4
+    # Four done, then the Nemotron widening step, which has no key in this environment.
+    # The run succeeds regardless — that is the point of it being last.
+    assert [step["state"] for step in job["steps"]] == ["done"] * 4 + ["failed"]
 
     body = client.get(f"/api/focus/{subject}").json()["data"]
     assert body["research"]["report"] == recorded_report()

@@ -17,9 +17,11 @@ import styles from "./TasteQueryDock.module.css";
  * and a trial plan.
  *
  * It also fills the slot the reference draws above the dock and this product had to leave
- * empty — three suggestion chips. They are the item's own: each one is offered because
- * something in *this* row supports it, and the sentence saying which fact that is travels
- * with the chip as its accessible description (`action/questions.py`).
+ * empty — the suggestion chips. They come from two places and say which
+ * (`action/questions.py`): deterministic rules over the item's own fields, and Nemotron
+ * reading the AI-Q report for the questions no column implies. Both carry the fact that
+ * makes them askable; the model's carry a badge as well, because a rule's premise was
+ * checked against a column and a model's against a sentence.
  *
  * ── The asymmetry this component exists to keep ─────────────────────────────────────
  *
@@ -94,6 +96,16 @@ export function LabQueryDock({
               >
                 {suggestion.text}
                 <span id={`${suggestion.id}-why`} className={styles.suggestionWhy}>
+                  {/*
+                    Which half of the hybrid wrote it. A rule checked a column; Nemotron
+                    read the report and was held to naming its ground by a filter. Both
+                    say why they are here — the badge says how much that sentence is worth.
+                  */}
+                  {suggestion.origin === "model" ? (
+                    <span className={styles.suggestionBadge} lang="en">
+                      Nemotron
+                    </span>
+                  ) : null}
                   {suggestion.because}
                 </span>
               </button>

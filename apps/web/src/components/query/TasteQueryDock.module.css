@@ -383,3 +383,22 @@
 .resultError {
   color: var(--danger, #9b3a2f);
 }
+
+/*
+ * `Nemotron` on a chip a model proposed.
+ *
+ * Small and inline with the reason, not a colour on the chip itself: the two kinds of
+ * suggestion are equally offerable and differ only in how their `because` was arrived at.
+ * A coloured chip would make one look more authoritative than the other, which is exactly
+ * backwards — the rule is the one whose premise was checked against a column.
+ */
+.suggestionBadge {
+  margin-inline-end: 4px;
+  padding: 1px 5px;
+  border-radius: max(3px, 0.3cqw);
+  background: color-mix(in srgb, var(--orchid) 22%, var(--surface));
+  color: var(--accent-deep);
+  font-size: max(9px, 0.45cqw);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
