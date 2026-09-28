@@ -3,8 +3,9 @@
 # What a Taste Inbox trial may reach beyond the built-in presets.
 #
 # The shipped `github` preset opens github.com and api.github.com to `/usr/bin/git` only,
-# and `pypi` is already applied. This adds the two hosts a clone-and-build trial still
-# needs — release tarballs and raw files — and the tools that actually fetch them.
+# and `pypi` is already applied. This adds the hosts a clone-and-build trial still needs —
+# release tarballs, raw files, and the package index for the one installer path `pypi`
+# does not name — and the tools that actually fetch them.
 #
 # Endpoints *and* binaries both have to match for a request to leave the sandbox. That is
 # measured, not assumed: `curl` could not reach huggingface.co even though the host is
@@ -32,9 +33,26 @@ network_policies:
         port: 443
         tls: skip
         access: full
+      # The shipped `pypi` preset opens these two already — but only to interpreters and
+      # installers under `/usr`, `/usr/local` and `/sandbox/.venv`. The agent's own `uv`
+      # lives at `/sandbox/.local/bin/uv`, which is a path that preset does not name, so
+      # `pip install` through it was refused four times on a `treeverse/dvc` trial and
+      # twice on `debpalash/VoiceStudio` before that. Same hosts, one more real path.
+      - host: pypi.org
+        port: 443
+        access: full
+      - host: files.pythonhosted.org
+        port: 443
+        access: full
     binaries:
       - { path: /usr/bin/git }
       - { path: /usr/bin/curl }
       - { path: /usr/local/bin/curl }
       - { path: /usr/bin/python3* }
       - { path: /usr/local/bin/python3* }
+      # Where the sandbox's own Python tooling actually is. Measured from the refusals
+      # above, not assumed — `docs/FEASIBILITY.md` F4 is the same lesson about `curl`.
+      - { path: /sandbox/.local/bin/uv }
+      - { path: /sandbox/.local/bin/uvx }
+      - { path: /sandbox/.local/bin/pip* }
+      - { path: /sandbox/.local/bin/python3* }
