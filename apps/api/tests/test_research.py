@@ -281,6 +281,46 @@ def test_nemotron_widens_the_questions_and_every_one_names_its_ground(
         assert origins["이 코드가 내 환경에서 실제로 설치되고 돌아가나요?"] == "rule"
 
 
+def test_a_run_that_proposes_nothing_clears_what_the_last_one_left(
+    tmp_path: Path, recorded_aiq: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Questions may not outlive the report they were read from.
+
+    Measured on `treeverse/dvc`: a second research run replaced the report, its widening
+    proposed nothing usable, and the first run's three questions stayed on screen beside a
+    report they had never seen.
+    """
+
+    monkeypatch.setenv(nim.KEY_ENV, "nvapi-" + "x" * 20)
+    first = (
+        '[{"text": "CPU만으로도 되나요?", "because": "리포트가 GPU 경로만 문서화했다고 적었어요"}]'
+    )
+    answers = iter([first, "[]"])
+
+    def complete(prompt: str, **kwargs: Any) -> nim.NimAnswer:
+        return nim.NimAnswer(
+            text=next(answers),
+            model="m",
+            base_url=nim.DEFAULT_BASE_URL,
+            latency_seconds=0.5,
+            purpose="suggested_questions",
+        )
+
+    monkeypatch.setattr(nim, "complete", complete)
+
+    factory = library(tmp_path)
+    with factory() as session:
+        subject = item_id(session, VOICESTUDIO)
+
+        runner.run(session, subject)
+        assert [row["text"] for row in runner.model_questions(session, subject)] == [
+            "CPU만으로도 되나요?"
+        ]
+
+        runner.run(session, subject)
+        assert runner.model_questions(session, subject) == []
+
+
 def test_a_secret_pasted_into_a_report_does_not_reach_nemotron(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

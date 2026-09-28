@@ -149,6 +149,20 @@ def _finish(session: Session, job: Job, state: str) -> None:
     session.flush()
 
 
+def _clear_evidence(session: Session, *, item_id: str, kind: str) -> None:
+    """Drop one kind of evidence for one item. The first half of `_replace_evidence`.
+
+    Named on its own because a run that produces nothing still has to remove what the last
+    one left: absence is the correct answer, and the previous answer is not.
+    """
+
+    for row in session.scalars(
+        select(Evidence).where(Evidence.item_id == item_id, Evidence.type == kind)
+    ).all():
+        session.delete(row)
+    session.flush()
+
+
 def _replace_evidence(
     session: Session,
     *,
@@ -320,12 +334,21 @@ def _widen_questions(
     A failure is written onto the step with the endpoint's own words and the job still
     succeeds. `docs/next_step/next_step_nemotron` §10: no silent fallback, and nothing may
     report Nemotron as used when it was not.
+
+    **Whatever happens, the previous run's questions do not survive this one.** They were
+    read out of a report that has just been replaced, so leaving them would put questions
+    from yesterday's report under today's — which is how a screen ends up citing a
+    sentence that is no longer on it. Measured: a second run of `treeverse/dvc` proposed
+    nothing usable and the first run's three questions stayed on screen beside a report
+    they had never seen.
     """
 
     from ..action import questions
     from . import nim
 
     _step(session, job, 4, "running")
+    _clear_evidence(session, item_id=subject.item_id, kind=MODEL_QUESTIONS_EVIDENCE)
+    session.commit()
     try:
         rules = questions.build(
             kind=subject.kind,

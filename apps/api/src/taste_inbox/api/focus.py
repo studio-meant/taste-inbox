@@ -254,6 +254,11 @@ def payload(session: Session, item_id: str) -> dict[str, Any] | None:
                 context=context.as_dict() if context else None,
                 has_research=bool(research and research.get("report")),
                 actionable=built.actionable if built else None,
+                # The model's half, written by the research run that produced the report
+                # (`research/runner.py::_widen_questions`). Read from the row rather than
+                # generated here: the Lab is a Server Component, and a 0.7 s call on every
+                # navigation is 0.7 s the reader waits for.
+                extra=research_runner.model_questions(session, item_id),
             )
         ],
         "suggestion": suggestion,
