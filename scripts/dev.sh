@@ -80,13 +80,25 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-# The two NVIDIA settings the API needs, read from `.env` by name — and only those two.
-# Both are addresses, not secrets; the keys in the same file belong to the AI-Q process and
-# are never handed to this one. Without the first, research refuses to send rather than
-# guessing a port (`research/aiq_client.py`).
+# The NVIDIA settings the API needs, read from `.env` by name — and only these.
+#
+# Two are addresses. Without the first, research refuses to send rather than guessing a
+# port (`research/aiq_client.py`).
+#
+# `NVIDIA_API_KEY` is a secret, and it is here because of what changed on 2026-09-28: this
+# process used to reach NVIDIA only through AI-Q, which holds its own copy in its own
+# `deploy/.env` — so the line above this one used to say the keys were never handed to
+# this one. `research/nim.py` now calls the hosted NIM endpoint directly, for the
+# suggested questions and the reading of a finished trial, and a process that cannot
+# authenticate simply records "no key" on those steps and drops them. Still host-side: it
+# is never passed to the sandbox and never reaches the browser.
 env_value() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true; }
 AIQ_SERVER_URL="${AIQ_SERVER_URL:-$(env_value AIQ_SERVER_URL)}"
 NEMOCLAW_SANDBOX_NAME="${NEMOCLAW_SANDBOX_NAME:-$(env_value NEMOCLAW_SANDBOX_NAME)}"
+NVIDIA_API_KEY="${NVIDIA_API_KEY:-$(env_value NVIDIA_API_KEY)}"
+NVIDIA_NIM_BASE_URL="${NVIDIA_NIM_BASE_URL:-$(env_value NVIDIA_NIM_BASE_URL)}"
+NVIDIA_NIM_MODEL="${NVIDIA_NIM_MODEL:-$(env_value NVIDIA_NIM_MODEL)}"
+[[ -n "$NVIDIA_API_KEY" ]] || say "NVIDIA_API_KEY is not set — Nemotron steps will record that and be skipped."
 # Optional collector tokens: passed through to the collectors only, never shown anywhere
 # (Settings reports whether each is set). Public stars, likes and upvotes need neither.
 GITHUB_TOKEN="${GITHUB_TOKEN:-$(env_value GITHUB_TOKEN)}"
@@ -104,6 +116,9 @@ say "api  → ${API_URL}   (${DB_PATH##*/})"
   DATABASE_URL="sqlite:///${DB_PATH}" \
   AIQ_SERVER_URL="$AIQ_SERVER_URL" \
   NEMOCLAW_SANDBOX_NAME="$NEMOCLAW_SANDBOX_NAME" \
+  NVIDIA_API_KEY="$NVIDIA_API_KEY" \
+  NVIDIA_NIM_BASE_URL="$NVIDIA_NIM_BASE_URL" \
+  NVIDIA_NIM_MODEL="$NVIDIA_NIM_MODEL" \
   GITHUB_TOKEN="$GITHUB_TOKEN" \
   HF_TOKEN="$HF_TOKEN" \
   TASTE_INBOX_SCHEDULER=1 \
