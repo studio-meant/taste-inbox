@@ -54,6 +54,15 @@ const nextConfig: NextConfig = {
    * Development only — `next start` never applies it.
    */
   allowedDevOrigins: ["127.0.0.1"],
+  /**
+   * No route badge in the corner of the product.
+   *
+   * `pnpm dev` is how this app is run — there is no separate production start on this
+   * Mac — so the indicator sat bottom-left of every screen, including the ones recorded for
+   * the demo. Compile and runtime errors still surface with it off (Next's own docs for
+   * `devIndicators`); only the idle badge goes.
+   */
+  devIndicators: false,
   transpilePackages: ["@taste-inbox/ui", "@taste-inbox/shared"],
   typedRoutes: true,
   images: {
