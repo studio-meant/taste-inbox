@@ -23,8 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const payload = await getRepository().getFocus((await params).itemId);
   return {
-    title:
-      payload === null ? "Lab · Taste Inbox R&D" : `${payload.item.title} · Lab · Taste Inbox R&D`,
+    title: payload === null ? "Lab · Taste Inbox" : `${payload.item.title} · Lab · Taste Inbox`,
   };
 }
 

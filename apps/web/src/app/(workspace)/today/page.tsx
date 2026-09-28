@@ -8,7 +8,7 @@ import { WorkingQueuePanel } from "@/components/today/WorkingQueuePanel";
 import { getRepository } from "@/lib/repository";
 import styles from "@/components/today/Today.module.css";
 
-export const metadata: Metadata = { title: "Today · Taste Inbox R&D" };
+export const metadata: Metadata = { title: "Today · Taste Inbox" };
 
 /**
  * Today — PAGE_SPECIFICATIONS §5.2, IA §7.2, and the approved reference's `Today`

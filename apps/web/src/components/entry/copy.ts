@@ -12,13 +12,14 @@ import { APP_LOCALE } from "@/lib/format/datetime";
 /**
  * The product's name, as it is said out loud.
  *
- * `Taste Inbox R&D` since 2026-09-28. The `R&D` is not decoration: it names the scope this
- * build works in — the interest signals a person leaves on GitHub and Hugging Face — and
- * without it the splash reads as a taste app for music and clothes, which is what the tree
- * this one forked from was (`docs/PROVENANCE.md`). One constant, so the splash, the
- * greeting and the document title cannot disagree.
+ * `Taste Inbox`, the name the landing page and the onboarding eyebrow already use. It was
+ * `Taste Inbox R&D` for a day (2026-09-28) to keep the splash from reading as the music-and-
+ * clothes app this tree forked from (`docs/PROVENANCE.md`); the screens after it now say
+ * what the scope is — GitHub, Hugging Face, Inbox, Lab — so the suffix only made the app
+ * disagree with its own landing page. One constant, so the splash, the greeting and the
+ * document title cannot disagree.
  */
-export const PRODUCT_NAME = "Taste Inbox R&D";
+export const PRODUCT_NAME = "Taste Inbox";
 
 /**
  * The only name this product has.

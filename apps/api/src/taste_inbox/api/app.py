@@ -430,7 +430,7 @@ def lab_question_start(
 
     try:
         server_url = resolve_server()
-        target = describe_target(server_url)
+        target = describe_target(server_url, what="검증 설계 요청을")
         ensure_backend(server_url)
     except AiqUnavailable as error:
         raise ApiError(503, "aiq_unavailable", str(error), recoverable=True) from error

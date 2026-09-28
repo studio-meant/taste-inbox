@@ -479,6 +479,6 @@ describe("The scenic backdrop", () => {
     // hidden rather than announced a second time.
     const petals = container.querySelectorAll("span[aria-hidden='true'] > i");
     expect(petals).toHaveLength(4);
-    expect(screen.getAllByText("Taste Inbox R&D")).toHaveLength(1);
+    expect(screen.getAllByText("Taste Inbox")).toHaveLength(1);
   });
 });

@@ -1,4 +1,4 @@
-"""Official-API collectors for Taste Inbox R&D.
+"""Official-API collectors for Taste Inbox.
 
 Read-only, deterministic, no browser. Two surfaces — GitHub Stars and Hugging Face
 activity — both reached through documented JSON APIs over HTTPS.

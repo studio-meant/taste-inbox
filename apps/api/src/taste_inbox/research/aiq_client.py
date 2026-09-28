@@ -99,13 +99,17 @@ def resolve_server(url: str | None = None) -> str:
     return resolved.rstrip("/")
 
 
-def describe_target(url: str | None = None) -> str:
-    """The sentence the skill requires before any query is sent."""
+def describe_target(url: str | None = None, *, what: str = "조사 질의를") -> str:
+    """The sentence the skill requires before any query is sent.
+
+    `what` names what is going: a question's planning pass sends a 검증 설계 요청, not a
+    조사 질의, and the Lab printed the second for the first.
+    """
 
     resolved = resolve_server(url)
     local = urlsplit(resolved).hostname in ("localhost", "127.0.0.1", "::1")
     where = "이 기계" if local else "외부 서버"
-    return f"조사 질의를 {resolved} ({where}) 로 보냅니다."
+    return f"{what} {resolved} ({where}) 로 보냅니다."
 
 
 def _interpreter() -> str:

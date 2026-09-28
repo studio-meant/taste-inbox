@@ -61,7 +61,7 @@ export const DESTINATIONS: readonly Destination[] = [
      * The id stays `browse` because it keys the route matcher, the shortcut and every
      * test; the *label* is what a person reads, and this destination is not exploration in
      * general. It is where the R&D interest signals someone left on GitHub and Hugging
-     * Face gather and get connected — `Taste Inbox R&D → Inbox → Lab` is the product's own
+     * Face gather and get connected — `Taste Inbox → Inbox → Lab` is the product's own
      * structure, and `Browse` names none of it.
      */
     label: "Inbox",

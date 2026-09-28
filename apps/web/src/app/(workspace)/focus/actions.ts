@@ -60,7 +60,9 @@ export async function askLabQuestion(itemId: string, question: string): Promise<
     revalidate(itemId);
     return {
       ok: true,
-      message: `${started.target}에 이 질문의 검증 설계를 맡겼어요.`,
+      // `target` is already a sentence ("검증 설계 요청을 … 로 보냅니다."). Wrapping it as a
+      // noun printed "…보냅니다.에 이 질문의 검증 설계를 맡겼어요."
+      message: started.target,
       jobId: started.jobId,
     };
   } catch (error) {

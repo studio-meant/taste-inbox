@@ -14,11 +14,11 @@ import "./globals.css";
  */
 
 export const metadata: Metadata = {
-  title: "Taste Inbox R&D",
+  title: "Taste Inbox",
   description: "남긴 관심 신호를 다음 행동으로 연결하는 개인용 로컬 워크스페이스",
   // Local-first, single-user: nothing about this app should be indexed or shared.
   robots: { index: false, follow: false },
-  applicationName: "Taste Inbox R&D",
+  applicationName: "Taste Inbox",
 };
 
 export const viewport: Viewport = {

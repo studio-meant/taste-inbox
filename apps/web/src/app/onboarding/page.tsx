@@ -3,7 +3,7 @@ import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
 import { getRepository } from "@/lib/repository";
 import { completeOnboarding } from "./actions";
 
-export const metadata: Metadata = { title: "시작하기 · Taste Inbox R&D" };
+export const metadata: Metadata = { title: "시작하기 · Taste Inbox" };
 
 /**
  * `/onboarding` — the first screen of a fresh install (2026-09-28).

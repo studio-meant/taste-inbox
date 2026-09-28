@@ -25,7 +25,7 @@ import { getRepository } from "@/lib/repository";
 import { isRemoteReadOnly } from "@/lib/remote-mode";
 import styles from "@/components/collection/Board.module.css";
 
-export const metadata: Metadata = { title: "Inbox · Taste Inbox R&D" };
+export const metadata: Metadata = { title: "Inbox · Taste Inbox" };
 
 /**
  * Inbox — every signal a person left on GitHub and Hugging Face, and the links that connect
