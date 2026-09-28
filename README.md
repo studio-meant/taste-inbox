@@ -15,8 +15,10 @@ GitHub에서 별을 누르고 Hugging Face에서 좋아요를 누른 것들을 �
 → 결과 · 에이전트 보고 · 막힌 연결을 증거로 Focus Canvas에
 ```
 
-개인 데스크톱 제품 `taste-inbox`에서 갈라져 나왔다. 원본은 읽기 전용이다 — [`docs/PROVENANCE.md`](./docs/PROVENANCE.md).
-결정은 [`docs/DECISIONS.md`](./docs/DECISIONS.md), 설계는 [`docs/NVIDIA_HACKATHON_PLAN.md`](./docs/NVIDIA_HACKATHON_PLAN.md),
+개인 데스크톱 제품 `taste-inbox`에서 갈라져 나왔다. 원본은 읽기 전용이다.
+
+설치는 [`docs/BOOTSTRAP.md`](./docs/BOOTSTRAP.md), 구성은 [`docs/SYSTEM_ARCHITECTURE.md`](./docs/SYSTEM_ARCHITECTURE.md),
+자기 기계에서 에이전트를 돌리기 전에 읽을 것은 [`docs/SECURITY_BOUNDARIES.md`](./docs/SECURITY_BOUNDARIES.md),
 이 기계에서 실제로 확인한 것은 [`docs/FEASIBILITY.md`](./docs/FEASIBILITY.md).
 
 ## 무엇이 어디로 나가는가
@@ -110,5 +112,5 @@ pytest · 저장소 불변식. NVIDIA 런타임을 치는 테스트는 **기록�
 ## 하지 않는 것
 
 로그인 세션을 흉내 낸 HTML 수집, CAPTCHA·챌린지 우회, 자격증명 재사용, 호스트에서 README 명령 실행,
-사용자 승인 없는 실행, 샌드박스에 호스트 파일시스템 마운트, `0.0.0.0` 노출. 공개 배포 경계는
-[`docs/COMMUNITY_RELEASE.md`](./docs/COMMUNITY_RELEASE.md).
+사용자 승인 없는 실행, 샌드박스에 호스트 파일시스템 마운트, `0.0.0.0` 노출. 각 항목이 어디서 강제되는지는
+[`docs/SECURITY_BOUNDARIES.md`](./docs/SECURITY_BOUNDARIES.md).

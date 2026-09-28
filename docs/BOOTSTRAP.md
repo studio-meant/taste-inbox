@@ -106,8 +106,8 @@ print(policy.model_dump_json(indent=2, by_alias=True))
 "
 ```
 
-Every number is derived from what was just detected. Rules and rationale live in
-[`RESOURCE_POLICY_RESOLUTION.md`](./RESOURCE_POLICY_RESOLUTION.md).
+Every number is derived from what was just detected — see `config/resource-policy.example.yaml`
+for the shape and `apps/api/tests/test_policy_goldens.py` for the cases both languages agree on.
 
 To exercise a host you do not own, point the detector at a fixture:
 
@@ -152,8 +152,8 @@ TypeScript project. It is read, not extended.
 
 ## 8. What Phase 0 deliberately does not do
 
-Per [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) and `CLAUDE.md` §10, none of the
-following exists yet, and none of it should be added without working through the phases:
+None of the following exists yet, and none of it should be added without working through
+the phases:
 
 - any collector, browser profile, or real account access
 - the FastAPI application and HTTP endpoints (Phase 2)
