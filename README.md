@@ -21,7 +21,7 @@
 
 ## Demo
 
-<!-- 데모 영상: GitHub 첨부 영상으로 추가 예정 -->
+https://github.com/user-attachments/assets/0032f4b9-9d18-446c-bfc4-3efda0aac807
 
 ---
 
