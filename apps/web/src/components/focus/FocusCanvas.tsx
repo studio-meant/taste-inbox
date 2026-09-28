@@ -352,7 +352,7 @@ function ResearchPanel({ payload }: { readonly payload: FocusPayload }) {
           <ReportText text={research.report} className={styles.report} />
           {research.brief === null ? null : (
             <details className={styles.disclosure}>
-              <summary>이 기계를 떠난 질문 보기</summary>
+              <summary>보낸 질문 원문 보기</summary>
               <pre className={styles.pre}>{research.brief}</pre>
               {research.sourceUrl === null ? null : (
                 <p className={styles.footnote}>보낸 곳: {research.sourceUrl}</p>
@@ -604,13 +604,13 @@ function TrialPanel({ payload }: { readonly payload: FocusPayload }) {
               ))}
           </dl>
           {trial.transcript === null ? null : (
-            <details className={styles.disclosure} open={job?.state !== "succeeded"}>
+            <details className={styles.disclosure}>
               <summary>에이전트가 보고한 것</summary>
               <ReportText text={trial.transcript} className={styles.report} />
             </details>
           )}
           {trial.errorOutput === null ? null : (
-            <details className={styles.disclosure} open>
+            <details className={styles.disclosure}>
               <summary>샌드박스가 남긴 출력 (끝부분)</summary>
               <pre className={styles.pre}>{trial.errorOutput}</pre>
             </details>
